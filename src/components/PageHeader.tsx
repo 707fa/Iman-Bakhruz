@@ -12,7 +12,7 @@ export function PageHeader({ title, subtitle, action, className }: PageHeaderPro
   return (
     <div className={cn("flex flex-wrap items-start justify-between gap-4", className)}>
       <div className="space-y-2">
-        <h1 className="font-display text-4xl leading-tight text-charcoal dark:text-zinc-100">{title}</h1>
+        <h1 className="text-3xl font-bold leading-tight text-charcoal dark:text-zinc-100 sm:text-4xl">{title}</h1>
         <p className="max-w-2xl text-sm text-charcoal/65 dark:text-zinc-400 sm:text-base">{subtitle}</p>
       </div>
       {action}

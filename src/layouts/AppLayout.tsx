@@ -1,5 +1,6 @@
-﻿import { GraduationCap, LayoutDashboard, Trophy, UsersRound } from "lucide-react";
+import { GraduationCap, LayoutDashboard, Trophy, UsersRound } from "lucide-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { UserMenu } from "../components/UserMenu";
@@ -34,9 +35,7 @@ export function AppLayout() {
       { label: t("tabs.group"), href: "/student/group", icon: UsersRound },
       { label: t("tabs.global"), href: "/student/top", icon: Trophy },
     ],
-    teacher: [
-      { label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true },
-    ],
+    teacher: [{ label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true }],
   };
 
   const navItems = navMap[session.role];
@@ -45,17 +44,17 @@ export function AppLayout() {
   const profileHref = session.role === "student" ? "/profile" : "/teacher/profile";
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] text-charcoal dark:bg-[#0b0b0d] dark:text-zinc-100">
+    <div className="min-h-screen bg-[#f5f5f7] text-charcoal dark:bg-black dark:text-zinc-100">
       <div className="mx-auto grid min-h-screen max-w-[1700px] lg:grid-cols-[290px_1fr]">
         <aside className="hidden border-r border-burgundy-100/80 bg-white px-5 py-6 dark:border-zinc-800 dark:bg-zinc-950 lg:block">
-          <Link to={session.role === "student" ? "/student" : "/teacher"} className="inline-flex items-center gap-3">
-            <span className="grid h-12 w-12 place-content-center rounded-2xl bg-burgundy-700 text-sm font-bold tracking-[0.16em] text-white shadow-soft">
-              R
-            </span>
-            <div>
-              <p className="font-display text-3xl text-burgundy-800 dark:text-burgundy-300">{t("app.name")}</p>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("app.center")}</p>
-            </div>
+          <Link to={session.role === "student" ? "/student" : "/teacher"}>
+            <BrandLogo
+              title={t("app.name")}
+              subtitle={t("app.center")}
+              size="lg"
+              titleClassName="text-burgundy-800 dark:text-burgundy-300"
+              subtitleClassName="font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400"
+            />
           </Link>
 
           <div className="mt-6 rounded-2xl border border-burgundy-100 bg-gradient-to-br from-burgundy-700 to-burgundy-900 p-4 text-white">

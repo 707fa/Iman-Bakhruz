@@ -1,19 +1,14 @@
-﻿import { UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 import type { GroupDaysPattern } from "../types";
@@ -36,10 +31,7 @@ export function RegisterPage() {
   const [daysPattern, setDaysPattern] = useState<GroupDaysPattern>(dayPatterns[0] ?? "mwf");
 
   const groupTitles = useMemo(
-    () =>
-      Array.from(
-        new Set(state.groups.filter((group) => group.daysPattern === daysPattern).map((group) => group.title)),
-      ),
+    () => Array.from(new Set(state.groups.filter((group) => group.daysPattern === daysPattern).map((group) => group.title))),
     [state.groups, daysPattern],
   );
 
@@ -62,6 +54,11 @@ export function RegisterPage() {
 
     if (password !== confirmPassword) {
       setMessage({ key: "msg.registerPasswordMismatch" });
+      return;
+    }
+
+    if (!selectedGroupTitle || !time) {
+      setMessage({ key: "msg.registerNoSlots" });
       return;
     }
 
@@ -88,21 +85,36 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] p-4 dark:bg-[#0b0b0d] sm:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] p-4 dark:bg-black sm:p-8">
       <Card className="w-full max-w-2xl">
-        <CardHeader className="space-y-2">
-          <div className="flex items-center justify-end gap-2">
-            <LanguageSwitcher compact />
-            <ThemeToggle compact />
+        <CardHeader className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <BrandLogo
+              title={t("app.name")}
+              subtitle={t("app.center")}
+              size="md"
+              titleClassName="text-burgundy-800 dark:text-burgundy-300"
+            />
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher compact />
+              <ThemeToggle compact />
+            </div>
           </div>
-          <CardTitle className="text-3xl">{t("auth.registerTitle")}</CardTitle>
+          <CardTitle className="text-3xl font-bold">{t("auth.registerTitle")}</CardTitle>
           <CardDescription>{t("auth.registerSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="fullName">{t("auth.fullName")}</Label>
-              <Input id="fullName" value={fullName} onChange={(event) => setFullName(event.target.value)} required />
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                placeholder={t("auth.fullNamePlaceholder")}
+                autoComplete="name"
+                required
+              />
             </div>
 
             <div className="space-y-2">
@@ -113,6 +125,8 @@ export function RegisterPage() {
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 inputMode="tel"
+                autoComplete="tel"
+                placeholder={t("auth.phonePlaceholder")}
                 required
               />
             </div>
@@ -124,6 +138,8 @@ export function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                autoComplete="new-password"
+                placeholder={t("auth.passwordPlaceholder")}
                 required
               />
             </div>
@@ -135,6 +151,8 @@ export function RegisterPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
+                autoComplete="new-password"
+                placeholder={t("auth.confirmPasswordPlaceholder")}
                 required
               />
             </div>

@@ -107,11 +107,27 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
   }, [state]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    const syncNow = () => {
       setState((prev) => syncRankingsBySchedule(prev));
-    }, 60_000);
+    };
 
-    return () => window.clearInterval(timer);
+    syncNow();
+
+    // Lightweight check: ranking places can change only on weekly recalculation windows.
+    const timer = window.setInterval(syncNow, 5 * 60_000);
+    const onFocus = () => syncNow();
+    const onVisibilityChange = () => {
+      if (!document.hidden) syncNow();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   const currentStudent = useMemo(() => {
