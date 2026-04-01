@@ -1,0 +1,40 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@600;700&display=swap");
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Manrope", "Segoe UI", sans-serif;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+
+  --color-burgundy-50: #faedf1;
+  --color-burgundy-100: #f2d7df;
+  --color-burgundy-200: #e4b2c2;
+  --color-burgundy-300: #d488a3;
+  --color-burgundy-400: #bc5e82;
+  --color-burgundy-500: #a23a64;
+  --color-burgundy-600: #8e1f48;
+  --color-burgundy-700: #800020;
+  --color-burgundy-800: #600018;
+  --color-burgundy-900: #3f0010;
+
+  --color-charcoal: #131316;
+
+  --shadow-soft: 0 16px 34px -24px rgba(71, 9, 24, 0.45);
+  --shadow-lift: 0 34px 70px -30px rgba(71, 9, 24, 0.55);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply min-h-screen;
+  }
+
+  body {
+    @apply bg-[#f5f5f7] font-sans text-charcoal antialiased dark:bg-[#0b0b0d] dark:text-zinc-100;
+  }
+
+  * {
+    @apply border-burgundy-100/70 dark:border-zinc-800;
+  }
+}
