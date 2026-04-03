@@ -5,6 +5,7 @@ export interface RequestOptions {
   token?: string;
   body?: unknown;
   signal?: AbortSignal;
+  timeoutMs?: number;
 }
 
 export class ApiError extends Error {
@@ -30,6 +31,8 @@ async function parseJsonSafe(response: Response): Promise<unknown> {
   }
 }
 
+const DEFAULT_TIMEOUT_MS = 12000;
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -39,12 +42,38 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers.Authorization = `Bearer ${options.token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: options.method ?? "GET",
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    signal: options.signal,
-  });
+  const controller = new AbortController();
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  const handleAbort = () => controller.abort();
+  if (options.signal) {
+    if (options.signal.aborted) {
+      controller.abort();
+    } else {
+      options.signal.addEventListener("abort", handleAbort, { once: true });
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: options.method ?? "GET",
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError(408, { message: "Request timeout" }, "API request timeout");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+    if (options.signal) {
+      options.signal.removeEventListener("abort", handleAbort);
+    }
+  }
 
   const payload = await parseJsonSafe(response);
 
