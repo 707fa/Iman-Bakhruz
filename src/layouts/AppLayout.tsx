@@ -44,8 +44,8 @@ export function AppLayout() {
   const profileHref = session.role === "student" ? "/profile" : "/teacher/profile";
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] text-charcoal dark:bg-black dark:text-zinc-100">
-      <div className="mx-auto grid min-h-screen max-w-[1700px] lg:grid-cols-[290px_1fr]">
+    <div className="min-h-dvh bg-[#f5f5f7] text-charcoal dark:bg-black dark:text-zinc-100">
+      <div className="mx-auto grid min-h-dvh max-w-[1700px] lg:grid-cols-[290px_1fr]">
         <aside className="hidden border-r border-burgundy-100/80 bg-white px-5 py-6 dark:border-zinc-800 dark:bg-zinc-950 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto">
           <Link to={session.role === "student" ? "/student" : "/teacher"}>
             <BrandLogo
@@ -85,7 +85,7 @@ export function AppLayout() {
           </nav>
         </aside>
 
-        <div className="flex min-h-screen flex-col">
+        <div className="flex min-h-dvh flex-col">
           <header className="sticky top-0 z-40 border-b border-burgundy-100/70 bg-white/95 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
             <div className="flex min-h-16 flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6">
               <Link to={session.role === "student" ? "/student" : "/teacher"} className="inline-flex items-center gap-2">

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { PasswordField } from "../components/PasswordField";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -13,6 +14,7 @@ import { groups as scheduleGroups } from "../data/mockData";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
+import { formatUzPhoneInput } from "../lib/utils";
 import type { GroupDaysPattern } from "../types";
 
 export function RegisterPage() {
@@ -22,7 +24,7 @@ export function RegisterPage() {
   const { showToast } = useToast();
 
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(() => formatUzPhoneInput(""));
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const allowedGroupIds = useMemo(() => new Set(scheduleGroups.map((group) => group.id)), []);
@@ -134,7 +136,7 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] p-4 dark:bg-black sm:p-8">
+    <div className="flex min-h-dvh items-start justify-center bg-[#f6f6f8] p-4 pb-8 pt-5 dark:bg-black sm:min-h-screen sm:items-center sm:p-8">
       <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-3">
           <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
@@ -175,40 +177,44 @@ export function RegisterPage() {
                 id="phone"
                 type="tel"
                 value={phone}
-                onChange={(event) => setPhone(event.target.value)}
+                onChange={(event) => setPhone(formatUzPhoneInput(event.target.value))}
+                onFocus={() => setPhone((prev) => formatUzPhoneInput(prev))}
                 disabled={isSubmitting}
                 inputMode="tel"
                 autoComplete="tel"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                enterKeyHint="next"
                 placeholder={t("auth.phonePlaceholder")}
+                maxLength={17}
                 required
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">{t("auth.password")}</Label>
-              <Input
+              <PasswordField
                 id="password"
-                type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={setPassword}
                 disabled={isSubmitting}
                 autoComplete="new-password"
+                enterKeyHint="next"
                 placeholder={t("auth.passwordPlaceholder")}
-                required
               />
             </div>
 
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
-              <Input
+              <PasswordField
                 id="confirmPassword"
-                type="password"
                 value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
+                onChange={setConfirmPassword}
                 disabled={isSubmitting}
                 autoComplete="new-password"
+                enterKeyHint="done"
                 placeholder={t("auth.confirmPasswordPlaceholder")}
-                required
               />
             </div>
 

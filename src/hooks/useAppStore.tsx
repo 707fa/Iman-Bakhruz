@@ -287,16 +287,17 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
   function loginMock(payload: LoginPayload): ActionResult {
     const phone = toPhone(payload.phone);
+    const password = payload.password.trim();
     const authCollections = getAuthCollections(state);
     const student = authCollections.students.find((item) => toPhone(item.phone) === phone);
     const teacher = authCollections.teachers.find((item) => toPhone(item.phone) === phone);
 
-    if (student && student.password === payload.password) {
+    if (student && student.password === password) {
       setState((prev) => ({ ...withSeedData(prev), session: { role: "student", userId: student.id } }));
       return { ok: true, messageKey: "msg.loginStudent" };
     }
 
-    if (teacher && teacher.password === payload.password) {
+    if (teacher && teacher.password === password) {
       setState((prev) => ({ ...withSeedData(prev), session: { role: "teacher", userId: teacher.id } }));
       return { ok: true, messageKey: "msg.loginTeacher" };
     }
@@ -435,12 +436,12 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
   }
 
   async function login(payload: LoginPayload): Promise<ActionResult> {
-    if (DATA_PROVIDER_MODE === "api") {
-      const normalizedPayload: LoginPayload = {
-        phone: toPhone(payload.phone),
-        password: payload.password,
-      };
+    const normalizedPayload: LoginPayload = {
+      phone: toPhone(payload.phone),
+      password: payload.password.trim(),
+    };
 
+    if (DATA_PROVIDER_MODE === "api") {
       try {
         const auth = await platformApi.login(normalizedPayload);
         setApiToken(auth.token);

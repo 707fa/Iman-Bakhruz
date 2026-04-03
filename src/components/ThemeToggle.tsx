@@ -20,7 +20,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
       aria-label={t("ui.theme")}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-      {isDark ? t("ui.light") : t("ui.dark")}
+      {compact ? <span className="hidden sm:inline">{isDark ? t("ui.light") : t("ui.dark")}</span> : isDark ? t("ui.light") : t("ui.dark")}
     </Button>
   );
 }

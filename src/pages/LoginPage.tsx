@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { PasswordField } from "../components/PasswordField";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -12,6 +13,7 @@ import { Label } from "../components/ui/label";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
+import { formatUzPhoneInput } from "../lib/utils";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -19,7 +21,7 @@ export function LoginPage() {
   const { t } = useUi();
   const { showToast } = useToast();
 
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(() => formatUzPhoneInput(""));
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -44,7 +46,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen bg-[#f6f6f8] dark:bg-black lg:grid-cols-2">
+    <div className="grid min-h-dvh bg-[#f6f6f8] dark:bg-black lg:min-h-screen lg:grid-cols-2">
       <section className="relative hidden overflow-hidden bg-gradient-to-br from-burgundy-900 via-burgundy-800 to-burgundy-700 p-10 text-white lg:block">
         <div className="absolute right-8 top-8 z-20 flex items-center gap-2">
           <LanguageSwitcher compact />
@@ -73,7 +75,7 @@ export function LoginPage() {
         </div>
       </section>
 
-      <section className="flex items-center justify-center p-4 sm:p-8">
+      <section className="flex items-start justify-center p-4 pb-8 pt-5 sm:p-8 sm:pt-8 lg:items-center">
         <div className="w-full max-w-md space-y-4">
           <div className="flex min-w-0 items-center justify-between gap-2 lg:hidden">
             <BrandLogo
@@ -105,11 +107,17 @@ export function LoginPage() {
                       id="phone"
                       type="tel"
                       value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
+                      onChange={(event) => setPhone(formatUzPhoneInput(event.target.value))}
+                      onFocus={() => setPhone((prev) => formatUzPhoneInput(prev))}
                       disabled={isSubmitting}
                       inputMode="tel"
                       autoComplete="tel"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      enterKeyHint="next"
                       placeholder={t("auth.phonePlaceholder")}
+                      maxLength={17}
                       className="pl-10"
                       required
                     />
@@ -117,15 +125,14 @@ export function LoginPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">{t("auth.password")}</Label>
-                  <Input
+                  <PasswordField
                     id="password"
-                    type="password"
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={setPassword}
                     disabled={isSubmitting}
                     autoComplete="current-password"
+                    enterKeyHint="done"
                     placeholder={t("auth.passwordPlaceholder")}
-                    required
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>

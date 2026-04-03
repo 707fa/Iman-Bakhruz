@@ -29,7 +29,7 @@ export function LanguageSwitcher({ compact = false }: LanguageSwitcherProps) {
           type="button"
           onClick={() => setLocale(item)}
           className={cn(
-            "rounded-lg px-2 py-1 text-xs font-semibold transition sm:px-2.5",
+            "rounded-lg px-2 py-1.5 text-xs font-semibold transition sm:px-2.5 sm:py-1",
             item === locale
               ? "bg-burgundy-700 text-white"
               : "text-charcoal/70 hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-300 dark:hover:bg-zinc-800",
