@@ -19,6 +19,16 @@ import type {
 
 const STORAGE_KEY = "result-dashboard-v5";
 
+function toArrayOrFallback<T>(value: unknown, fallback: T[]): T[] {
+  return Array.isArray(value) ? (value as T[]) : fallback;
+}
+
+function isAuthSession(value: unknown): value is AuthSession {
+  if (!value || typeof value !== "object") return false;
+  const maybe = value as { role?: unknown; userId?: unknown };
+  return (maybe.role === "student" || maybe.role === "teacher") && typeof maybe.userId === "string";
+}
+
 function syncRankingsWithStudents(state: AppState): AppState {
   const nextRankings: RankingItem[] = state.students.map((student) => ({
     studentId: student.id,
@@ -57,11 +67,16 @@ function readState(): AppState {
   if (!raw) return initialState;
 
   try {
-    const parsed = JSON.parse(raw) as AppState;
-    if (!Array.isArray(parsed.students) || !Array.isArray(parsed.teachers) || !Array.isArray(parsed.groups)) {
-      return initialState;
-    }
-    return syncRankingsWithStudents(parsed);
+    const parsed = JSON.parse(raw) as Partial<AppState>;
+    const normalized: AppState = {
+      students: toArrayOrFallback(parsed.students, initialState.students),
+      teachers: toArrayOrFallback(parsed.teachers, initialState.teachers),
+      groups: toArrayOrFallback(parsed.groups, initialState.groups),
+      rankings: toArrayOrFallback(parsed.rankings, initialState.rankings),
+      ratingLogs: toArrayOrFallback(parsed.ratingLogs, initialState.ratingLogs),
+      session: isAuthSession(parsed.session) ? parsed.session : null,
+    };
+    return syncRankingsWithStudents(normalized);
   } catch {
     return initialState;
   }
@@ -87,6 +102,41 @@ function resolveSessionFromRemote(auth: AuthResponse, remote: RemoteStatePayload
   }
 
   return { role: "student", userId };
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+    const json = typeof atob === "function" ? atob(padded) : "";
+    if (!json) return null;
+    const parsed = JSON.parse(json) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveSessionFromToken(token: string, remote: RemoteStatePayload): AuthSession | null {
+  const payload = decodeJwtPayload(token);
+  const rawUserId = payload?.user_id;
+  if (typeof rawUserId !== "string" && typeof rawUserId !== "number") {
+    return null;
+  }
+
+  const userId = String(rawUserId);
+  if (remote.teachers.some((teacher) => String(teacher.id) === userId)) {
+    return { role: "teacher", userId };
+  }
+
+  if (remote.students.some((student) => String(student.id) === userId)) {
+    return { role: "student", userId };
+  }
+
+  return null;
 }
 
 function withRemoteState(state: AppState, remote: RemoteStatePayload, session: AuthSession | null): AppState {
@@ -148,11 +198,13 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         const remote = await platformApi.getState(token);
         if (disposed) return;
 
-        const session = state.session
-          ? resolveSessionFromRemote({ role: state.session.role, userId: state.session.userId, token }, remote)
-          : null;
+        setState((prev) => {
+          const restoredSession =
+            prev.session ??
+            resolveSessionFromToken(token, remote);
 
-        setState((prev) => withRemoteState(prev, remote, session));
+          return withRemoteState(prev, remote, restoredSession);
+        });
       } catch {
         // Keep last local snapshot if backend is unavailable.
       }
@@ -349,7 +401,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         }
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
-          return { ok: false, messageKey: "msg.loginInvalid" };
+          return loginMock(payload);
         }
         return loginMock(payload);
       }

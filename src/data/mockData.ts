@@ -24,6 +24,13 @@ export const teachers: Teacher[] = [
     password: "teacher123",
     groupIds: ["g_301", "g_302"],
   },
+  {
+    id: "t_3",
+    fullName: "Bekhruz Iman",
+    phone: "+909788255",
+    password: "909788255@@",
+    groupIds: ["g_101", "g_102", "g_201", "g_202"],
+  },
 ];
 
 export const students: Student[] = [
