@@ -6,7 +6,6 @@ import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 import { getGroupPlace, getGroupTop } from "../lib/ranking";
-import { getClassStartTime, getPrimaryRecalcDayPatternKey, isTodayRecalcBeforeClass } from "../lib/schedule";
 
 export function StudentGroupPage() {
   const { state, currentStudent } = useAppStore();
@@ -19,13 +18,6 @@ export function StudentGroupPage() {
   const groupPlace = getGroupPlace(state, currentStudent.id, currentStudent.groupId);
 
   const daysLabel = group ? t(`days.${group.daysPattern}`) : "-";
-  const recalcDay = group ? t(getPrimaryRecalcDayPatternKey(group.daysPattern)) : "";
-  const classStart = group ? getClassStartTime(group.time) : "";
-  const recalcHint = group
-    ? isTodayRecalcBeforeClass(group)
-      ? t("rating.recalcToday", { time: classStart })
-      : t("rating.recalcRule", { day: recalcDay, time: classStart })
-    : "";
 
   return (
     <div className="space-y-6">
@@ -68,11 +60,6 @@ export function StudentGroupPage() {
             </div>
           </div>
 
-          {group ? (
-            <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              {recalcHint}
-            </p>
-          ) : null}
         </CardContent>
       </Card>
 

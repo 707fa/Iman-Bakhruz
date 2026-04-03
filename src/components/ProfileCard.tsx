@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 interface ProfileCardProps {
   student: Student;
   group?: Group;
-  onPhotoUpload: (imageUrl: string) => void;
+  onPhotoUpload: (imageUrl: string) => void | Promise<void>;
 }
 
 export function ProfileCard({ student, group, onPhotoUpload }: ProfileCardProps) {
@@ -57,7 +57,7 @@ export function ProfileCard({ student, group, onPhotoUpload }: ProfileCardProps)
               reader.onload = () => {
                 const result = reader.result;
                 if (typeof result === "string") {
-                  onPhotoUpload(result);
+                  void onPhotoUpload(result);
                 }
               };
               reader.readAsDataURL(file);

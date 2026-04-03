@@ -15,7 +15,7 @@ import type { GroupDaysPattern } from "../types";
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { state, registerStudent } = useAppStore();
+  const { state, registerStudent, isApiMode } = useAppStore();
   const { t } = useUi();
 
   const [fullName, setFullName] = useState("");
@@ -46,42 +46,56 @@ export function RegisterPage() {
   );
 
   const [time, setTime] = useState(availableTimes[0] ?? "");
+  const [manualGroupTitle, setManualGroupTitle] = useState("");
+  const [manualTime, setManualTime] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [message, setMessage] = useState<{ key: string; params?: Record<string, string | number> } | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
 
     if (password !== confirmPassword) {
       setMessage({ key: "msg.registerPasswordMismatch" });
       return;
     }
 
-    if (!selectedGroupTitle || !time) {
+    const finalGroupTitle = isApiMode ? manualGroupTitle.trim() || selectedGroupTitle : selectedGroupTitle;
+    const finalTime = isApiMode ? manualTime.trim() || time : time;
+
+    if (!finalGroupTitle || !finalTime) {
       setMessage({ key: "msg.registerNoSlots" });
       return;
     }
 
     const targetGroup = state.groups.find(
-      (group) => group.title === selectedGroupTitle && group.time === time && group.daysPattern === daysPattern,
+      (group) => group.title === finalGroupTitle && group.time === finalTime && group.daysPattern === daysPattern,
     );
 
-    if (!targetGroup) {
+    if (!isApiMode && !targetGroup) {
       setMessage({ key: "msg.registerGroupInvalid" });
       return;
     }
 
-    const result = registerStudent({
-      fullName,
-      phone,
-      password,
-      groupId: targetGroup.id,
-      time,
-      daysPattern,
-    });
+    setIsSubmitting(true);
+    try {
+      const result = await registerStudent({
+        fullName,
+        phone,
+        password,
+        confirmPassword,
+        groupId: targetGroup?.id ?? finalGroupTitle,
+        groupTitle: finalGroupTitle,
+        time: finalTime,
+        daysPattern,
+      });
 
-    setMessage({ key: result.messageKey, params: result.messageParams });
-    if (result.ok) navigate("/student");
+      setMessage({ key: result.messageKey, params: result.messageParams });
+      if (result.ok) navigate("/student");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -111,6 +125,7 @@ export function RegisterPage() {
                 id="fullName"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
+                disabled={isSubmitting}
                 placeholder={t("auth.fullNamePlaceholder")}
                 autoComplete="name"
                 required
@@ -124,6 +139,7 @@ export function RegisterPage() {
                 type="tel"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
+                disabled={isSubmitting}
                 inputMode="tel"
                 autoComplete="tel"
                 placeholder={t("auth.phonePlaceholder")}
@@ -138,6 +154,7 @@ export function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                disabled={isSubmitting}
                 autoComplete="new-password"
                 placeholder={t("auth.passwordPlaceholder")}
                 required
@@ -151,6 +168,7 @@ export function RegisterPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
+                disabled={isSubmitting}
                 autoComplete="new-password"
                 placeholder={t("auth.confirmPasswordPlaceholder")}
                 required
@@ -161,6 +179,7 @@ export function RegisterPage() {
               <Label>{t("auth.days")}</Label>
               <Select
                 value={daysPattern}
+                disabled={isSubmitting}
                 onValueChange={(value) => {
                   const nextPattern = value as GroupDaysPattern;
                   setDaysPattern(nextPattern);
@@ -186,6 +205,7 @@ export function RegisterPage() {
               <Label>{t("auth.group")}</Label>
               <Select
                 value={selectedGroupTitle}
+                disabled={isSubmitting}
                 onValueChange={(value) => {
                   setSelectedGroupTitle(value);
                   const firstTime =
@@ -204,11 +224,19 @@ export function RegisterPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {isApiMode ? (
+                <Input
+                  value={manualGroupTitle}
+                  onChange={(event) => setManualGroupTitle(event.target.value)}
+                  disabled={isSubmitting}
+                  placeholder={t("auth.groupManualPlaceholder")}
+                />
+              ) : null}
             </div>
 
             <div className="space-y-2 sm:col-span-2">
               <Label>{t("auth.time")}</Label>
-              <Select value={time} onValueChange={setTime}>
+              <Select value={time} onValueChange={setTime} disabled={isSubmitting}>
                 <SelectTrigger>
                   <SelectValue placeholder={t("auth.selectTime")} />
                 </SelectTrigger>
@@ -220,11 +248,19 @@ export function RegisterPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {isApiMode ? (
+                <Input
+                  value={manualTime}
+                  onChange={(event) => setManualTime(event.target.value)}
+                  disabled={isSubmitting}
+                  placeholder={t("auth.timeManualPlaceholder")}
+                />
+              ) : null}
             </div>
 
-            <Button type="submit" className="sm:col-span-2">
+            <Button type="submit" className="sm:col-span-2" disabled={isSubmitting}>
               <UserPlus className="mr-2 h-4 w-4" />
-              {t("auth.registerButton")}
+              {isSubmitting ? `${t("auth.registerButton")}...` : t("auth.registerButton")}
             </Button>
           </form>
 

@@ -1,4 +1,4 @@
-﻿import { CalendarDays, ChevronLeft, Clock3, Sparkles } from "lucide-react";
+﻿import { ChevronLeft, Clock3, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -9,8 +9,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
-import { getGroupTop } from "../lib/ranking";
-import { getClassStartTime, getPrimaryRecalcDayPatternKey, isTodayRecalcBeforeClass } from "../lib/schedule";
+import { getGroupTopLive } from "../lib/ranking";
 
 export function TeacherGroupPage() {
   const { id } = useParams();
@@ -27,15 +26,8 @@ export function TeacherGroupPage() {
     ? state.students.filter((student) => student.groupId === group.id).sort((a, b) => b.points - a.points)
     : [];
 
-  const top = hasAccess ? getGroupTop(state, group!.id, 10) : [];
+  const top = hasAccess ? getGroupTopLive(state, group!.id, 10) : [];
   const daysLabel = group ? t(`days.${group.daysPattern}`) : "";
-  const recalcDay = group ? t(getPrimaryRecalcDayPatternKey(group.daysPattern)) : "";
-  const classStart = group ? getClassStartTime(group.time) : "";
-  const recalcHint = group
-    ? isTodayRecalcBeforeClass(group)
-      ? t("rating.recalcToday", { time: classStart })
-      : t("rating.recalcRule", { day: recalcDay, time: classStart })
-    : "";
 
   return (
     <div className="space-y-6">
@@ -60,17 +52,6 @@ export function TeacherGroupPage() {
           ) : null
         }
       />
-
-      {group ? (
-        <Card>
-          <CardContent className="p-4">
-            <p className="inline-flex items-center gap-2 rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              <CalendarDays className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
-              {recalcHint}
-            </p>
-          </CardContent>
-        </Card>
-      ) : null}
 
       {group && !hasAccess ? (
         <Card>
@@ -97,8 +78,10 @@ export function TeacherGroupPage() {
 
                   <ScoreActions
                     onSelect={(action) => {
-                      const result = applyScore(student.id, group.id, action);
-                      setMessage({ key: result.messageKey, params: result.messageParams });
+                      void (async () => {
+                        const result = await applyScore(student.id, group.id, action);
+                        setMessage({ key: result.messageKey, params: result.messageParams });
+                      })();
                     }}
                   />
                 </CardContent>

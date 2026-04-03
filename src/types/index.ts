@@ -69,7 +69,9 @@ export interface RegisterPayload {
   fullName: string;
   phone: string;
   password: string;
+  confirmPassword?: string;
   groupId: string;
+  groupTitle?: string;
   time: string;
   daysPattern: GroupDaysPattern;
 }

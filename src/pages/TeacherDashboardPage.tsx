@@ -7,7 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
-import { getGlobalTop } from "../lib/ranking";
+import { getGlobalTopLive } from "../lib/ranking";
 
 export function TeacherDashboardPage() {
   const { state, currentTeacher } = useAppStore();
@@ -28,7 +28,7 @@ export function TeacherDashboardPage() {
   const studentsCount = teacherStudents.length;
   const ratingsCount = state.ratingLogs.filter((log) => log.teacherId === currentTeacher.id).length;
 
-  const globalTop = getGlobalTop(state, 10);
+  const globalTop = getGlobalTopLive(state, 10);
 
   return (
     <div className="space-y-6">

@@ -11,15 +11,28 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
+import {
+  API_HINT_STUDENT_PASSWORD,
+  API_HINT_STUDENT_PHONE,
+  API_HINT_TEACHER_PASSWORD,
+  API_HINT_TEACHER_PHONE,
+} from "../lib/env";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login, state } = useAppStore();
+  const { login, state, isApiMode } = useAppStore();
   const { t } = useUi();
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<{ key: string; params?: Record<string, string | number> } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const teacherHint = API_HINT_TEACHER_PHONE && API_HINT_TEACHER_PASSWORD
+    ? `${API_HINT_TEACHER_PHONE} / ${API_HINT_TEACHER_PASSWORD}`
+    : null;
+  const studentHint = API_HINT_STUDENT_PHONE && API_HINT_STUDENT_PASSWORD
+    ? `${API_HINT_STUDENT_PHONE} / ${API_HINT_STUDENT_PASSWORD}`
+    : null;
 
   useEffect(() => {
     if (!state.session) return;
@@ -27,22 +40,29 @@ export function LoginPage() {
     else navigate("/student");
   }, [state.session, navigate]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = login({ phone, password });
-    setMessage({ key: result.messageKey, params: result.messageParams });
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = await login({ phone, password });
+      setMessage({ key: result.messageKey, params: result.messageParams });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <div className="grid min-h-screen bg-[#f6f6f8] dark:bg-black lg:grid-cols-2">
       <section className="relative hidden overflow-hidden bg-gradient-to-br from-burgundy-900 via-burgundy-800 to-burgundy-700 p-10 text-white lg:block">
-        <div className="absolute right-8 top-8 flex items-center gap-2">
+        <div className="absolute right-8 top-8 z-20 flex items-center gap-2">
           <LanguageSwitcher compact />
           <ThemeToggle compact />
         </div>
 
-        <div className="absolute -left-24 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -left-24 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
 
         <div className="relative">
           <BrandLogo
@@ -94,6 +114,7 @@ export function LoginPage() {
                       type="tel"
                       value={phone}
                       onChange={(event) => setPhone(event.target.value)}
+                      disabled={isSubmitting}
                       inputMode="tel"
                       autoComplete="tel"
                       placeholder={t("auth.phonePlaceholder")}
@@ -109,14 +130,15 @@ export function LoginPage() {
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    disabled={isSubmitting}
                     autoComplete="current-password"
                     placeholder={t("auth.passwordPlaceholder")}
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
                   <LogIn className="mr-2 h-4 w-4" />
-                  {t("auth.loginButton")}
+                  {isSubmitting ? `${t("auth.loginButton")}...` : t("auth.loginButton")}
                 </Button>
               </form>
 
@@ -131,11 +153,20 @@ export function LoginPage() {
                   <Building2 className="h-3.5 w-3.5 text-burgundy-600" />
                   {t("auth.demoUsers")}
                 </p>
-                <p>{t("auth.demoTeacherLabel")}: +998901111111 / teacher123</p>
-                <p>{t("auth.demoStudentLabel")}: +998903000001 / student123</p>
+                {isApiMode ? (
+                  <>
+                    {teacherHint ? <p>{t("auth.demoTeacherLabel")}: {teacherHint}</p> : <p>{t("auth.apiUsersHint")}</p>}
+                    {studentHint ? <p>{t("auth.demoStudentLabel")}: {studentHint}</p> : null}
+                  </>
+                ) : (
+                  <>
+                    <p>{t("auth.demoTeacherLabel")}: +998901111111 / teacher123</p>
+                    <p>{t("auth.demoStudentLabel")}: +998903000001 / student123</p>
+                  </>
+                )}
                 <p className="mt-1 inline-flex items-center gap-1 text-burgundy-700 dark:text-burgundy-300">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  {t("auth.safeMode")}
+                  {isApiMode ? t("auth.apiMode") : t("auth.safeMode")}
                 </p>
               </div>
 

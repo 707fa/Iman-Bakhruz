@@ -18,7 +18,13 @@ interface UiContextValue extends UiState {
 function readUiState(): UiState {
   if (typeof window === "undefined") return { locale: "ru", theme: "light" };
 
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return { locale: "ru", theme: "light" };
+  }
+
   if (!raw) return { locale: "ru", theme: "light" };
 
   try {
@@ -33,7 +39,11 @@ function readUiState(): UiState {
 
 function saveUiState(state: UiState) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage errors (private mode, restricted storage, etc).
+  }
 }
 
 const UiContext = createContext<UiContextValue | undefined>(undefined);
@@ -48,7 +58,11 @@ export function UiProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
+    const body = document.body;
     root.classList.toggle("dark", state.theme === "dark");
+    body.classList.toggle("dark", state.theme === "dark");
+    root.setAttribute("data-theme", state.theme);
+    body.setAttribute("data-theme", state.theme);
     root.style.colorScheme = state.theme;
   }, [state.theme]);
 

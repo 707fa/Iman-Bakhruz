@@ -1,10 +1,14 @@
 ﻿import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
 import { initialState } from "../data/mockData";
-import { isTodayRecalcBeforeClass } from "../lib/schedule";
+import { DATA_PROVIDER_MODE } from "../lib/env";
 import { makeId, toPhone } from "../lib/utils";
+import { ApiError } from "../services/api/http";
+import { platformApi, toAppStatePayload, type AuthResponse, type RemoteStatePayload } from "../services/api/platformApi";
+import { clearApiToken, getApiToken, setApiToken } from "../services/tokenStorage";
 import type {
   ActionResult,
   AppState,
+  AuthSession,
   LoginPayload,
   RankingItem,
   RegisterPayload,
@@ -15,47 +19,29 @@ import type {
 
 const STORAGE_KEY = "result-dashboard-v5";
 
-function syncRankingsBySchedule(state: AppState): AppState {
-  const now = new Date();
-  const groupsToRecalc = new Set(
-    state.groups.filter((group) => isTodayRecalcBeforeClass(group, now)).map((group) => group.id),
-  );
+function syncRankingsWithStudents(state: AppState): AppState {
+  const nextRankings: RankingItem[] = state.students.map((student) => ({
+    studentId: student.id,
+    fullName: student.fullName,
+    groupId: student.groupId,
+    points: student.points,
+    avatarUrl: student.avatarUrl,
+  }));
 
-  if (!groupsToRecalc.size) {
-    return state;
-  }
-
-  let hasChanges = false;
-
-  const nextRankings = state.rankings.map((rank) => {
-    if (!groupsToRecalc.has(rank.groupId)) {
-      return rank;
-    }
-
-    const student = state.students.find((item) => item.id === rank.studentId);
-    if (!student) return rank;
-
-    const nextRank: RankingItem = {
-      ...rank,
-      fullName: student.fullName,
-      groupId: student.groupId,
-      points: student.points,
-      avatarUrl: student.avatarUrl,
-    };
-
-    if (
-      nextRank.fullName !== rank.fullName ||
-      nextRank.groupId !== rank.groupId ||
-      nextRank.points !== rank.points ||
-      nextRank.avatarUrl !== rank.avatarUrl
-    ) {
-      hasChanges = true;
-    }
-
-    return nextRank;
-  });
-
-  if (!hasChanges) {
+  if (
+    nextRankings.length === state.rankings.length &&
+    nextRankings.every((next, index) => {
+      const current = state.rankings[index];
+      return (
+        current &&
+        current.studentId === next.studentId &&
+        current.fullName === next.fullName &&
+        current.groupId === next.groupId &&
+        current.points === next.points &&
+        current.avatarUrl === next.avatarUrl
+      );
+    })
+  ) {
     return state;
   }
 
@@ -75,7 +61,7 @@ function readState(): AppState {
     if (!Array.isArray(parsed.students) || !Array.isArray(parsed.teachers) || !Array.isArray(parsed.groups)) {
       return initialState;
     }
-    return syncRankingsBySchedule(parsed);
+    return syncRankingsWithStudents(parsed);
   } catch {
     return initialState;
   }
@@ -86,15 +72,58 @@ function saveState(state: AppState) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function buildSessionFromAuth(auth: AuthResponse): AuthSession {
+  return {
+    role: auth.role === "teacher" ? "teacher" : "student",
+    userId: String(auth.userId),
+  };
+}
+
+function resolveSessionFromRemote(auth: AuthResponse, remote: RemoteStatePayload): AuthSession {
+  const userId = String(auth.userId);
+
+  if (remote.teachers.some((teacher) => String(teacher.id) === userId)) {
+    return { role: "teacher", userId };
+  }
+
+  return { role: "student", userId };
+}
+
+function withRemoteState(state: AppState, remote: RemoteStatePayload, session: AuthSession | null): AppState {
+  return syncRankingsWithStudents(toAppStatePayload(remote, session ?? state.session));
+}
+
+function extractApiMessage(payload: unknown): string {
+  if (!payload) return "";
+
+  if (typeof payload === "string") {
+    return payload;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload.map((item) => extractApiMessage(item)).join(" ").trim();
+  }
+
+  if (typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+    const direct = [record.message, record.error, record.detail].map((item) => extractApiMessage(item)).join(" ").trim();
+    if (direct) return direct;
+    return Object.values(record).map((item) => extractApiMessage(item)).join(" ").trim();
+  }
+
+  return "";
+}
+
 interface StoreValue {
   state: AppState;
   currentStudent: Student | null;
   currentTeacher: Teacher | null;
-  login: (payload: LoginPayload) => ActionResult;
-  registerStudent: (payload: RegisterPayload) => ActionResult;
+  isApiMode: boolean;
+  login: (payload: LoginPayload) => Promise<ActionResult>;
+  registerStudent: (payload: RegisterPayload) => Promise<ActionResult>;
   logout: () => void;
-  updateAvatar: (fileUrl: string) => void;
-  applyScore: (studentId: string, groupId: string, action: ScoreAction) => ActionResult;
+  updateAvatar: (fileUrl: string) => Promise<void>;
+  applyScore: (studentId: string, groupId: string, action: ScoreAction) => Promise<ActionResult>;
 }
 
 const StoreContext = createContext<StoreValue | undefined>(undefined);
@@ -107,26 +136,32 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
   }, [state]);
 
   useEffect(() => {
-    const syncNow = () => {
-      setState((prev) => syncRankingsBySchedule(prev));
+    if (DATA_PROVIDER_MODE !== "api") return;
+
+    const token = getApiToken();
+    if (!token) return;
+
+    let disposed = false;
+
+    const syncFromApi = async () => {
+      try {
+        const remote = await platformApi.getState(token);
+        if (disposed) return;
+
+        const session = state.session
+          ? resolveSessionFromRemote({ role: state.session.role, userId: state.session.userId, token }, remote)
+          : null;
+
+        setState((prev) => withRemoteState(prev, remote, session));
+      } catch {
+        // Keep last local snapshot if backend is unavailable.
+      }
     };
 
-    syncNow();
-
-    // Lightweight check: ranking places can change only on weekly recalculation windows.
-    const timer = window.setInterval(syncNow, 5 * 60_000);
-    const onFocus = () => syncNow();
-    const onVisibilityChange = () => {
-      if (!document.hidden) syncNow();
-    };
-
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibilityChange);
+    void syncFromApi();
 
     return () => {
-      window.clearInterval(timer);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      disposed = true;
     };
   }, []);
 
@@ -142,7 +177,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return state.teachers.find((teacher) => teacher.id === session.userId) ?? null;
   }, [state.session, state.teachers]);
 
-  function login(payload: LoginPayload): ActionResult {
+  function loginMock(payload: LoginPayload): ActionResult {
     const phone = toPhone(payload.phone);
     const student = state.students.find((item) => toPhone(item.phone) === phone);
     const teacher = state.teachers.find((item) => toPhone(item.phone) === phone);
@@ -160,7 +195,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return { ok: false, messageKey: "msg.loginInvalid" };
   }
 
-  function registerStudent(payload: RegisterPayload): ActionResult {
+  function registerStudentMock(payload: RegisterPayload): ActionResult {
     const fullName = payload.fullName.trim();
     const phone = toPhone(payload.phone);
 
@@ -218,11 +253,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     };
   }
 
-  function logout() {
-    setState((prev) => ({ ...prev, session: null }));
-  }
-
-  function updateAvatar(fileUrl: string) {
+  function updateAvatarMock(fileUrl: string) {
     if (!state.session) return;
 
     if (state.session.role === "student") {
@@ -246,7 +277,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     }));
   }
 
-  function applyScore(studentId: string, groupId: string, action: ScoreAction): ActionResult {
+  function applyScoreMock(studentId: string, groupId: string, action: ScoreAction): ActionResult {
     if (!state.session || state.session.role !== "teacher") {
       return { ok: false, messageKey: "msg.scoreOnlyTeacher" };
     }
@@ -283,10 +314,203 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         ],
       };
 
-      return syncRankingsBySchedule(nextState);
+      return syncRankingsWithStudents(nextState);
     });
 
     return { ok: true, messageKey: "msg.scoreUpdated" };
+  }
+
+  async function login(payload: LoginPayload): Promise<ActionResult> {
+    if (DATA_PROVIDER_MODE === "api") {
+      const normalizedPayload: LoginPayload = {
+        phone: toPhone(payload.phone),
+        password: payload.password,
+      };
+
+      try {
+        const auth = await platformApi.login(normalizedPayload);
+        setApiToken(auth.token);
+
+        try {
+          const remote = await platformApi.getState(auth.token);
+          const nextSession = resolveSessionFromRemote(auth, remote);
+          setState((prev) => withRemoteState(prev, remote, nextSession));
+          return {
+            ok: true,
+            messageKey: nextSession.role === "teacher" ? "msg.loginTeacher" : "msg.loginStudent",
+          };
+        } catch {
+          const nextSession = buildSessionFromAuth(auth);
+          setState((prev) => ({ ...prev, session: nextSession }));
+          return {
+            ok: true,
+            messageKey: nextSession.role === "teacher" ? "msg.loginTeacher" : "msg.loginStudent",
+          };
+        }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          return { ok: false, messageKey: "msg.loginInvalid" };
+        }
+        return loginMock(payload);
+      }
+    }
+
+    return loginMock(payload);
+  }
+
+  async function registerStudent(payload: RegisterPayload): Promise<ActionResult> {
+    if (DATA_PROVIDER_MODE === "api") {
+      const normalizedPayload: RegisterPayload = {
+        ...payload,
+        phone: toPhone(payload.phone),
+      };
+
+      try {
+        const auth = await platformApi.register(normalizedPayload);
+        setApiToken(auth.token);
+
+        try {
+          const remote = await platformApi.getState(auth.token);
+          const nextSession = resolveSessionFromRemote(auth, remote);
+          setState((prev) => withRemoteState(prev, remote, nextSession));
+          return {
+            ok: true,
+            messageKey: "msg.registerSuccess",
+            messageParams: {
+              group: normalizedPayload.groupTitle ?? normalizedPayload.groupId,
+              time: normalizedPayload.time,
+            },
+          };
+        } catch {
+          const nextSession = buildSessionFromAuth(auth);
+          setState((prev) => ({ ...prev, session: nextSession }));
+          return {
+            ok: true,
+            messageKey: "msg.registerSuccess",
+            messageParams: {
+              group: normalizedPayload.groupTitle ?? normalizedPayload.groupId,
+              time: normalizedPayload.time,
+            },
+          };
+        }
+      } catch (error) {
+        if (error instanceof ApiError) {
+          const message = extractApiMessage(error.payload).toLowerCase();
+
+          if (error.status === 409) {
+            return { ok: false, messageKey: "msg.registerPhoneUsed" };
+          }
+
+          if (
+            message.includes("phone") ||
+            message.includes("number") ||
+            message.includes("телефон") ||
+            message.includes("номер") ||
+            message.includes("raqam")
+          ) {
+            return { ok: false, messageKey: "msg.registerPhoneUsed" };
+          }
+
+          if (
+            message.includes("confirm") ||
+            message.includes("match") ||
+            message.includes("совпад") ||
+            message.includes("mos")
+          ) {
+            return { ok: false, messageKey: "msg.registerPasswordMismatch" };
+          }
+
+          if (
+            message.includes("password") &&
+            (message.includes("short") ||
+              message.includes("min") ||
+              message.includes("least") ||
+              message.includes("длин") ||
+              message.includes("kamida"))
+          ) {
+            return { ok: false, messageKey: "msg.registerPasswordShort" };
+          }
+
+          if (
+            message.includes("group") ||
+            message.includes("class") ||
+            message.includes("груп") ||
+            message.includes("guruh")
+          ) {
+            return { ok: false, messageKey: "msg.registerGroupInvalid" };
+          }
+
+          if (error.status === 400 || error.status === 422) {
+            return { ok: false, messageKey: "msg.registerInvalidData" };
+          }
+        }
+        return registerStudentMock(payload);
+      }
+    }
+
+    return registerStudentMock(payload);
+  }
+
+  function logout() {
+    if (DATA_PROVIDER_MODE === "api") {
+      const token = getApiToken();
+      clearApiToken();
+      if (token) {
+        void platformApi.logout(token).catch(() => {
+          // No-op: local logout should still complete.
+        });
+      }
+    }
+
+    setState((prev) => ({ ...prev, session: null }));
+  }
+
+  async function updateAvatar(fileUrl: string): Promise<void> {
+    if (!state.session) return;
+
+    if (DATA_PROVIDER_MODE === "api") {
+      const token = getApiToken();
+      if (!token) {
+        updateAvatarMock(fileUrl);
+        return;
+      }
+
+      try {
+        await platformApi.updateAvatar(token, fileUrl);
+        const remote = await platformApi.getState(token);
+        setState((prev) => withRemoteState(prev, remote, prev.session));
+      } catch {
+        updateAvatarMock(fileUrl);
+      }
+
+      return;
+    }
+
+    updateAvatarMock(fileUrl);
+  }
+
+  async function applyScore(studentId: string, groupId: string, action: ScoreAction): Promise<ActionResult> {
+    if (!state.session || state.session.role !== "teacher") {
+      return { ok: false, messageKey: "msg.scoreOnlyTeacher" };
+    }
+
+    if (DATA_PROVIDER_MODE === "api") {
+      const token = getApiToken();
+      if (!token) {
+        return applyScoreMock(studentId, groupId, action);
+      }
+
+      try {
+        await platformApi.applyScore(token, studentId, groupId, action);
+        const remote = await platformApi.getState(token);
+        setState((prev) => withRemoteState(prev, remote, prev.session));
+        return { ok: true, messageKey: "msg.scoreUpdated" };
+      } catch {
+        return applyScoreMock(studentId, groupId, action);
+      }
+    }
+
+    return applyScoreMock(studentId, groupId, action);
   }
 
   const value = useMemo<StoreValue>(
@@ -294,6 +518,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       state,
       currentStudent,
       currentTeacher,
+      isApiMode: DATA_PROVIDER_MODE === "api",
       login,
       registerStudent,
       logout,
