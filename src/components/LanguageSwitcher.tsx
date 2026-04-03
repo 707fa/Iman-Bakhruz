@@ -10,10 +10,29 @@ const labels: Record<Locale, string> = {
 
 interface LanguageSwitcherProps {
   compact?: boolean;
+  mode?: "full" | "single";
 }
 
-export function LanguageSwitcher({ compact = false }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ compact = false, mode = "full" }: LanguageSwitcherProps) {
   const { locale, setLocale, t } = useUi();
+  const currentIndex = localeOrder.indexOf(locale);
+  const nextLocale = localeOrder[(currentIndex + 1) % localeOrder.length];
+
+  if (mode === "single") {
+    return (
+      <button
+        type="button"
+        onClick={() => setLocale(nextLocale)}
+        className={cn(
+          "inline-flex h-9 min-w-12 items-center justify-center rounded-xl border border-burgundy-200 bg-white/90 px-3 text-xs font-semibold shadow-sm transition hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-200 dark:hover:bg-zinc-800",
+          compact && "h-8 min-w-10 px-2.5",
+        )}
+        aria-label={`${t("ui.language")}: ${labels[locale]}`}
+      >
+        {labels[locale]}
+      </button>
+    );
+  }
 
   return (
     <div

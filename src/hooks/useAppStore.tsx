@@ -288,6 +288,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
   function loginMock(payload: LoginPayload): ActionResult {
     const phone = toPhone(payload.phone);
     const password = payload.password.trim();
+    if (!phone) {
+      return { ok: false, messageKey: "msg.phoneInvalid" };
+    }
     const authCollections = getAuthCollections(state);
     const student = authCollections.students.find((item) => toPhone(item.phone) === phone);
     const teacher = authCollections.teachers.find((item) => toPhone(item.phone) === phone);
@@ -310,6 +313,10 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     const authCollections = getAuthCollections(seeded);
     const fullName = payload.fullName.trim();
     const phone = toPhone(payload.phone);
+
+    if (!phone) {
+      return { ok: false, messageKey: "msg.phoneInvalid" };
+    }
 
     if (fullName.length < 3) {
       return { ok: false, messageKey: "msg.registerInvalidName" };
@@ -441,6 +448,10 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       password: payload.password.trim(),
     };
 
+    if (!normalizedPayload.phone) {
+      return { ok: false, messageKey: "msg.phoneInvalid" };
+    }
+
     if (DATA_PROVIDER_MODE === "api") {
       try {
         const auth = await platformApi.login(normalizedPayload);
@@ -479,6 +490,10 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         ...payload,
         phone: toPhone(payload.phone),
       };
+
+      if (!normalizedPayload.phone) {
+        return { ok: false, messageKey: "msg.phoneInvalid" };
+      }
 
       try {
         const auth = await platformApi.register(normalizedPayload);

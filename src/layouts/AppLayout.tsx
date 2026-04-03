@@ -86,8 +86,8 @@ export function AppLayout() {
         </aside>
 
         <div className="flex min-h-dvh flex-col">
-          <header className="sticky top-0 z-40 border-b border-burgundy-100/70 bg-white/95 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
-            <div className="flex min-h-16 flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6">
+          <header className="fixed inset-x-0 top-0 z-50 border-b border-burgundy-100/70 bg-white/95 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 lg:sticky lg:top-0 lg:z-40">
+            <div className="mx-auto flex min-h-16 max-w-[1700px] items-center justify-between gap-2 px-3 py-[max(0.5rem,env(safe-area-inset-top))] sm:px-6 lg:py-2">
               <Link to={session.role === "student" ? "/student" : "/teacher"} className="inline-flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-burgundy-700 dark:text-burgundy-300" />
                 <span className="max-w-[11rem] truncate text-xs font-semibold text-charcoal/70 dark:text-zinc-200 sm:max-w-none sm:text-sm">
@@ -95,20 +95,26 @@ export function AppLayout() {
                 </span>
               </Link>
 
-              <div className="flex items-center gap-2">
-                <LanguageSwitcher compact />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="sm:hidden">
+                  <LanguageSwitcher compact mode="single" />
+                </div>
+                <div className="hidden sm:block">
+                  <LanguageSwitcher compact />
+                </div>
                 <ThemeToggle compact />
                 <UserMenu fullName={userName} avatarUrl={avatar} profileHref={profileHref} onLogout={logout} />
               </div>
             </div>
           </header>
 
-          <div className="flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:pb-6">
+          <div className="flex-1 p-4 pb-24 pt-[84px] sm:p-6 sm:pb-24 sm:pt-[88px] lg:pb-6 lg:pt-0">
             <Outlet />
           </div>
 
-          <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-burgundy-100/70 bg-white/95 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_-20px_rgba(71,9,24,0.45)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
-            <div className={cn("grid gap-2", navItems.length > 1 ? "grid-cols-3" : "grid-cols-1")}>
+          <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-burgundy-100/70 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_-20px_rgba(71,9,24,0.45)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
+            <div className="mx-auto max-w-3xl">
+              <div className={cn("grid gap-2", navItems.length > 1 ? "grid-cols-3" : "grid-cols-1")}>
               {navItems.map((item) => {
                 const active = isItemActive(location.pathname, item);
                 return (
@@ -116,7 +122,7 @@ export function AppLayout() {
                     key={`bottom-${item.label}`}
                     to={item.href}
                     className={cn(
-                      "inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-semibold transition",
+                      "inline-flex min-h-12 touch-manipulation flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-semibold transition active:scale-[0.98]",
                       active
                         ? "bg-burgundy-700 text-white"
                         : "text-charcoal/70 hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white",
@@ -127,6 +133,7 @@ export function AppLayout() {
                   </Link>
                 );
               })}
+              </div>
             </div>
           </nav>
         </div>
