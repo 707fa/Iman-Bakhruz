@@ -86,7 +86,7 @@ export function AppLayout() {
         </aside>
 
         <div className="flex min-h-dvh flex-col">
-          <header className="fixed inset-x-0 top-0 z-50 border-b border-burgundy-100/70 bg-white/95 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 lg:sticky lg:top-0 lg:z-40">
+          <header className="fixed inset-x-0 top-0 z-50 border-b border-burgundy-100/70 bg-white/95 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
             <div className="mx-auto flex min-h-16 max-w-[1700px] items-center justify-between gap-2 px-3 py-[max(0.5rem,env(safe-area-inset-top))] sm:px-6 lg:py-2">
               <Link to={session.role === "student" ? "/student" : "/teacher"} className="inline-flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-burgundy-700 dark:text-burgundy-300" />
@@ -108,7 +108,7 @@ export function AppLayout() {
             </div>
           </header>
 
-          <div className="flex-1 p-4 pb-24 pt-[84px] sm:p-6 sm:pb-24 sm:pt-[88px] lg:pb-6 lg:pt-0">
+          <div className="flex-1 p-4 pb-24 pt-[84px] sm:p-6 sm:pb-24 sm:pt-[88px] lg:pb-6 lg:pt-[88px]">
             <Outlet />
           </div>
 
