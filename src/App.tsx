@@ -1,13 +1,16 @@
 import { AppStoreProvider } from "./hooks/useAppStore";
+import { ToastProvider } from "./hooks/useToast";
 import { UiProvider } from "./hooks/useUi";
 import { AppRouter } from "./routes/AppRouter";
 
 function App() {
   return (
     <UiProvider>
-      <AppStoreProvider>
-        <AppRouter />
-      </AppStoreProvider>
+      <ToastProvider>
+        <AppStoreProvider>
+          <AppRouter />
+        </AppStoreProvider>
+      </ToastProvider>
     </UiProvider>
   );
 }

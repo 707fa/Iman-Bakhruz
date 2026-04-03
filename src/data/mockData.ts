@@ -24,9 +24,9 @@ export const teachers: Teacher[] = [
   },
   {
     id: "t_2",
-    fullName: "Sardor Raxmatov",
-    phone: "+998902222222",
-    password: "teacher123",
+    fullName: "Фаррух Ахроров",
+    phone: "+998978778177",
+    password: "alex2024",
     groupIds: ["g_104", "g_105", "g_106", "g_203", "g_204", "g_205"],
   },
   {
@@ -38,7 +38,16 @@ export const teachers: Teacher[] = [
   },
 ];
 
-export const students: Student[] = [];
+export const students: Student[] = [
+  {
+    id: "s_1",
+    fullName: "Фаррух Ахроров",
+    phone: "+998978778177",
+    password: "alex2024m",
+    groupId: "g_101",
+    points: 0,
+  },
+];
 
 export const rankings: RankingItem[] = students.map((student) => ({
   studentId: student.id,

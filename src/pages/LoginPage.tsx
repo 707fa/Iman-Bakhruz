@@ -10,16 +10,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAppStore } from "../hooks/useAppStore";
+import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { login, state } = useAppStore();
   const { t } = useUi();
+  const { showToast } = useToast();
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<{ key: string; params?: Record<string, string | number> } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -35,7 +36,8 @@ export function LoginPage() {
     setIsSubmitting(true);
     try {
       const result = await login({ phone, password });
-      setMessage({ key: result.messageKey, params: result.messageParams });
+      const text = t(result.messageKey, result.messageParams);
+      showToast({ message: text, tone: result.ok ? "success" : "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -131,12 +133,6 @@ export function LoginPage() {
                   {isSubmitting ? `${t("auth.loginButton")}...` : t("auth.loginButton")}
                 </Button>
               </form>
-
-              {message ? (
-                <p className="mt-4 rounded-xl bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:bg-burgundy-900/40 dark:text-burgundy-200">
-                  {t(message.key, message.params)}
-                </p>
-              ) : null}
 
               <p className="mt-5 text-center text-sm text-charcoal/65 dark:text-zinc-400">
                 {t("auth.noAccount")}{" "}

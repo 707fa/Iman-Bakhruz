@@ -63,7 +63,7 @@ export function StudentGroupPage() {
         </CardContent>
       </Card>
 
-      <RankingList title={t("student.myGroupTop")} items={groupTop} groups={state.groups} currentUserId={currentStudent.id} />
+      <RankingList title={t("student.myGroupTop")} items={groupTop} groups={state.groups} currentUserId={currentStudent.id} showMeta={false} />
     </div>
   );
 }

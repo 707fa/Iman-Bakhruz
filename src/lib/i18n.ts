@@ -29,6 +29,7 @@ const RU: Dictionary = {
   "ui.student": "Ученик",
   "ui.teacher": "Учитель",
   "ui.choose": "Выбрать",
+  "ui.noData": "Пока данных нет",
   "menu.profile": "Профиль",
 
   "auth.heroTitle": "Единая система рейтинга учеников",
@@ -37,6 +38,7 @@ const RU: Dictionary = {
   "auth.loginSubtitle": "Войдите по номеру телефона и паролю",
   "auth.loginButton": "Войти",
   "auth.registerLink": "Регистрация",
+  "auth.quickLogin": "Быстрый вход",
   "auth.noAccount": "Нет аккаунта?",
   "auth.haveAccount": "Уже есть аккаунт?",
   "auth.registerTitle": "Регистрация ученика",
@@ -146,6 +148,14 @@ const RU: Dictionary = {
   "msg.scoreStudentNotFound": "Ученик не найден в выбранной группе.",
   "msg.scoreUpdated": "Баллы обновлены.",
   "msg.serverUnavailable": "Сервер временно недоступен. Проверьте подключение API.",
+
+  "public.openTop": "Открытый рейтинг",
+  "public.badge": "Public Rating",
+  "public.title": "Рейтинг учеников",
+  "public.subtitle": "Топ учеников открыт для всех. Личные данные и детали профиля доступны только самому ученику и учителю.",
+  "public.privacy": "Публично показывается только позиция и баллы. Личные детали защищены.",
+  "public.topList": "Общий топ (публичный)",
+  "public.privateAccess": "Для просмотра личного профиля и данных группы войдите в аккаунт.",
 };
 
 const UZ: Dictionary = {
@@ -170,6 +180,7 @@ const UZ: Dictionary = {
   "ui.student": "O'quvchi",
   "ui.teacher": "O'qituvchi",
   "ui.choose": "Tanlang",
+  "ui.noData": "Hozircha ma'lumot yo'q",
   "menu.profile": "Profil",
 
   "auth.heroTitle": "O'quvchilar reytingining yagona tizimi",
@@ -178,6 +189,7 @@ const UZ: Dictionary = {
   "auth.loginSubtitle": "Telefon raqam va parol orqali kiring",
   "auth.loginButton": "Kirish",
   "auth.registerLink": "Ro'yxatdan o'tish",
+  "auth.quickLogin": "Tez kirish",
   "auth.noAccount": "Akkaunt yo'qmi?",
   "auth.haveAccount": "Akkaunt bormi?",
   "auth.registerTitle": "O'quvchini ro'yxatdan o'tkazish",
@@ -287,6 +299,14 @@ const UZ: Dictionary = {
   "msg.scoreStudentNotFound": "Tanlangan guruhda o'quvchi topilmadi.",
   "msg.scoreUpdated": "Ballar yangilandi.",
   "msg.serverUnavailable": "Server vaqtincha ishlamayapti. API ulanishini tekshiring.",
+
+  "public.openTop": "Ochiq reyting",
+  "public.badge": "Public Rating",
+  "public.title": "O'quvchilar reytingi",
+  "public.subtitle": "Top hamma uchun ochiq. Shaxsiy ma'lumotlar va profil tafsilotlari faqat o'quvchi va o'qituvchiga ko'rinadi.",
+  "public.privacy": "Ochiq sahifada faqat o'rin va ballar ko'rsatiladi. Shaxsiy ma'lumotlar himoyalangan.",
+  "public.topList": "Umumiy top (ochiq)",
+  "public.privateAccess": "Shaxsiy profil va guruh ma'lumotlari uchun akkauntga kiring.",
 };
 
 const EN: Dictionary = {
@@ -311,6 +331,7 @@ const EN: Dictionary = {
   "ui.student": "Student",
   "ui.teacher": "Teacher",
   "ui.choose": "Choose",
+  "ui.noData": "No data yet",
   "menu.profile": "Profile",
 
   "auth.heroTitle": "Unified Student Ranking System",
@@ -319,6 +340,7 @@ const EN: Dictionary = {
   "auth.loginSubtitle": "Login with phone number and password",
   "auth.loginButton": "Sign In",
   "auth.registerLink": "Register",
+  "auth.quickLogin": "Quick Login",
   "auth.noAccount": "No account?",
   "auth.haveAccount": "Already have an account?",
   "auth.registerTitle": "Student Registration",
@@ -428,6 +450,14 @@ const EN: Dictionary = {
   "msg.scoreStudentNotFound": "Student not found in this group.",
   "msg.scoreUpdated": "Scores updated.",
   "msg.serverUnavailable": "Server is temporarily unavailable. Check API connection.",
+
+  "public.openTop": "Public Top",
+  "public.badge": "Public Rating",
+  "public.title": "Student Ranking",
+  "public.subtitle": "Top students are visible to everyone. Personal details are accessible only to the student and the teacher.",
+  "public.privacy": "Only rank and points are published. Personal details remain private.",
+  "public.topList": "Global Top (Public)",
+  "public.privateAccess": "Login to view private profile and group details.",
 };
 
 export const dictionaries: Record<Locale, Dictionary> = {

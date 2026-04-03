@@ -6,7 +6,7 @@ const labels: Record<Locale, string> = {
   ru: "RU",
   uz: "UZ",
   en: "EN",
-};
+}; 
 
 interface LanguageSwitcherProps {
   compact?: boolean;

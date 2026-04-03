@@ -31,7 +31,6 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
-
       <Route element={<PublicOnlyGuard />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

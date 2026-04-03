@@ -35,7 +35,7 @@ export function StudentTopPage() {
         </CardContent>
       </Card>
 
-      <RankingList title={t("student.globalTop")} items={globalTop} groups={state.groups} currentUserId={currentStudent.id} />
+      <RankingList title={t("student.globalTop")} items={globalTop} groups={state.groups} currentUserId={currentStudent.id} showMeta={false} />
     </div>
   );
 }

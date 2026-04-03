@@ -1,5 +1,4 @@
 ﻿import { ChevronLeft, Clock3, Sparkles } from "lucide-react";
-import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { ScoreActions } from "../components/ScoreActions";
@@ -8,6 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
+import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 import { getGroupTopLive } from "../lib/ranking";
 
@@ -15,7 +15,7 @@ export function TeacherGroupPage() {
   const { id } = useParams();
   const { state, currentTeacher, applyScore } = useAppStore();
   const { t } = useUi();
-  const [message, setMessage] = useState<{ key: string; params?: Record<string, string | number> } | null>(null);
+  const { showToast } = useToast();
 
   if (!currentTeacher) return null;
 
@@ -80,7 +80,10 @@ export function TeacherGroupPage() {
                     onSelect={(action) => {
                       void (async () => {
                         const result = await applyScore(student.id, group.id, action);
-                        setMessage({ key: result.messageKey, params: result.messageParams });
+                        showToast({
+                          message: t(result.messageKey, result.messageParams),
+                          tone: result.ok ? "success" : "error",
+                        });
                       })();
                     }}
                   />
@@ -108,12 +111,6 @@ export function TeacherGroupPage() {
                   </div>
                 ))}
               </div>
-
-              {message ? (
-                <p className="mt-4 rounded-xl bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:bg-burgundy-900/40 dark:text-burgundy-200">
-                  {t(message.key, message.params)}
-                </p>
-              ) : null}
             </CardContent>
           </Card>
         </div>

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import type { Group, RankingItem } from "../types";
+import { useUi } from "../hooks/useUi";
 import { RankingCard } from "./RankingCard";
 
 interface RankingListProps {
@@ -7,9 +8,11 @@ interface RankingListProps {
   items: RankingItem[];
   groups?: Group[];
   currentUserId?: string;
+  showMeta?: boolean;
 }
 
-export function RankingList({ title, items, groups = [], currentUserId }: RankingListProps) {
+export function RankingList({ title, items, groups = [], currentUserId, showMeta = true }: RankingListProps) {
+  const { t } = useUi();
   const mapped = items.map((item) => {
     const group = groups.find((entry) => entry.id === item.groupId);
     return {
@@ -24,9 +27,15 @@ export function RankingList({ title, items, groups = [], currentUserId }: Rankin
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {mapped.map((item, index) => (
-          <RankingCard key={item.studentId} item={item} rank={index + 1} currentUserId={currentUserId} />
-        ))}
+        {mapped.length === 0 ? (
+          <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            {t("ui.noData")}
+          </p>
+        ) : (
+          mapped.map((item, index) => (
+            <RankingCard key={item.studentId} item={item} rank={index + 1} currentUserId={currentUserId} showMeta={showMeta} />
+          ))
+        )}
       </CardContent>
     </Card>
   );

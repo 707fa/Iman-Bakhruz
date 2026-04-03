@@ -101,34 +101,34 @@ export function AppLayout() {
                 <UserMenu fullName={userName} avatarUrl={avatar} profileHref={profileHref} onLogout={logout} />
               </div>
             </div>
-
-            <nav className="overflow-x-auto border-t border-burgundy-100/70 px-3 py-2 dark:border-zinc-800 lg:hidden">
-              <div className="flex min-w-max items-center gap-2">
-                {navItems.map((item) => {
-                  const active = isItemActive(location.pathname, item);
-                  return (
-                    <Link
-                      key={`mobile-${item.label}`}
-                      to={item.href}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition",
-                        active
-                          ? "bg-burgundy-700 text-white"
-                          : "bg-white text-charcoal/70 hover:bg-burgundy-50 hover:text-burgundy-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white",
-                      )}
-                    >
-                      <item.icon className="h-3.5 w-3.5" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </nav>
           </header>
 
-          <div className="flex-1 p-4 sm:p-6">
+          <div className="flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:pb-6">
             <Outlet />
           </div>
+
+          <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-burgundy-100/70 bg-white/95 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_-20px_rgba(71,9,24,0.45)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
+            <div className={cn("grid gap-2", navItems.length > 1 ? "grid-cols-3" : "grid-cols-1")}>
+              {navItems.map((item) => {
+                const active = isItemActive(location.pathname, item);
+                return (
+                  <Link
+                    key={`bottom-${item.label}`}
+                    to={item.href}
+                    className={cn(
+                      "inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-semibold transition",
+                      active
+                        ? "bg-burgundy-700 text-white"
+                        : "text-charcoal/70 hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white",
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
         </div>
       </div>
     </div>

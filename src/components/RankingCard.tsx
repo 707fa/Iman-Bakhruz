@@ -7,6 +7,7 @@ interface RankingCardProps {
   item: RankingItem;
   rank: number;
   currentUserId?: string;
+  showMeta?: boolean;
 }
 
 function medal(rank: number): string {
@@ -16,7 +17,7 @@ function medal(rank: number): string {
   return `${rank}.`;
 }
 
-export function RankingCard({ item, rank, currentUserId }: RankingCardProps) {
+export function RankingCard({ item, rank, currentUserId, showMeta = true }: RankingCardProps) {
   const isCurrent = item.studentId === currentUserId;
   const isTop3 = rank <= 3;
 
@@ -34,7 +35,7 @@ export function RankingCard({ item, rank, currentUserId }: RankingCardProps) {
         <UserAvatar fullName={item.fullName} avatarUrl={item.avatarUrl} size="sm" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-charcoal dark:text-zinc-100">{item.fullName}</p>
-          <p className="truncate text-xs text-charcoal/55 dark:text-zinc-400">{item.groupId}</p>
+          {showMeta ? <p className="truncate text-xs text-charcoal/55 dark:text-zinc-400">{item.groupId}</p> : null}
         </div>
       </div>
 

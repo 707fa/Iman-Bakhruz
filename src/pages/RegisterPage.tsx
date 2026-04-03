@@ -11,6 +11,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { groups as scheduleGroups } from "../data/mockData";
 import { useAppStore } from "../hooks/useAppStore";
+import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 import type { GroupDaysPattern } from "../types";
 
@@ -18,6 +19,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const { state, registerStudent } = useAppStore();
   const { t } = useUi();
+  const { showToast } = useToast();
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -57,8 +59,6 @@ export function RegisterPage() {
   const [time, setTime] = useState(availableTimes[0] ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [message, setMessage] = useState<{ key: string; params?: Record<string, string | number> } | null>(null);
-
   useEffect(() => {
     if (dayPatterns.length === 0) return;
     if (dayPatterns.includes(daysPattern)) return;
@@ -90,12 +90,12 @@ export function RegisterPage() {
     if (isSubmitting) return;
 
     if (password !== confirmPassword) {
-      setMessage({ key: "msg.registerPasswordMismatch" });
+      showToast({ message: t("msg.registerPasswordMismatch"), tone: "error" });
       return;
     }
 
     if (!selectedGroupTitle || !time) {
-      setMessage({ key: "msg.registerNoSlots" });
+      showToast({ message: t("msg.registerNoSlots"), tone: "error" });
       return;
     }
 
@@ -104,7 +104,7 @@ export function RegisterPage() {
     );
 
     if (!targetGroup) {
-      setMessage({ key: "msg.registerGroupInvalid" });
+      showToast({ message: t("msg.registerGroupInvalid"), tone: "error" });
       return;
     }
 
@@ -121,8 +121,13 @@ export function RegisterPage() {
         daysPattern,
       });
 
-      setMessage({ key: result.messageKey, params: result.messageParams });
-      if (result.ok) navigate("/student");
+      showToast({
+        message: t(result.messageKey, result.messageParams),
+        tone: result.ok ? "success" : "error",
+      });
+      if (result.ok) {
+        navigate("/student");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -279,12 +284,6 @@ export function RegisterPage() {
               {isSubmitting ? `${t("auth.registerButton")}...` : t("auth.registerButton")}
             </Button>
           </form>
-
-          {message ? (
-            <p className="mt-4 rounded-xl bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:bg-burgundy-900/40 dark:text-burgundy-200">
-              {t(message.key, message.params)}
-            </p>
-          ) : null}
 
           <p className="mt-5 text-center text-sm text-charcoal/65 dark:text-zinc-400">
             {t("auth.haveAccount")}{" "}
