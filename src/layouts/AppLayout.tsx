@@ -90,7 +90,9 @@ export function AppLayout() {
             <div className="flex min-h-16 flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6">
               <Link to={session.role === "student" ? "/student" : "/teacher"} className="inline-flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-burgundy-700 dark:text-burgundy-300" />
-                <span className="text-sm font-semibold text-charcoal/70 dark:text-zinc-200">{t("header.dashboard")}</span>
+                <span className="max-w-[11rem] truncate text-xs font-semibold text-charcoal/70 dark:text-zinc-200 sm:max-w-none sm:text-sm">
+                  {t("header.dashboard")}
+                </span>
               </Link>
 
               <div className="flex items-center gap-2">

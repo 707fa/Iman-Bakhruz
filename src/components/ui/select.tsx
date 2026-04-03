@@ -14,7 +14,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-sm text-charcoal ring-offset-white placeholder:text-charcoal/45 focus:outline-none focus:ring-2 focus:ring-burgundy-300 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500",
+      "flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-left text-sm text-charcoal ring-offset-white placeholder:text-charcoal/45 focus:outline-none focus:ring-2 focus:ring-burgundy-300 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500",
       className,
     )}
     {...props}
@@ -35,7 +35,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 min-w-[8rem] overflow-hidden rounded-xl border border-burgundy-100 bg-white text-charcoal shadow-lift dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
+        "relative z-50 w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-burgundy-100 bg-white text-charcoal shadow-lift dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
         position === "popper" && "translate-y-1",
         className,
       )}
@@ -67,7 +67,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-8 pr-2 text-sm outline-none focus:bg-burgundy-50 focus:text-burgundy-700 dark:focus:bg-zinc-800 dark:focus:text-white",
+      "relative flex w-full cursor-default select-none items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-lg py-2 pl-8 pr-2 text-sm outline-none focus:bg-burgundy-50 focus:text-burgundy-700 dark:focus:bg-zinc-800 dark:focus:text-white",
       className,
     )}
     {...props}

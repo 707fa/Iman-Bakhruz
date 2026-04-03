@@ -73,14 +73,16 @@ export function LoginPage() {
 
       <section className="flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-md space-y-4">
-          <div className="flex items-center justify-between lg:hidden">
+          <div className="flex min-w-0 items-center justify-between gap-2 lg:hidden">
             <BrandLogo
               title={t("app.name")}
               subtitle={t("app.center")}
-              size="md"
-              titleClassName="text-burgundy-800 dark:text-burgundy-300"
+              size="sm"
+              className="max-w-[11.5rem] sm:max-w-none"
+              titleClassName="text-base text-burgundy-800 dark:text-zinc-100 sm:text-lg"
+              subtitleClassName="hidden sm:block"
             />
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <LanguageSwitcher compact />
               <ThemeToggle compact />
             </div>

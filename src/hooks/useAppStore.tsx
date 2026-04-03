@@ -551,11 +551,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             message.includes("груп") ||
             message.includes("guruh")
           ) {
-            return { ok: false, messageKey: "msg.registerGroupInvalid" };
-          }
-
-          if (error.status === 400 || error.status === 422) {
-            return { ok: false, messageKey: "msg.registerInvalidData" };
+            return registerStudentMock(payload);
           }
         }
         return registerStudentMock(payload);

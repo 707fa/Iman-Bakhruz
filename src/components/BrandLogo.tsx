@@ -33,16 +33,16 @@ export function BrandLogo({
   subtitleClassName,
 }: BrandLogoProps) {
   return (
-    <div className={cn("inline-flex items-center gap-3", className)}>
+    <div className={cn("inline-flex min-w-0 items-center gap-3", className)}>
       <img
         src={logoImage}
         alt="Iman | Bekhruz logo"
         className={cn("rounded-2xl object-cover shadow-soft", iconSizeClasses[size])}
       />
-      <div>
-        <p className={cn("font-sans font-bold tracking-tight", titleSizeClasses[size], titleClassName)}>{title}</p>
+      <div className="min-w-0">
+        <p className={cn("truncate whitespace-nowrap font-sans font-bold leading-none tracking-tight", titleSizeClasses[size], titleClassName)}>{title}</p>
         {subtitle ? (
-          <p className={cn("text-xs font-medium text-charcoal/60 dark:text-zinc-400", subtitleClassName)}>{subtitle}</p>
+          <p className={cn("truncate text-xs font-medium text-charcoal/60 dark:text-zinc-400", subtitleClassName)}>{subtitle}</p>
         ) : null}
       </div>
     </div>

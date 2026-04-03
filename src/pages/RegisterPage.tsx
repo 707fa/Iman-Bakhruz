@@ -1,5 +1,5 @@
 import { UserPlus } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
@@ -9,48 +9,81 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { groups as scheduleGroups } from "../data/mockData";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 import type { GroupDaysPattern } from "../types";
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { state, registerStudent, isApiMode } = useAppStore();
+  const { state, registerStudent } = useAppStore();
   const { t } = useUi();
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const allowedGroupIds = useMemo(() => new Set(scheduleGroups.map((group) => group.id)), []);
+  const registrationGroups = useMemo(
+    () => state.groups.filter((group) => allowedGroupIds.has(group.id)),
+    [state.groups, allowedGroupIds],
+  );
 
   const dayPatterns = useMemo(
-    () => Array.from(new Set(state.groups.map((group) => group.daysPattern))) as GroupDaysPattern[],
-    [state.groups],
+    () => Array.from(new Set(registrationGroups.map((group) => group.daysPattern))) as GroupDaysPattern[],
+    [registrationGroups],
   );
 
   const [daysPattern, setDaysPattern] = useState<GroupDaysPattern>(dayPatterns[0] ?? "mwf");
 
   const groupTitles = useMemo(
-    () => Array.from(new Set(state.groups.filter((group) => group.daysPattern === daysPattern).map((group) => group.title))),
-    [state.groups, daysPattern],
+    () =>
+      Array.from(
+        new Set(registrationGroups.filter((group) => group.daysPattern === daysPattern).map((group) => group.title)),
+      ),
+    [registrationGroups, daysPattern],
   );
 
   const [selectedGroupTitle, setSelectedGroupTitle] = useState(groupTitles[0] ?? "");
 
   const availableTimes = useMemo(
     () =>
-      state.groups
+      registrationGroups
         .filter((group) => group.daysPattern === daysPattern && group.title === selectedGroupTitle)
         .map((group) => group.time),
-    [state.groups, daysPattern, selectedGroupTitle],
+    [registrationGroups, daysPattern, selectedGroupTitle],
   );
 
   const [time, setTime] = useState(availableTimes[0] ?? "");
-  const [manualGroupTitle, setManualGroupTitle] = useState("");
-  const [manualTime, setManualTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [message, setMessage] = useState<{ key: string; params?: Record<string, string | number> } | null>(null);
+
+  useEffect(() => {
+    if (dayPatterns.length === 0) return;
+    if (dayPatterns.includes(daysPattern)) return;
+    setDaysPattern(dayPatterns[0]);
+  }, [dayPatterns, daysPattern]);
+
+  useEffect(() => {
+    if (groupTitles.length === 0) {
+      if (selectedGroupTitle) setSelectedGroupTitle("");
+      return;
+    }
+    if (!groupTitles.includes(selectedGroupTitle)) {
+      setSelectedGroupTitle(groupTitles[0]);
+    }
+  }, [groupTitles, selectedGroupTitle]);
+
+  useEffect(() => {
+    if (availableTimes.length === 0) {
+      if (time) setTime("");
+      return;
+    }
+    if (!availableTimes.includes(time)) {
+      setTime(availableTimes[0]);
+    }
+  }, [availableTimes, time]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,19 +94,16 @@ export function RegisterPage() {
       return;
     }
 
-    const finalGroupTitle = isApiMode ? manualGroupTitle.trim() || selectedGroupTitle : selectedGroupTitle;
-    const finalTime = isApiMode ? manualTime.trim() || time : time;
-
-    if (!finalGroupTitle || !finalTime) {
+    if (!selectedGroupTitle || !time) {
       setMessage({ key: "msg.registerNoSlots" });
       return;
     }
 
-    const targetGroup = state.groups.find(
-      (group) => group.title === finalGroupTitle && group.time === finalTime && group.daysPattern === daysPattern,
+    const targetGroup = registrationGroups.find(
+      (group) => group.title === selectedGroupTitle && group.time === time && group.daysPattern === daysPattern,
     );
 
-    if (!isApiMode && !targetGroup) {
+    if (!targetGroup) {
       setMessage({ key: "msg.registerGroupInvalid" });
       return;
     }
@@ -85,9 +115,9 @@ export function RegisterPage() {
         phone,
         password,
         confirmPassword,
-        groupId: targetGroup?.id ?? finalGroupTitle,
-        groupTitle: finalGroupTitle,
-        time: finalTime,
+        groupId: targetGroup.id,
+        groupTitle: targetGroup.title,
+        time: targetGroup.time,
         daysPattern,
       });
 
@@ -102,23 +132,25 @@ export function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] p-4 dark:bg-black sm:p-8">
       <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
             <BrandLogo
               title={t("app.name")}
               subtitle={t("app.center")}
-              size="md"
-              titleClassName="text-burgundy-800 dark:text-burgundy-300"
+              size="sm"
+              className="max-w-[12rem] sm:max-w-none"
+              titleClassName="text-base text-burgundy-800 dark:text-zinc-100 sm:text-lg"
+              subtitleClassName="hidden sm:block"
             />
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <LanguageSwitcher compact />
               <ThemeToggle compact />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">{t("auth.registerTitle")}</CardTitle>
-          <CardDescription>{t("auth.registerSubtitle")}</CardDescription>
+          <CardTitle className="text-2xl font-bold sm:text-3xl">{t("auth.registerTitle")}</CardTitle>
+          <CardDescription className="max-w-[38ch]">{t("auth.registerSubtitle")}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
+          <form onSubmit={handleSubmit} className="grid gap-3.5 sm:grid-cols-2 sm:gap-4">
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="fullName">{t("auth.fullName")}</Label>
               <Input
@@ -183,7 +215,7 @@ export function RegisterPage() {
                 onValueChange={(value) => {
                   const nextPattern = value as GroupDaysPattern;
                   setDaysPattern(nextPattern);
-                  const firstGroup = state.groups.find((group) => group.daysPattern === nextPattern);
+                  const firstGroup = registrationGroups.find((group) => group.daysPattern === nextPattern);
                   setSelectedGroupTitle(firstGroup?.title ?? "");
                   setTime(firstGroup?.time ?? "");
                 }}
@@ -209,7 +241,7 @@ export function RegisterPage() {
                 onValueChange={(value) => {
                   setSelectedGroupTitle(value);
                   const firstTime =
-                    state.groups.find((group) => group.daysPattern === daysPattern && group.title === value)?.time ?? "";
+                    registrationGroups.find((group) => group.daysPattern === daysPattern && group.title === value)?.time ?? "";
                   setTime(firstTime);
                 }}
               >
@@ -224,14 +256,6 @@ export function RegisterPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {isApiMode ? (
-                <Input
-                  value={manualGroupTitle}
-                  onChange={(event) => setManualGroupTitle(event.target.value)}
-                  disabled={isSubmitting}
-                  placeholder={t("auth.groupManualPlaceholder")}
-                />
-              ) : null}
             </div>
 
             <div className="space-y-2 sm:col-span-2">
@@ -248,14 +272,6 @@ export function RegisterPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {isApiMode ? (
-                <Input
-                  value={manualTime}
-                  onChange={(event) => setManualTime(event.target.value)}
-                  disabled={isSubmitting}
-                  placeholder={t("auth.timeManualPlaceholder")}
-                />
-              ) : null}
             </div>
 
             <Button type="submit" className="sm:col-span-2" disabled={isSubmitting}>
