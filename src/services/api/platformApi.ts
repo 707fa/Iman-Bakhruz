@@ -10,7 +10,6 @@ import type {
   Teacher,
   UserRole,
 } from "../../types";
-import { ApiError } from "./http";
 import { apiRequest } from "./http";
 
 export interface AuthResponse {
@@ -117,57 +116,24 @@ export const platformApi = {
   },
 
   async register(payload: RegisterPayload) {
-    const attempts: Array<Record<string, string>> = [
-      {
-        fullName: payload.fullName,
-        phone: payload.phone,
-        password: payload.password,
-        group: payload.groupTitle ?? payload.groupId,
-        time: payload.time,
-        daysPattern: payload.daysPattern,
-      },
-      {
-        fullName: payload.fullName,
-        phone: payload.phone,
-        password: payload.password,
-        group: payload.groupTitle ?? payload.groupId,
-        confirmPassword: payload.confirmPassword ?? payload.password,
-        time: payload.time,
-        daysPattern: payload.daysPattern,
-      },
-      {
-        fullName: payload.fullName,
-        phone: payload.phone,
-        password: payload.password,
-        groupId: payload.groupId,
-        time: payload.time,
-        daysPattern: payload.daysPattern,
-      },
-    ];
+    const body: Record<string, string> = {
+      fullName: payload.fullName,
+      phone: payload.phone,
+      password: payload.password,
+      confirmPassword: payload.confirmPassword ?? payload.password,
+      group: payload.groupTitle ?? payload.groupId,
+      groupId: payload.groupId,
+      time: payload.time,
+      daysPattern: payload.daysPattern,
+    };
 
-    let lastValidationError: ApiError | null = null;
+    const response = await apiRequest<unknown>("/auth/register", {
+      method: "POST",
+      body,
+      timeoutMs: 5000,
+    });
 
-    for (const body of attempts) {
-      try {
-        const response = await apiRequest<unknown>("/auth/register", {
-          method: "POST",
-          body,
-        });
-        return normalizeAuthResponse(response);
-      } catch (error) {
-        if (error instanceof ApiError && (error.status === 400 || error.status === 422)) {
-          lastValidationError = error;
-          continue;
-        }
-        throw error;
-      }
-    }
-
-    if (lastValidationError) {
-      throw lastValidationError;
-    }
-
-    throw new Error("Registration failed");
+    return normalizeAuthResponse(response);
   },
 
   async getState(token: string) {

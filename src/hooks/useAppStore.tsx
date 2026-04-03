@@ -17,7 +17,7 @@ import type {
   Teacher,
 } from "../types";
 
-const STORAGE_KEY = "result-dashboard-v5";
+const STORAGE_KEY = "result-dashboard-v6";
 
 function toArrayOrFallback<T>(value: unknown, fallback: T[]): T[] {
   return Array.isArray(value) ? (value as T[]) : fallback;
@@ -482,31 +482,59 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       try {
         const auth = await platformApi.register(normalizedPayload);
         setApiToken(auth.token);
+        const nextSession = buildSessionFromAuth(auth);
 
-        try {
-          const remote = await platformApi.getState(auth.token);
-          const nextSession = resolveSessionFromRemote(auth, remote);
-          setState((prev) => withRemoteState(prev, remote, nextSession));
-          return {
-            ok: true,
-            messageKey: "msg.registerSuccess",
-            messageParams: {
-              group: normalizedPayload.groupTitle ?? normalizedPayload.groupId,
-              time: normalizedPayload.time,
-            },
+        // Immediate local update for fast UX. Remote state sync runs in background.
+        setState((prev) => {
+          const base = withSeedData(prev);
+
+          if (nextSession.role !== "student") {
+            return { ...base, session: nextSession };
+          }
+
+          const existingStudent =
+            base.students.find((student) => student.id === nextSession.userId) ??
+            base.students.find((student) => toPhone(student.phone) === normalizedPayload.phone);
+
+          const fallbackStudent: Student = {
+            id: nextSession.userId,
+            fullName: normalizedPayload.fullName.trim(),
+            phone: normalizedPayload.phone,
+            password: normalizedPayload.password,
+            groupId: normalizedPayload.groupId,
+            points: existingStudent?.points ?? 0,
+            avatarUrl: existingStudent?.avatarUrl,
           };
-        } catch {
-          const nextSession = buildSessionFromAuth(auth);
-          setState((prev) => ({ ...prev, session: nextSession }));
-          return {
-            ok: true,
-            messageKey: "msg.registerSuccess",
-            messageParams: {
-              group: normalizedPayload.groupTitle ?? normalizedPayload.groupId,
-              time: normalizedPayload.time,
-            },
-          };
-        }
+
+          const students = existingStudent
+            ? base.students.map((student) => (student.id === existingStudent.id ? fallbackStudent : student))
+            : [...base.students, fallbackStudent];
+
+          return syncRankingsWithStudents({
+            ...base,
+            students,
+            session: nextSession,
+          });
+        });
+
+        void (async () => {
+          try {
+            const remote = await platformApi.getState(auth.token);
+            const syncedSession = resolveSessionFromRemote(auth, remote);
+            setState((prev) => withRemoteState(prev, remote, syncedSession));
+          } catch {
+            // Local state remains valid when backend sync is slow/unavailable.
+          }
+        })();
+
+        return {
+          ok: true,
+          messageKey: "msg.registerSuccess",
+          messageParams: {
+            group: normalizedPayload.groupTitle ?? normalizedPayload.groupId,
+            time: normalizedPayload.time,
+          },
+        };
       } catch (error) {
         if (error instanceof ApiError) {
           const message = extractApiMessage(error.payload).toLowerCase();
