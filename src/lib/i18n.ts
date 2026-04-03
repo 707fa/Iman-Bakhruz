@@ -8,11 +8,11 @@ export interface TranslateParams {
 type Dictionary = Record<string, string>;
 
 const RU: Dictionary = {
-  "app.name": "Result",
+  "app.name": "Iman | Bekhruz",
   "app.center": "Учебный центр",
   "app.workspace": "Рабочая область",
   "app.workspaceDescription": "Рейтинг и управление прогрессом",
-  "header.dashboard": "Панель Result",
+  "header.dashboard": "Панель Iman | Bekhruz",
   "nav.student": "Мой кабинет",
   "nav.teacher": "Панель учителя",
   "nav.groups": "Мои группы",
@@ -149,11 +149,11 @@ const RU: Dictionary = {
 };
 
 const UZ: Dictionary = {
-  "app.name": "Result",
+  "app.name": "Iman | Bekhruz",
   "app.center": "O'quv Markazi",
   "app.workspace": "Ish maydoni",
   "app.workspaceDescription": "Reyting va progress nazorati",
-  "header.dashboard": "Result paneli",
+  "header.dashboard": "Iman | Bekhruz paneli",
   "nav.student": "Mening kabinetim",
   "nav.teacher": "O'qituvchi paneli",
   "nav.groups": "Mening guruhlarim",
@@ -290,11 +290,11 @@ const UZ: Dictionary = {
 };
 
 const EN: Dictionary = {
-  "app.name": "Result",
+  "app.name": "Iman | Bekhruz",
   "app.center": "Education Center",
   "app.workspace": "Workspace",
   "app.workspaceDescription": "Ranking and progress management",
-  "header.dashboard": "Result Dashboard",
+  "header.dashboard": "Iman | Bekhruz Dashboard",
   "nav.student": "My Dashboard",
   "nav.teacher": "Teacher Dashboard",
   "nav.groups": "My Groups",

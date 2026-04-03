@@ -1,4 +1,4 @@
-import logoImage from "../assets/result-logo.svg";
+import logoImage from "../assets/Iman-behruz.jpg";
 import { cn } from "../lib/utils";
 
 type LogoSize = "sm" | "md" | "lg";
@@ -36,7 +36,7 @@ export function BrandLogo({
     <div className={cn("inline-flex items-center gap-3", className)}>
       <img
         src={logoImage}
-        alt="Result logo"
+        alt="Iman | Bekhruz logo"
         className={cn("rounded-2xl object-cover shadow-soft", iconSizeClasses[size])}
       />
       <div>
