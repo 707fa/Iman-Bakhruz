@@ -1,4 +1,4 @@
-import { Building2, LogIn, PhoneCall, ShieldCheck } from "lucide-react";
+import { LogIn, PhoneCall } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
@@ -11,28 +11,16 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
-import {
-  API_HINT_STUDENT_PASSWORD,
-  API_HINT_STUDENT_PHONE,
-  API_HINT_TEACHER_PASSWORD,
-  API_HINT_TEACHER_PHONE,
-} from "../lib/env";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login, state, isApiMode } = useAppStore();
+  const { login, state } = useAppStore();
   const { t } = useUi();
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<{ key: string; params?: Record<string, string | number> } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const teacherHint = API_HINT_TEACHER_PHONE && API_HINT_TEACHER_PASSWORD
-    ? `${API_HINT_TEACHER_PHONE} / ${API_HINT_TEACHER_PASSWORD}`
-    : null;
-  const studentHint = API_HINT_STUDENT_PHONE && API_HINT_STUDENT_PASSWORD
-    ? `${API_HINT_STUDENT_PHONE} / ${API_HINT_STUDENT_PASSWORD}`
-    : null;
 
   useEffect(() => {
     if (!state.session) return;
@@ -147,28 +135,6 @@ export function LoginPage() {
                   {t(message.key, message.params)}
                 </p>
               ) : null}
-
-              <div className="mt-5 rounded-2xl border border-burgundy-100 bg-slate-50 p-3 text-xs text-charcoal/75 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                <p className="mb-1 inline-flex items-center gap-1 font-semibold text-charcoal dark:text-zinc-100">
-                  <Building2 className="h-3.5 w-3.5 text-burgundy-600" />
-                  {t("auth.demoUsers")}
-                </p>
-                {isApiMode ? (
-                  <>
-                    {teacherHint ? <p>{t("auth.demoTeacherLabel")}: {teacherHint}</p> : <p>{t("auth.apiUsersHint")}</p>}
-                    {studentHint ? <p>{t("auth.demoStudentLabel")}: {studentHint}</p> : null}
-                  </>
-                ) : (
-                  <>
-                    <p>{t("auth.demoTeacherLabel")}: +998901111111 / teacher123</p>
-                    <p>{t("auth.demoStudentLabel")}: +998903000001 / student123</p>
-                  </>
-                )}
-                <p className="mt-1 inline-flex items-center gap-1 text-burgundy-700 dark:text-burgundy-300">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  {isApiMode ? t("auth.apiMode") : t("auth.safeMode")}
-                </p>
-              </div>
 
               <p className="mt-5 text-center text-sm text-charcoal/65 dark:text-zinc-400">
                 {t("auth.noAccount")}{" "}

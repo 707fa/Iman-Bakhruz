@@ -61,6 +61,62 @@ function syncRankingsWithStudents(state: AppState): AppState {
   };
 }
 
+function mergeById<T extends { id: string }>(current: T[], seed: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const item of seed) {
+    map.set(item.id, item);
+  }
+  for (const item of current) {
+    map.set(item.id, item);
+  }
+  return [...map.values()];
+}
+
+function withSeedData(state: AppState): AppState {
+  const merged: AppState = {
+    ...state,
+    students: mergeById(state.students, initialState.students),
+    teachers: mergeById(state.teachers, initialState.teachers),
+    groups: mergeById(state.groups, initialState.groups),
+    ratingLogs: mergeById(state.ratingLogs, initialState.ratingLogs),
+    rankings: state.rankings,
+  };
+
+  return syncRankingsWithStudents(merged);
+}
+
+function mergeForAuth<T extends { id: string; phone: string; password: string }>(seed: T[], current: T[]): T[] {
+  const map = new Map<string, T>();
+
+  for (const item of seed) {
+    map.set(item.id, item);
+  }
+
+  for (const item of current) {
+    const prev = map.get(item.id);
+    const nextPhone = typeof item.phone === "string" && item.phone.trim().length > 0 ? item.phone : prev?.phone ?? "";
+    const nextPassword =
+      typeof item.password === "string" && item.password.trim().length > 0 ? item.password : prev?.password ?? "";
+
+    map.set(item.id, {
+      ...(prev ?? item),
+      ...item,
+      phone: nextPhone,
+      password: nextPassword,
+    });
+  }
+
+  return [...map.values()];
+}
+
+function getAuthCollections(state: AppState): Pick<AppState, "students" | "teachers"> {
+  const seeded = withSeedData(state);
+  return {
+    students: mergeForAuth(initialState.students, seeded.students),
+    teachers: mergeForAuth(initialState.teachers, seeded.teachers),
+  };
+}
+
 function readState(): AppState {
   if (typeof window === "undefined") return initialState;
   const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -76,7 +132,7 @@ function readState(): AppState {
       ratingLogs: toArrayOrFallback(parsed.ratingLogs, initialState.ratingLogs),
       session: isAuthSession(parsed.session) ? parsed.session : null,
     };
-    return syncRankingsWithStudents(normalized);
+    return withSeedData(normalized);
   } catch {
     return initialState;
   }
@@ -231,16 +287,17 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
   function loginMock(payload: LoginPayload): ActionResult {
     const phone = toPhone(payload.phone);
-    const student = state.students.find((item) => toPhone(item.phone) === phone);
-    const teacher = state.teachers.find((item) => toPhone(item.phone) === phone);
+    const authCollections = getAuthCollections(state);
+    const student = authCollections.students.find((item) => toPhone(item.phone) === phone);
+    const teacher = authCollections.teachers.find((item) => toPhone(item.phone) === phone);
 
     if (student && student.password === payload.password) {
-      setState((prev) => ({ ...prev, session: { role: "student", userId: student.id } }));
+      setState((prev) => ({ ...withSeedData(prev), session: { role: "student", userId: student.id } }));
       return { ok: true, messageKey: "msg.loginStudent" };
     }
 
     if (teacher && teacher.password === payload.password) {
-      setState((prev) => ({ ...prev, session: { role: "teacher", userId: teacher.id } }));
+      setState((prev) => ({ ...withSeedData(prev), session: { role: "teacher", userId: teacher.id } }));
       return { ok: true, messageKey: "msg.loginTeacher" };
     }
 
@@ -248,6 +305,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
   }
 
   function registerStudentMock(payload: RegisterPayload): ActionResult {
+    const seeded = withSeedData(state);
+    const authCollections = getAuthCollections(seeded);
     const fullName = payload.fullName.trim();
     const phone = toPhone(payload.phone);
 
@@ -256,8 +315,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     }
 
     const phoneUsed =
-      state.students.some((student) => toPhone(student.phone) === phone) ||
-      state.teachers.some((teacher) => toPhone(teacher.phone) === phone);
+      authCollections.students.some((student) => toPhone(student.phone) === phone) ||
+      authCollections.teachers.some((teacher) => toPhone(teacher.phone) === phone);
 
     if (phoneUsed) {
       return { ok: false, messageKey: "msg.registerPhoneUsed" };
@@ -267,7 +326,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       return { ok: false, messageKey: "msg.registerPasswordShort" };
     }
 
-    const group = state.groups.find(
+    const group = seeded.groups.find(
       (item) =>
         item.id === payload.groupId && item.time === payload.time && item.daysPattern === payload.daysPattern,
     );
@@ -291,12 +350,15 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       points: student.points,
     };
 
-    setState((prev) => ({
-      ...prev,
-      students: [...prev.students, student],
-      rankings: [...prev.rankings, ranking],
-      session: { role: "student", userId: student.id },
-    }));
+    setState((prev) => {
+      const base = withSeedData(prev);
+      return {
+        ...base,
+        students: [...base.students, student],
+        rankings: [...base.rankings, ranking],
+        session: { role: "student", userId: student.id },
+      };
+    });
 
     return {
       ok: true,
