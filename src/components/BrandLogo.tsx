@@ -4,13 +4,13 @@ import { cn } from "../lib/utils";
 type LogoSize = "sm" | "md" | "lg";
 
 const iconSizeClasses: Record<LogoSize, string> = {
-  sm: "h-9 w-9",
+  sm: "h-8 w-8",
   md: "h-11 w-11",
   lg: "h-12 w-12",
 };
 
 const titleSizeClasses: Record<LogoSize, string> = {
-  sm: "text-lg",
+  sm: "text-base",
   md: "text-2xl",
   lg: "text-3xl",
 };

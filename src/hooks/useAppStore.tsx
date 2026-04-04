@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
 import { initialState } from "../data/mockData";
 import { DATA_PROVIDER_MODE } from "../lib/env";
 import { makeId, toPhone } from "../lib/utils";
@@ -336,7 +336,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
     const group = seeded.groups.find(
       (item) =>
-        item.id === payload.groupId && item.time === payload.time && item.daysPattern === payload.daysPattern,
+        ((payload.groupId && item.id === payload.groupId) ||
+          (payload.groupTitle && item.title === payload.groupTitle && item.time === payload.time)) &&
+        item.daysPattern === payload.daysPattern,
     );
     if (!group) {
       return { ok: false, messageKey: "msg.registerGroupInvalid" };

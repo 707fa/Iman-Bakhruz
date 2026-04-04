@@ -44,15 +44,16 @@ export function AppLayout() {
   const profileHref = session.role === "student" ? "/profile" : "/teacher/profile";
 
   return (
-    <div className="min-h-dvh bg-[#f5f5f7] text-charcoal dark:bg-black dark:text-zinc-100">
-      <div className="mx-auto grid min-h-dvh max-w-[1700px] lg:grid-cols-[290px_1fr]">
-        <aside className="hidden border-r border-burgundy-100/80 bg-white px-5 py-6 dark:border-zinc-800 dark:bg-zinc-950 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto">
+    <div className="h-dvh overflow-x-hidden overflow-y-hidden bg-[#f5f5f7] text-charcoal dark:bg-black dark:text-zinc-100">
+      <div className="grid h-full w-full lg:grid-cols-[290px_minmax(0,1fr)]">
+        <aside className="hidden border-r border-burgundy-100/80 bg-white px-5 py-6 dark:border-zinc-800 dark:bg-zinc-950 lg:block lg:h-dvh lg:overflow-y-auto">
           <Link to={session.role === "student" ? "/student" : "/teacher"}>
             <BrandLogo
               title={t("app.name")}
               subtitle={t("app.center")}
-              size="lg"
-              titleClassName="text-burgundy-800 dark:text-burgundy-300"
+              size="md"
+              className="w-full"
+              titleClassName="text-xl text-charcoal dark:text-white"
               subtitleClassName="font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400"
             />
           </Link>
@@ -85,12 +86,12 @@ export function AppLayout() {
           </nav>
         </aside>
 
-        <div className="flex min-h-dvh flex-col">
-          <header className="fixed inset-x-0 top-0 z-50 border-b border-burgundy-100/70 bg-white/95 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
-            <div className="mx-auto flex min-h-16 max-w-[1700px] items-center justify-between gap-2 px-3 py-[max(0.5rem,env(safe-area-inset-top))] sm:px-6 lg:py-2">
+        <div className="relative flex h-dvh min-w-0 flex-col">
+          <header className="sticky top-0 z-40 border-b border-burgundy-100/70 bg-white/95 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
+            <div className="flex min-h-16 items-center justify-between gap-2 px-3 py-[max(0.5rem,env(safe-area-inset-top))] sm:px-6 lg:py-2">
               <Link to={session.role === "student" ? "/student" : "/teacher"} className="inline-flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-burgundy-700 dark:text-burgundy-300" />
-                <span className="max-w-[11rem] truncate text-xs font-semibold text-charcoal/70 dark:text-zinc-200 sm:max-w-none sm:text-sm">
+                <span className="max-w-[9rem] truncate text-xs font-semibold text-charcoal/70 dark:text-zinc-200 sm:max-w-none sm:text-sm">
                   {t("header.dashboard")}
                 </span>
               </Link>
@@ -108,31 +109,31 @@ export function AppLayout() {
             </div>
           </header>
 
-          <div className="flex-1 p-4 pb-24 pt-[84px] sm:p-6 sm:pb-24 sm:pt-[88px] lg:pb-6 lg:pt-[88px]">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-6">
             <Outlet />
           </div>
 
-          <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-burgundy-100/70 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_-20px_rgba(71,9,24,0.45)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
+          <nav className="sticky bottom-0 z-40 border-t border-burgundy-100/70 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_-20px_rgba(71,9,24,0.45)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden">
             <div className="mx-auto max-w-3xl">
               <div className={cn("grid gap-2", navItems.length > 1 ? "grid-cols-3" : "grid-cols-1")}>
-              {navItems.map((item) => {
-                const active = isItemActive(location.pathname, item);
-                return (
-                  <Link
-                    key={`bottom-${item.label}`}
-                    to={item.href}
-                    className={cn(
-                      "inline-flex min-h-12 touch-manipulation flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-semibold transition active:scale-[0.98]",
-                      active
-                        ? "bg-burgundy-700 text-white"
-                        : "text-charcoal/70 hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white",
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                );
-              })}
+                {navItems.map((item) => {
+                  const active = isItemActive(location.pathname, item);
+                  return (
+                    <Link
+                      key={`bottom-${item.label}`}
+                      to={item.href}
+                      className={cn(
+                        "inline-flex min-h-12 touch-manipulation flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-semibold transition active:scale-[0.98]",
+                        active
+                          ? "bg-burgundy-700 text-white"
+                          : "text-charcoal/70 hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white",
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </nav>

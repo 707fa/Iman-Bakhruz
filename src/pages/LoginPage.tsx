@@ -49,7 +49,7 @@ export function LoginPage() {
     <div className="grid min-h-dvh bg-[#f6f6f8] dark:bg-black lg:min-h-screen lg:grid-cols-2">
       <section className="relative hidden overflow-hidden bg-gradient-to-br from-burgundy-900 via-burgundy-800 to-burgundy-700 p-10 text-white lg:block">
         <div className="absolute right-8 top-8 z-20 flex items-center gap-2">
-          <LanguageSwitcher compact />
+          <LanguageSwitcher compact mode="single" />
           <ThemeToggle compact />
         </div>
 
@@ -82,12 +82,12 @@ export function LoginPage() {
               title={t("app.name")}
               subtitle={t("app.center")}
               size="sm"
-              className="max-w-[11.5rem] sm:max-w-none"
-              titleClassName="text-base text-burgundy-800 dark:text-zinc-100 sm:text-lg"
+              className="min-w-0 flex-1"
+              titleClassName="text-sm text-charcoal dark:text-white sm:text-base"
               subtitleClassName="hidden sm:block"
             />
             <div className="flex shrink-0 items-center gap-2">
-              <LanguageSwitcher compact />
+              <LanguageSwitcher compact mode="single" />
               <ThemeToggle compact />
             </div>
           </div>

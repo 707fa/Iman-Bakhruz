@@ -28,10 +28,10 @@ export function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const allowedGroupIds = useMemo(() => new Set(scheduleGroups.map((group) => group.id)), []);
-  const registrationGroups = useMemo(
-    () => state.groups.filter((group) => allowedGroupIds.has(group.id)),
-    [state.groups, allowedGroupIds],
-  );
+  const registrationGroups = useMemo(() => {
+    const filtered = state.groups.filter((group) => allowedGroupIds.has(group.id));
+    return filtered.length > 0 ? filtered : state.groups;
+  }, [state.groups, allowedGroupIds]);
 
   const dayPatterns = useMemo(
     () => Array.from(new Set(registrationGroups.map((group) => group.daysPattern))) as GroupDaysPattern[],
@@ -144,12 +144,12 @@ export function RegisterPage() {
               title={t("app.name")}
               subtitle={t("app.center")}
               size="sm"
-              className="max-w-[12rem] sm:max-w-none"
-              titleClassName="text-base text-burgundy-800 dark:text-zinc-100 sm:text-lg"
+              className="min-w-0 flex-1"
+              titleClassName="text-sm text-charcoal dark:text-white sm:text-base"
               subtitleClassName="hidden sm:block"
             />
             <div className="flex shrink-0 items-center gap-2">
-              <LanguageSwitcher compact />
+              <LanguageSwitcher compact mode="single" />
               <ThemeToggle compact />
             </div>
           </div>
