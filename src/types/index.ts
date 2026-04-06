@@ -1,5 +1,18 @@
 export type UserRole = "student" | "teacher";
 export type GroupDaysPattern = "mwf" | "tts";
+export type StatusBadge = "red" | "yellow" | "green";
+
+export interface ProgressSnapshot {
+  status: StatusBadge;
+  grammar: number;
+  vocabulary: number;
+  homework: number;
+  speaking: number;
+  attendance: number;
+  weeklyXp: number;
+  level: number;
+  streakDays: number;
+}
 
 export interface Group {
   id: string;
@@ -17,6 +30,8 @@ export interface Student {
   groupId: string;
   avatarUrl?: string;
   points: number;
+  statusBadge?: StatusBadge;
+  progress?: ProgressSnapshot;
 }
 
 export interface Teacher {
@@ -34,6 +49,7 @@ export interface RankingItem {
   groupId: string;
   points: number;
   avatarUrl?: string;
+  statusBadge?: StatusBadge;
 }
 
 export interface RatingLog {
@@ -85,4 +101,37 @@ export interface ActionResult {
 export interface ScoreAction {
   value: number;
   label: string;
+}
+
+export interface GrammarTopic {
+  id: string;
+  title: string;
+  description: string;
+  level: string;
+  pptUrl: string;
+  isActive: boolean;
+  createdByName?: string;
+  createdAt: string;
+}
+
+export type SupportTicketStatus = "open" | "in_progress" | "closed";
+
+export interface SupportTicket {
+  id: string;
+  studentId: string;
+  studentName: string;
+  teacherId: string;
+  teacherName: string;
+  message: string;
+  status: SupportTicketStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AiChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  imageUrl?: string;
+  createdAt: string;
 }

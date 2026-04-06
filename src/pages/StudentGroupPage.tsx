@@ -63,7 +63,14 @@ export function StudentGroupPage() {
         </CardContent>
       </Card>
 
-      <RankingList title={t("student.myGroupTop")} items={groupTop} groups={state.groups} currentUserId={currentStudent.id} showMeta={false} />
+      <RankingList
+        title={t("student.myGroupTop")}
+        items={groupTop}
+        groups={state.groups}
+        currentUserId={currentStudent.id}
+        showMeta={false}
+        itemHref={(item) => `/student/profile/${item.studentId}`}
+      />
     </div>
   );
 }

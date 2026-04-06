@@ -1,12 +1,17 @@
 import type {
+  AiChatMessage,
   AppState,
+  GrammarTopic,
   Group,
   LoginPayload,
+  ProgressSnapshot,
   RankingItem,
   RatingLog,
   RegisterPayload,
   ScoreAction,
   Student,
+  SupportTicket,
+  SupportTicketStatus,
   Teacher,
   UserRole,
 } from "../../types";
@@ -26,25 +31,159 @@ export interface RemoteStatePayload {
   ratingLogs: RatingLog[];
 }
 
+export interface UserProfilePayload {
+  id: string;
+  fullName: string;
+  phone: string;
+  role: UserRole;
+  groupId: string;
+  groupTitle?: string;
+  points: number;
+  avatarUrl?: string;
+  progress?: ProgressSnapshot;
+}
+
+export interface ProgressResponse extends ProgressSnapshot {
+  userId: string;
+  role?: UserRole;
+  fullName?: string;
+  groupId?: string;
+}
+
 type UnknownRecord = Record<string, unknown>;
 
 function asRecord(value: unknown): UnknownRecord | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as UnknownRecord;
 }
 
 function getDataObject(payload: unknown): UnknownRecord | null {
   const root = asRecord(payload);
   if (!root) return null;
+  const nested = asRecord(root.data);
+  return nested ?? root;
+}
 
-  const nestedData = asRecord(root.data);
-  return nestedData ?? root;
+function readArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function str(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return fallback;
+}
+
+function num(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function normalizeRole(value: unknown): UserRole {
   return value === "teacher" ? "teacher" : "student";
+}
+
+function normalizeStatus(value: unknown): ProgressSnapshot["status"] {
+  if (value === "red" || value === "yellow" || value === "green") {
+    return value;
+  }
+  return "yellow";
+}
+
+function normalizeProgress(source: UnknownRecord | null): ProgressSnapshot | undefined {
+  if (!source) return undefined;
+
+  const maybeHasProgress =
+    source.status !== undefined ||
+    source.status_badge !== undefined ||
+    source.grammar !== undefined ||
+    source.progress_grammar !== undefined;
+  if (!maybeHasProgress) return undefined;
+
+  return {
+    status: normalizeStatus(source.status ?? source.status_badge),
+    grammar: num(source.grammar ?? source.progress_grammar),
+    vocabulary: num(source.vocabulary ?? source.progress_vocabulary),
+    homework: num(source.homework ?? source.progress_homework),
+    speaking: num(source.speaking ?? source.progress_speaking),
+    attendance: num(source.attendance ?? source.progress_attendance),
+    weeklyXp: num(source.weeklyXp ?? source.weekly_xp),
+    level: num(source.level, 1),
+    streakDays: num(source.streakDays ?? source.streak_days),
+  };
+}
+
+function normalizeStudent(raw: unknown): Student | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const progress = normalizeProgress(asRecord(item.progress) ?? item);
+  return {
+    id: str(item.id),
+    fullName: str(item.fullName ?? item.full_name),
+    phone: str(item.phone),
+    password: str(item.password),
+    groupId: str(item.groupId ?? item.group_id),
+    avatarUrl: str(item.avatarUrl ?? item.avatar) || undefined,
+    points: num(item.points),
+    statusBadge: progress?.status ?? normalizeStatus(item.statusBadge ?? item.status_badge),
+    progress,
+  };
+}
+
+function normalizeTeacher(raw: unknown): Teacher | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const groupIds = readArray<unknown>(item.groupIds ?? item.group_ids).map((entry) => str(entry)).filter(Boolean);
+  return {
+    id: str(item.id),
+    fullName: str(item.fullName ?? item.full_name),
+    phone: str(item.phone),
+    password: str(item.password),
+    groupIds,
+    avatarUrl: str(item.avatarUrl ?? item.avatar) || undefined,
+  };
+}
+
+function normalizeGroup(raw: unknown): Group | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const days = str(item.daysPattern ?? item.days_pattern);
+  const daysPattern: Group["daysPattern"] = days === "tts" ? "tts" : "mwf";
+  return {
+    id: str(item.id),
+    title: str(item.title),
+    time: str(item.time),
+    daysPattern,
+    teacherId: str(item.teacherId ?? item.teacher_id),
+  };
+}
+
+function normalizeRanking(raw: unknown): RankingItem | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const statusBadge = item.statusBadge ?? item.status_badge;
+  return {
+    studentId: str(item.studentId ?? item.student_id),
+    fullName: str(item.fullName ?? item.full_name),
+    groupId: str(item.groupId ?? item.group_id),
+    points: num(item.points),
+    avatarUrl: str(item.avatarUrl ?? item.avatar) || undefined,
+    statusBadge: normalizeStatus(statusBadge),
+  };
+}
+
+function normalizeRatingLog(raw: unknown): RatingLog | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  return {
+    id: str(item.id),
+    teacherId: str(item.teacherId ?? item.teacher_id),
+    studentId: str(item.studentId ?? item.student_id),
+    groupId: str(item.groupId ?? item.group_id),
+    delta: num(item.delta),
+    label: str(item.label),
+    createdAt: str(item.createdAt ?? item.created_at),
+  };
 }
 
 function normalizeAuthResponse(payload: unknown): AuthResponse {
@@ -63,14 +202,10 @@ function normalizeAuthResponse(payload: unknown): AuthResponse {
   }
 
   return {
-    token: String(token),
+    token: str(token),
     role,
-    userId: String(userId),
+    userId: str(userId),
   };
-}
-
-function readArray<T>(value: unknown): T[] {
-  return Array.isArray(value) ? (value as T[]) : [];
 }
 
 function normalizeStatePayload(payload: unknown): RemoteStatePayload {
@@ -86,11 +221,98 @@ function normalizeStatePayload(payload: unknown): RemoteStatePayload {
   }
 
   return {
-    students: readArray<Student>(data.students),
-    teachers: readArray<Teacher>(data.teachers),
-    groups: readArray<Group>(data.groups),
-    rankings: readArray<RankingItem>(data.rankings),
-    ratingLogs: readArray<RatingLog>(data.ratingLogs),
+    students: readArray<unknown>(data.students).map(normalizeStudent).filter((item): item is Student => item !== null),
+    teachers: readArray<unknown>(data.teachers).map(normalizeTeacher).filter((item): item is Teacher => item !== null),
+    groups: readArray<unknown>(data.groups).map(normalizeGroup).filter((item): item is Group => item !== null),
+    rankings: readArray<unknown>(data.rankings).map(normalizeRanking).filter((item): item is RankingItem => item !== null),
+    ratingLogs: readArray<unknown>(data.ratingLogs).map(normalizeRatingLog).filter((item): item is RatingLog => item !== null),
+  };
+}
+
+function normalizeProfilePayload(payload: unknown): UserProfilePayload {
+  const data = getDataObject(payload);
+  if (!data) {
+    throw new Error("Invalid profile response");
+  }
+
+  const progress = normalizeProgress(data);
+
+  return {
+    id: str(data.id),
+    fullName: str(data.fullName ?? data.full_name),
+    phone: str(data.phone),
+    role: normalizeRole(data.role),
+    groupId: str(data.group ?? data.groupId ?? data.group_id),
+    groupTitle: str(data.groupTitle ?? data.group_title) || undefined,
+    points: num(data.points),
+    avatarUrl: str(data.avatarUrl ?? data.avatar) || undefined,
+    progress,
+  };
+}
+
+function normalizeProgressPayload(payload: unknown): ProgressResponse {
+  const data = getDataObject(payload);
+  if (!data) {
+    throw new Error("Invalid progress response");
+  }
+  const progress = normalizeProgress(data);
+  if (!progress) {
+    throw new Error("Invalid progress response");
+  }
+
+  return {
+    userId: str(data.userId ?? data.user_id),
+    role: data.role ? normalizeRole(data.role) : undefined,
+    fullName: str(data.fullName ?? data.full_name) || undefined,
+    groupId: str(data.groupId ?? data.group_id) || undefined,
+    ...progress,
+  };
+}
+
+function normalizeGrammarTopic(raw: unknown): GrammarTopic | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  return {
+    id: str(item.id),
+    title: str(item.title),
+    description: str(item.description),
+    level: str(item.level),
+    pptUrl: str(item.pptUrl ?? item.ppt_url),
+    isActive: Boolean(item.isActive ?? item.is_active),
+    createdByName: str(item.createdByName ?? item.created_by_name) || undefined,
+    createdAt: str(item.createdAt ?? item.created_at),
+  };
+}
+
+function normalizeSupportTicket(raw: unknown): SupportTicket | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const statusValue = str(item.status) as SupportTicketStatus;
+  const status: SupportTicketStatus =
+    statusValue === "in_progress" || statusValue === "closed" ? statusValue : "open";
+  return {
+    id: str(item.id),
+    studentId: str(item.student ?? item.student_id),
+    studentName: str(item.studentName ?? item.student_name),
+    teacherId: str(item.teacher ?? item.teacher_id),
+    teacherName: str(item.teacherName ?? item.teacher_name),
+    message: str(item.message),
+    status,
+    createdAt: str(item.createdAt ?? item.created_at),
+    updatedAt: str(item.updatedAt ?? item.updated_at),
+  };
+}
+
+function normalizeAiChatMessage(raw: unknown): AiChatMessage | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const role = str(item.role) === "assistant" ? "assistant" : "user";
+  return {
+    id: str(item.id),
+    role,
+    text: str(item.text),
+    imageUrl: str(item.imageUrl ?? item.image_url) || undefined,
+    createdAt: str(item.createdAt ?? item.created_at),
   };
 }
 
@@ -111,28 +333,28 @@ export const platformApi = {
       method: "POST",
       body: payload,
     });
-
     return normalizeAuthResponse(response);
   },
 
   async register(payload: RegisterPayload) {
     const body: Record<string, string> = {
-      fullName: payload.fullName,
+      full_name: payload.fullName.trim(),
       phone: payload.phone,
       password: payload.password,
-      confirmPassword: payload.confirmPassword ?? payload.password,
-      group: payload.groupTitle ?? payload.groupId,
-      groupId: payload.groupId,
+      group_id: payload.groupId,
+      group: payload.groupTitle ?? "",
       time: payload.time,
-      daysPattern: payload.daysPattern,
+      days_pattern: payload.daysPattern,
     };
+    if (payload.confirmPassword) {
+      body.password_confirm = payload.confirmPassword;
+    }
 
     const response = await apiRequest<unknown>("/auth/register", {
       method: "POST",
       body,
       timeoutMs: 5000,
     });
-
     return normalizeAuthResponse(response);
   },
 
@@ -141,7 +363,6 @@ export const platformApi = {
       method: "GET",
       token,
     });
-
     return normalizeStatePayload(response);
   },
 
@@ -169,5 +390,141 @@ export const platformApi = {
       method: "POST",
       token,
     });
+  },
+
+  async getProfile(token: string, userId: string) {
+    const response = await apiRequest<unknown>(`/users/profile/${userId}`, {
+      method: "GET",
+      token,
+    });
+    return normalizeProfilePayload(response);
+  },
+
+  async getMyProgress(token: string) {
+    const response = await apiRequest<unknown>("/progress/me", {
+      method: "GET",
+      token,
+    });
+    return normalizeProgressPayload(response);
+  },
+
+  async getStudentProgress(token: string, studentId: string) {
+    const response = await apiRequest<unknown>(`/teacher/students/${studentId}/progress`, {
+      method: "GET",
+      token,
+    });
+    return normalizeProgressPayload(response);
+  },
+
+  async updateStudentProgress(
+    token: string,
+    studentId: string,
+    payload: Partial<Omit<ProgressSnapshot, "status">> & { status?: ProgressSnapshot["status"] },
+  ) {
+    const response = await apiRequest<unknown>(`/teacher/students/${studentId}/progress`, {
+      method: "PATCH",
+      token,
+      body: {
+        progress_grammar: payload.grammar,
+        progress_vocabulary: payload.vocabulary,
+        progress_homework: payload.homework,
+        progress_speaking: payload.speaking,
+        progress_attendance: payload.attendance,
+        weekly_xp: payload.weeklyXp,
+        level: payload.level,
+        streak_days: payload.streakDays,
+        status_badge: payload.status,
+      },
+    });
+    return normalizeProgressPayload(response);
+  },
+
+  async getGrammarTopics(token: string) {
+    const response = await apiRequest<unknown>("/grammar/topics", {
+      method: "GET",
+      token,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.topics ?? data)
+      .map(normalizeGrammarTopic)
+      .filter((item): item is GrammarTopic => item !== null);
+  },
+
+  async createGrammarTopic(token: string, payload: { title: string; description: string; level: string; pptUrl: string }) {
+    const response = await apiRequest<unknown>("/grammar/topics", {
+      method: "POST",
+      token,
+      body: {
+        title: payload.title,
+        description: payload.description,
+        level: payload.level,
+        ppt_url: payload.pptUrl,
+      },
+    });
+    const data = getDataObject(response);
+    const topic = normalizeGrammarTopic(data?.topic ?? data);
+    if (!topic) throw new Error("Invalid topic response");
+    return topic;
+  },
+
+  async getSupportTickets(token: string) {
+    const response = await apiRequest<unknown>("/support/tickets", {
+      method: "GET",
+      token,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.tickets ?? data)
+      .map(normalizeSupportTicket)
+      .filter((item): item is SupportTicket => item !== null);
+  },
+
+  async createSupportTicket(token: string, message: string) {
+    const response = await apiRequest<unknown>("/support/tickets", {
+      method: "POST",
+      token,
+      body: { message },
+    });
+    const data = getDataObject(response);
+    const ticket = normalizeSupportTicket(data?.ticket ?? data);
+    if (!ticket) throw new Error("Invalid support response");
+    return ticket;
+  },
+
+  async updateSupportTicket(token: string, ticketId: string, status: SupportTicketStatus) {
+    const response = await apiRequest<unknown>(`/support/tickets/${ticketId}`, {
+      method: "PATCH",
+      token,
+      body: { status },
+    });
+    const data = getDataObject(response);
+    const ticket = normalizeSupportTicket(data?.ticket ?? data);
+    if (!ticket) throw new Error("Invalid support response");
+    return ticket;
+  },
+
+  async getAiMessages(token: string) {
+    const response = await apiRequest<unknown>("/chat/ai/messages", {
+      method: "GET",
+      token,
+      timeoutMs: 60000,
+    });
+    const data = getDataObject(response);
+    const conversation = asRecord(data?.conversation);
+    return readArray<unknown>(data?.messages ?? conversation?.messages)
+      .map(normalizeAiChatMessage)
+      .filter((item): item is AiChatMessage => item !== null);
+  },
+
+  async sendAiMessage(token: string, payload: { text?: string; imageBase64?: string }) {
+    const response = await apiRequest<unknown>("/chat/ai/messages", {
+      method: "POST",
+      token,
+      body: payload,
+      timeoutMs: 90000,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.messages)
+      .map(normalizeAiChatMessage)
+      .filter((item): item is AiChatMessage => item !== null);
   },
 };

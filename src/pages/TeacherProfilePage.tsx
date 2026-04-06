@@ -52,11 +52,11 @@ export function TeacherProfilePage() {
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = () => {
-                const result = reader.result;
-                if (typeof result === "string") {
+                  const result = reader.result;
+                  if (typeof result === "string") {
                     void updateAvatar(result);
-                }
-              };
+                  }
+                };
                 reader.readAsDataURL(file);
               }}
             />

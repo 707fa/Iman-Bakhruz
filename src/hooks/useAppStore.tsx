@@ -36,6 +36,7 @@ function syncRankingsWithStudents(state: AppState): AppState {
     groupId: student.groupId,
     points: student.points,
     avatarUrl: student.avatarUrl,
+    statusBadge: student.statusBadge,
   }));
 
   if (
@@ -48,7 +49,8 @@ function syncRankingsWithStudents(state: AppState): AppState {
         current.fullName === next.fullName &&
         current.groupId === next.groupId &&
         current.points === next.points &&
-        current.avatarUrl === next.avatarUrl
+        current.avatarUrl === next.avatarUrl &&
+        current.statusBadge === next.statusBadge
       );
     })
   ) {
@@ -212,9 +214,18 @@ function extractApiMessage(payload: unknown): string {
 
   if (typeof payload === "object") {
     const record = payload as Record<string, unknown>;
-    const direct = [record.message, record.error, record.detail].map((item) => extractApiMessage(item)).join(" ").trim();
-    if (direct) return direct;
-    return Object.values(record).map((item) => extractApiMessage(item)).join(" ").trim();
+    const parts = [
+      record.message,
+      record.error,
+      record.detail,
+      record.errors,
+      ...Object.values(record),
+    ]
+      .map((item) => extractApiMessage(item))
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    return Array.from(new Set(parts)).join(" ").trim();
   }
 
   return "";
@@ -230,6 +241,7 @@ interface StoreValue {
   logout: () => void;
   updateAvatar: (fileUrl: string) => Promise<void>;
   applyScore: (studentId: string, groupId: string, action: ScoreAction) => Promise<ActionResult>;
+  refreshState: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreValue | undefined>(undefined);
@@ -477,9 +489,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         }
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
-          return loginMock(payload);
+          return { ok: false, messageKey: "msg.loginInvalid" };
         }
-        return loginMock(payload);
+        return { ok: false, messageKey: "msg.serverUnavailable" };
       }
     }
 
@@ -597,10 +609,16 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             message.includes("груп") ||
             message.includes("guruh")
           ) {
-            return registerStudentMock(payload);
+            return { ok: false, messageKey: "msg.registerGroupInvalid" };
           }
+
+          if (error.status >= 500) {
+            return { ok: false, messageKey: "msg.serverUnavailable" };
+          }
+
+          return { ok: false, messageKey: "msg.registerInvalidData" };
         }
-        return registerStudentMock(payload);
+        return { ok: false, messageKey: "msg.serverUnavailable" };
       }
     }
 
@@ -669,6 +687,19 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return applyScoreMock(studentId, groupId, action);
   }
 
+  async function refreshState(): Promise<void> {
+    if (DATA_PROVIDER_MODE !== "api") return;
+    const token = getApiToken();
+    if (!token) return;
+
+    try {
+      const remote = await platformApi.getState(token);
+      setState((prev) => withRemoteState(prev, remote, prev.session));
+    } catch {
+      // Keep current UI snapshot if refresh fails.
+    }
+  }
+
   const value = useMemo<StoreValue>(
     () => ({
       state,
@@ -680,6 +711,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       logout,
       updateAvatar,
       applyScore,
+      refreshState,
     }),
     [state, currentStudent, currentTeacher],
   );

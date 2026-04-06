@@ -2,6 +2,7 @@
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { ScoreActions } from "../components/ScoreActions";
+import { StatusBadge } from "../components/StatusBadge";
 import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -9,7 +10,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
-import { getGroupTopLive } from "../lib/ranking";
+import { getGroupTop } from "../lib/ranking";
 
 export function TeacherGroupPage() {
   const { id } = useParams();
@@ -26,7 +27,7 @@ export function TeacherGroupPage() {
     ? state.students.filter((student) => student.groupId === group.id).sort((a, b) => b.points - a.points)
     : [];
 
-  const top = hasAccess ? getGroupTopLive(state, group!.id, 10) : [];
+  const top = hasAccess ? getGroupTop(state, group!.id, 10) : [];
   const daysLabel = group ? t(`days.${group.daysPattern}`) : "";
 
   return (
@@ -74,6 +75,16 @@ export function TeacherGroupPage() {
                       </div>
                     </div>
                     <Badge variant="soft">{student.points.toFixed(2)}</Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <StatusBadge status={student.statusBadge} />
+                    <Link
+                      to={`/teacher/student/${student.id}`}
+                      className="text-xs font-semibold text-burgundy-700 transition hover:text-burgundy-600 dark:text-burgundy-300 dark:hover:text-burgundy-200"
+                    >
+                      Open profile
+                    </Link>
                   </div>
 
                   <ScoreActions

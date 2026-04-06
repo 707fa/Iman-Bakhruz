@@ -3,13 +3,16 @@ import { useAppStore } from "../hooks/useAppStore";
 import { AppLayout } from "../layouts/AppLayout";
 import { LoginPage } from "../pages/LoginPage";
 import { RegisterPage } from "../pages/RegisterPage";
+import { PublicTopPage } from "../pages/PublicTopPage";
 import { StudentDashboardPage } from "../pages/StudentDashboardPage";
 import { StudentGroupPage } from "../pages/StudentGroupPage";
+import { StudentPublicProfilePage } from "../pages/StudentPublicProfilePage";
 import { StudentProfilePage } from "../pages/StudentProfilePage";
 import { StudentTopPage } from "../pages/StudentTopPage";
 import { TeacherDashboardPage } from "../pages/TeacherDashboardPage";
 import { TeacherGroupPage } from "../pages/TeacherGroupPage";
 import { TeacherProfilePage } from "../pages/TeacherProfilePage";
+import { TeacherStudentProfilePage } from "../pages/TeacherStudentProfilePage";
 import { AuthGuard, PublicOnlyGuard } from "./guards";
 
 function RootRedirect() {
@@ -31,6 +34,7 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
+      <Route path="/top" element={<PublicTopPage />} />
       <Route element={<PublicOnlyGuard />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -41,6 +45,7 @@ export function AppRouter() {
           <Route path="/student" element={<StudentDashboardPage />} />
           <Route path="/student/group" element={<StudentGroupPage />} />
           <Route path="/student/top" element={<StudentTopPage />} />
+          <Route path="/student/profile/:id" element={<StudentPublicProfilePage />} />
           <Route path="/profile" element={<StudentProfilePage />} />
         </Route>
       </Route>
@@ -49,6 +54,7 @@ export function AppRouter() {
         <Route element={<AppLayout />}>
           <Route path="/teacher" element={<TeacherDashboardPage />} />
           <Route path="/teacher/group/:id" element={<TeacherGroupPage />} />
+          <Route path="/teacher/student/:id" element={<TeacherStudentProfilePage />} />
           <Route path="/teacher/profile" element={<TeacherProfilePage />} />
         </Route>
       </Route>

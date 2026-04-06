@@ -42,8 +42,15 @@ export function ToastProvider({ children }: PropsWithChildren) {
   }, []);
 
   const showToast = useCallback(({ message, tone = "info", durationMs = 2600 }: ShowToastOptions) => {
-    const id = makeId("toast");
-    setItems((prev) => [...prev, { id, message, tone }]);
+    let id: string | null = null;
+    setItems((prev) => {
+      const hasSameToast = prev.some((item) => item.message === message && item.tone === tone);
+      if (hasSameToast) return prev;
+      id = makeId("toast");
+      return [...prev, { id, message, tone }];
+    });
+
+    if (!id) return;
 
     window.setTimeout(() => {
       setItems((prev) => prev.filter((item) => item.id !== id));
@@ -95,4 +102,3 @@ export function useToast() {
   }
   return context;
 }
-

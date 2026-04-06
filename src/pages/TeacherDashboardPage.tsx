@@ -1,13 +1,17 @@
-﻿import { BookOpenCheck, ClipboardList, Trophy, Users2 } from "lucide-react";
+import { BookOpenCheck, ClipboardList, Trophy, Users2 } from "lucide-react";
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
+import { GrammarTopicsCard } from "../components/GrammarTopicsCard";
 import { GroupCard } from "../components/GroupCard";
+import { ImanAiChatCard } from "../components/ImanAiChatCard";
 import { PageHeader } from "../components/PageHeader";
 import { RankingList } from "../components/RankingList";
+import { SupportTicketsCard } from "../components/SupportTicketsCard";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
-import { getGlobalTopLive } from "../lib/ranking";
+import { getGlobalTop } from "../lib/ranking";
 
 export function TeacherDashboardPage() {
   const { state, currentTeacher } = useAppStore();
@@ -27,8 +31,7 @@ export function TeacherDashboardPage() {
 
   const studentsCount = teacherStudents.length;
   const ratingsCount = state.ratingLogs.filter((log) => log.teacherId === currentTeacher.id).length;
-
-  const globalTop = getGlobalTopLive(state, 10);
+  const globalTop = getGlobalTop(state, 10);
 
   return (
     <div className="space-y-6">
@@ -70,11 +73,7 @@ export function TeacherDashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {teacherGroups.map((group) => (
-          <GroupCard
-            key={group.id}
-            group={group}
-            students={state.students.filter((student) => student.groupId === group.id)}
-          />
+          <GroupCard key={group.id} group={group} students={state.students.filter((student) => student.groupId === group.id)} />
         ))}
       </div>
 
@@ -104,18 +103,24 @@ export function TeacherDashboardPage() {
           {teacherStudents.map((student) => {
             const group = state.groups.find((item) => item.id === student.groupId);
             return (
-              <article
-                key={student.id}
-                className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900"
-              >
-                <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
-                <p className="text-xs text-charcoal/55 dark:text-zinc-400">{group?.title ?? t("auth.group")}</p>
-                <p className="mt-2 text-sm font-bold text-burgundy-700 dark:text-burgundy-300">{student.points.toFixed(2)}</p>
-              </article>
+              <Link key={student.id} to={`/teacher/student/${student.id}`}>
+                <article className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 transition hover:border-burgundy-300 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-burgundy-700">
+                  <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
+                  <p className="text-xs text-charcoal/55 dark:text-zinc-400">{group?.title ?? t("auth.group")}</p>
+                  <p className="mt-2 text-sm font-bold text-burgundy-700 dark:text-burgundy-300">{student.points.toFixed(2)}</p>
+                </article>
+              </Link>
             );
           })}
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <GrammarTopicsCard role="teacher" />
+        <SupportTicketsCard role="teacher" />
+      </div>
+
+      <ImanAiChatCard title="Iman AI Assistant" />
     </div>
   );
 }

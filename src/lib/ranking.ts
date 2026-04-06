@@ -11,6 +11,7 @@ function buildLiveRanking(state: AppState): RankingItem[] {
     groupId: student.groupId,
     points: student.points,
     avatarUrl: student.avatarUrl,
+    statusBadge: student.statusBadge,
   }));
 }
 
@@ -19,14 +20,6 @@ export function getGlobalTop(state: AppState, limit = 10): RankingItem[] {
 }
 
 export function getGroupTop(state: AppState, groupId: string, limit = 10): RankingItem[] {
-  return sortByPoints(buildLiveRanking(state).filter((item) => item.groupId === groupId)).slice(0, limit);
-}
-
-export function getGlobalTopLive(state: AppState, limit = 10): RankingItem[] {
-  return sortByPoints(buildLiveRanking(state)).slice(0, limit);
-}
-
-export function getGroupTopLive(state: AppState, groupId: string, limit = 10): RankingItem[] {
   return sortByPoints(buildLiveRanking(state).filter((item) => item.groupId === groupId)).slice(0, limit);
 }
 
@@ -42,14 +35,4 @@ export function getGroupPlace(state: AppState, studentId: string, groupId: strin
   return sortByPoints(buildLiveRanking(state).filter((entry) => entry.groupId === groupId)).findIndex(
     (entry) => entry.studentId === studentId,
   ) + 1;
-}
-
-export function getPublishedStudentPoints(state: AppState, studentId: string): number {
-  return state.students.find((entry) => entry.id === studentId)?.points ?? 0;
-}
-
-export function getScoreColor(score: number): string {
-  if (score >= 50) return "text-emerald-600";
-  if (score >= 35) return "text-burgundy-700";
-  return "text-rose-600";
 }

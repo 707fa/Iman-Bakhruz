@@ -1,4 +1,5 @@
 import { Crown } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { RankingItem } from "../types";
 import { cn } from "../lib/utils";
 import { UserAvatar } from "./UserAvatar";
@@ -8,6 +9,7 @@ interface RankingCardProps {
   rank: number;
   currentUserId?: string;
   showMeta?: boolean;
+  href?: string;
 }
 
 function medal(rank: number): string {
@@ -17,11 +19,16 @@ function medal(rank: number): string {
   return `${rank}.`;
 }
 
-export function RankingCard({ item, rank, currentUserId, showMeta = true }: RankingCardProps) {
+function statusDot(status?: "red" | "yellow" | "green"): string {
+  if (status === "green") return "bg-emerald-500";
+  if (status === "red") return "bg-rose-500";
+  return "bg-amber-500";
+}
+
+export function RankingCard({ item, rank, currentUserId, showMeta = true, href }: RankingCardProps) {
   const isCurrent = item.studentId === currentUserId;
   const isTop3 = rank <= 3;
-
-  return (
+  const content = (
     <article
       className={cn(
         "flex items-center justify-between rounded-2xl border px-4 py-3 transition-all",
@@ -40,9 +47,18 @@ export function RankingCard({ item, rank, currentUserId, showMeta = true }: Rank
       </div>
 
       <div className="flex items-center gap-2">
+        <span className={`h-2.5 w-2.5 rounded-full ${statusDot(item.statusBadge)}`} />
         {isTop3 ? <Crown className="h-4 w-4 text-burgundy-600" /> : null}
         <span className="text-sm font-bold text-burgundy-700">{item.points.toFixed(2)}</span>
       </div>
     </article>
+  );
+
+  if (!href) return content;
+
+  return (
+    <Link to={href} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy-400">
+      {content}
+    </Link>
   );
 }

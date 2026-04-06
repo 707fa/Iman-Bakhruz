@@ -1,6 +1,11 @@
-﻿import { ArrowRight, CalendarDays, Clock3, Trophy, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, Trophy, Users } from "lucide-react";
 import { Link } from "react-router-dom";
+import { FlashcardsGame } from "../components/FlashcardsGame";
+import { GrammarTopicsCard } from "../components/GrammarTopicsCard";
+import { ImanAiChatCard } from "../components/ImanAiChatCard";
 import { PageHeader } from "../components/PageHeader";
+import { ProgressOverviewCard } from "../components/ProgressOverviewCard";
+import { SupportTicketsCard } from "../components/SupportTicketsCard";
 import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -34,7 +39,7 @@ export function StudentDashboardPage() {
           <div className="grid gap-5 bg-gradient-to-r from-burgundy-900 to-burgundy-700 px-5 py-6 text-white sm:grid-cols-[auto_1fr] sm:items-center">
             <UserAvatar fullName={currentStudent.fullName} avatarUrl={currentStudent.avatarUrl} size="lg" />
             <div className="space-y-1">
-              <p className="text-2xl font-semibold">{currentStudent.fullName}</p>
+              <p className="break-words text-xl font-semibold sm:text-2xl">{currentStudent.fullName}</p>
               <p className="inline-flex items-center gap-2 text-sm text-white/80">
                 <Users className="h-4 w-4" />
                 {group?.title ?? t("student.noGroup")}
@@ -67,7 +72,6 @@ export function StudentDashboardPage() {
               </p>
             </div>
           </div>
-
         </CardContent>
       </Card>
 
@@ -98,6 +102,18 @@ export function StudentDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <ProgressOverviewCard title="My Progress" progress={currentStudent.progress} />
+        <FlashcardsGame />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <GrammarTopicsCard role="student" />
+        <SupportTicketsCard role="student" />
+      </div>
+
+      <ImanAiChatCard title="Iman AI Chat" />
     </div>
   );
 }

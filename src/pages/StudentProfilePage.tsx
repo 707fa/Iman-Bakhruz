@@ -1,5 +1,6 @@
 ﻿import { PageHeader } from "../components/PageHeader";
 import { ProfileCard } from "../components/ProfileCard";
+import { ProgressOverviewCard } from "../components/ProgressOverviewCard";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 
@@ -17,7 +18,11 @@ export function StudentProfilePage() {
         title={t("profile.title")}
         subtitle={t("profile.studentSubtitle")}
       />
-      <ProfileCard student={currentStudent} group={group} onPhotoUpload={updateAvatar} />
+
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <ProfileCard student={currentStudent} group={group} onPhotoUpload={updateAvatar} />
+        <ProgressOverviewCard title={t("profile.progressTitle")} progress={currentStudent.progress} />
+      </div>
     </div>
   );
 }
