@@ -1,4 +1,4 @@
-﻿import { GraduationCap, LayoutDashboard, Menu, Trophy, UsersRound, X } from "lucide-react";
+﻿import { Bot, GraduationCap, LayoutDashboard, Menu, MessageCircle, Trophy, UsersRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
@@ -50,8 +50,16 @@ export function AppLayout() {
       { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true },
       { label: t("tabs.group"), href: "/student/group", icon: UsersRound },
       { label: t("tabs.global"), href: "/student/top", icon: Trophy },
+      { label: t("nav.friendly"), href: "/student/chat", icon: MessageCircle },
+      { label: t("nav.aiChat"), href: "/student/ai-chat", icon: Bot },
     ],
-    teacher: [{ label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true }],
+    teacher: [
+      { label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true },
+      { label: t("nav.teacherGroups"), href: "/teacher/groups", icon: UsersRound },
+      { label: t("nav.teacherTop"), href: "/teacher/top", icon: Trophy },
+      { label: t("nav.friendly"), href: "/teacher/chat", icon: MessageCircle },
+      { label: t("nav.aiChat"), href: "/teacher/ai-chat", icon: Bot },
+    ],
   };
 
   const navItems = navMap[session.role];
@@ -121,15 +129,6 @@ export function AppLayout() {
                 );
               })}
             </nav>
-
-            <div className="mt-5 grid gap-2">
-              <Link to={profileHref} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 text-sm font-semibold text-burgundy-700 transition hover:bg-burgundy-100 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-burgundy-200 dark:hover:bg-burgundy-900/45">
-                {t("menu.profile")}
-              </Link>
-              <Button variant="secondary" onClick={logout} className="min-h-11">
-                {t("ui.logout")}
-              </Button>
-            </div>
           </aside>
         </div>
       ) : null}

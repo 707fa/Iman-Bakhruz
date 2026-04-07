@@ -241,6 +241,7 @@ interface StoreValue {
   logout: () => void;
   updateAvatar: (fileUrl: string) => Promise<void>;
   applyScore: (studentId: string, groupId: string, action: ScoreAction) => Promise<ActionResult>;
+  disableStudent: (studentId: string) => Promise<ActionResult>;
   refreshState: () => Promise<void>;
 }
 
@@ -308,6 +309,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     const teacher = authCollections.teachers.find((item) => toPhone(item.phone) === phone);
 
     if (student && student.password === password) {
+      if (student.isActive === false || student.isImanStudent === false) {
+        return { ok: false, messageKey: "msg.loginInvalid" };
+      }
       setState((prev) => ({ ...withSeedData(prev), session: { role: "student", userId: student.id } }));
       return { ok: true, messageKey: "msg.loginStudent" };
     }
@@ -363,6 +367,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       password: payload.password,
       groupId: group.id,
       points: 0,
+      isActive: true,
+      isImanStudent: true,
     };
 
     const ranking: RankingItem = {
@@ -456,6 +462,30 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return { ok: true, messageKey: "msg.scoreUpdated" };
   }
 
+  function disableStudentMock(studentId: string): ActionResult {
+    if (!state.session || state.session.role !== "teacher") {
+      return { ok: false, messageKey: "msg.scoreOnlyTeacher" };
+    }
+
+    const teacher = state.teachers.find((item) => item.id === state.session?.userId);
+    const student = state.students.find((item) => item.id === studentId);
+    if (!teacher || !student || !teacher.groupIds.includes(student.groupId)) {
+      return { ok: false, messageKey: "msg.scoreNoAccess" };
+    }
+
+    setState((prev) => {
+      const nextStudents = prev.students.filter((item) => item.id !== studentId);
+      const nextLogs = prev.ratingLogs.filter((item) => item.studentId !== studentId);
+      return syncRankingsWithStudents({
+        ...prev,
+        students: nextStudents,
+        ratingLogs: nextLogs,
+      });
+    });
+
+    return { ok: true, messageKey: "msg.studentDisabled" };
+  }
+
   async function login(payload: LoginPayload): Promise<ActionResult> {
     const normalizedPayload: LoginPayload = {
       phone: toPhone(payload.phone),
@@ -534,6 +564,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             groupId: normalizedPayload.groupId,
             points: existingStudent?.points ?? 0,
             avatarUrl: existingStudent?.avatarUrl,
+            isActive: existingStudent?.isActive ?? true,
+            isImanStudent: existingStudent?.isImanStudent ?? true,
           };
 
           const students = existingStudent
@@ -687,6 +719,30 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return applyScoreMock(studentId, groupId, action);
   }
 
+  async function disableStudent(studentId: string): Promise<ActionResult> {
+    if (!state.session || state.session.role !== "teacher") {
+      return { ok: false, messageKey: "msg.scoreOnlyTeacher" };
+    }
+
+    if (DATA_PROVIDER_MODE === "api") {
+      const token = getApiToken();
+      if (!token) {
+        return disableStudentMock(studentId);
+      }
+
+      try {
+        await platformApi.deactivateStudent(token, studentId);
+        const remote = await platformApi.getState(token);
+        setState((prev) => withRemoteState(prev, remote, prev.session));
+        return { ok: true, messageKey: "msg.studentDisabled" };
+      } catch {
+        return { ok: false, messageKey: "msg.serverUnavailable" };
+      }
+    }
+
+    return disableStudentMock(studentId);
+  }
+
   async function refreshState(): Promise<void> {
     if (DATA_PROVIDER_MODE !== "api") return;
     const token = getApiToken();
@@ -711,6 +767,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       logout,
       updateAvatar,
       applyScore,
+      disableStudent,
       refreshState,
     }),
     [state, currentStudent, currentTeacher],

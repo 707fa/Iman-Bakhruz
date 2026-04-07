@@ -1,6 +1,8 @@
 ﻿import { Navigate, Route, Routes } from "react-router-dom";
 import { useAppStore } from "../hooks/useAppStore";
 import { AppLayout } from "../layouts/AppLayout";
+import { FriendlyChatPage } from "../pages/FriendlyChatPage";
+import { ImanAiChatPage } from "../pages/ImanAiChatPage";
 import { LoginPage } from "../pages/LoginPage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { PublicTopPage } from "../pages/PublicTopPage";
@@ -11,8 +13,10 @@ import { StudentProfilePage } from "../pages/StudentProfilePage";
 import { StudentTopPage } from "../pages/StudentTopPage";
 import { TeacherDashboardPage } from "../pages/TeacherDashboardPage";
 import { TeacherGroupPage } from "../pages/TeacherGroupPage";
+import { TeacherGroupsPage } from "../pages/TeacherGroupsPage";
 import { TeacherProfilePage } from "../pages/TeacherProfilePage";
 import { TeacherStudentProfilePage } from "../pages/TeacherStudentProfilePage";
+import { TeacherTopPage } from "../pages/TeacherTopPage";
 import { AuthGuard, PublicOnlyGuard } from "./guards";
 
 function RootRedirect() {
@@ -45,6 +49,8 @@ export function AppRouter() {
           <Route path="/student" element={<StudentDashboardPage />} />
           <Route path="/student/group" element={<StudentGroupPage />} />
           <Route path="/student/top" element={<StudentTopPage />} />
+          <Route path="/student/chat" element={<FriendlyChatPage />} />
+          <Route path="/student/ai-chat" element={<ImanAiChatPage />} />
           <Route path="/student/profile/:id" element={<StudentPublicProfilePage />} />
           <Route path="/profile" element={<StudentProfilePage />} />
         </Route>
@@ -53,6 +59,10 @@ export function AppRouter() {
       <Route element={<AuthGuard role="teacher" />}>
         <Route element={<AppLayout />}>
           <Route path="/teacher" element={<TeacherDashboardPage />} />
+          <Route path="/teacher/groups" element={<TeacherGroupsPage />} />
+          <Route path="/teacher/top" element={<TeacherTopPage />} />
+          <Route path="/teacher/chat" element={<FriendlyChatPage />} />
+          <Route path="/teacher/ai-chat" element={<ImanAiChatPage />} />
           <Route path="/teacher/group/:id" element={<TeacherGroupPage />} />
           <Route path="/teacher/student/:id" element={<TeacherStudentProfilePage />} />
           <Route path="/teacher/profile" element={<TeacherProfilePage />} />

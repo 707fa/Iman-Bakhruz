@@ -30,6 +30,8 @@ export interface Student {
   groupId: string;
   avatarUrl?: string;
   points: number;
+  isActive?: boolean;
+  isImanStudent?: boolean;
   statusBadge?: StatusBadge;
   progress?: ProgressSnapshot;
 }
@@ -133,5 +135,33 @@ export interface AiChatMessage {
   role: "user" | "assistant";
   text: string;
   imageUrl?: string;
+  createdAt: string;
+}
+
+export interface FriendlyChatPeer {
+  id: string;
+  fullName: string;
+  role: UserRole;
+  avatarUrl?: string;
+}
+
+export interface FriendlyConversation {
+  id: string;
+  updatedAt: string;
+  peer: FriendlyChatPeer;
+  lastMessage?: {
+    id: string;
+    text: string;
+    senderId: string;
+    createdAt: string;
+  };
+}
+
+export interface FriendlyChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: UserRole;
+  text: string;
   createdAt: string;
 }

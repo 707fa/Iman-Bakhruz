@@ -14,7 +14,7 @@ import { getGroupTop } from "../lib/ranking";
 
 export function TeacherGroupPage() {
   const { id } = useParams();
-  const { state, currentTeacher, applyScore } = useAppStore();
+  const { state, currentTeacher, applyScore, disableStudent } = useAppStore();
   const { t } = useUi();
   const { showToast } = useToast();
 
@@ -33,7 +33,7 @@ export function TeacherGroupPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Link to="/teacher">
+        <Link to="/teacher/groups">
           <Button variant="ghost" size="sm">
             <ChevronLeft className="mr-1 h-4 w-4" />
             {t("teacher.backToGroups")}
@@ -79,12 +79,30 @@ export function TeacherGroupPage() {
 
                   <div className="flex items-center justify-between gap-2">
                     <StatusBadge status={student.statusBadge} />
-                    <Link
-                      to={`/teacher/student/${student.id}`}
-                      className="text-xs font-semibold text-burgundy-700 transition hover:text-burgundy-600 dark:text-burgundy-300 dark:hover:text-burgundy-200"
-                    >
-                      Open profile
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm(t("teacher.disableConfirm"))) return;
+                          void (async () => {
+                            const result = await disableStudent(student.id);
+                            showToast({
+                              message: t(result.messageKey, result.messageParams),
+                              tone: result.ok ? "success" : "error",
+                            });
+                          })();
+                        }}
+                        className="text-xs font-semibold text-rose-700 transition hover:text-rose-600 dark:text-rose-300 dark:hover:text-rose-200"
+                      >
+                        {t("teacher.disableStudent")}
+                      </button>
+                      <Link
+                        to={`/teacher/student/${student.id}`}
+                        className="text-xs font-semibold text-burgundy-700 transition hover:text-burgundy-600 dark:text-burgundy-300 dark:hover:text-burgundy-200"
+                      >
+                        {t("menu.profile")}
+                      </Link>
+                    </div>
                   </div>
 
                   <ScoreActions

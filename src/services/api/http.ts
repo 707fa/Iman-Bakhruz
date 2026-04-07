@@ -31,7 +31,8 @@ async function parseJsonSafe(response: Response): Promise<unknown> {
   }
 }
 
-const DEFAULT_TIMEOUT_MS = 12000;
+// Render free instance may take ~20-40s to wake up after idle.
+const DEFAULT_TIMEOUT_MS = 35000;
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = {

@@ -1,6 +1,8 @@
 import type {
   AiChatMessage,
   AppState,
+  FriendlyChatMessage,
+  FriendlyConversation,
   GrammarTopic,
   Group,
   LoginPayload,
@@ -125,6 +127,9 @@ function normalizeStudent(raw: unknown): Student | null {
     groupId: str(item.groupId ?? item.group_id),
     avatarUrl: str(item.avatarUrl ?? item.avatar) || undefined,
     points: num(item.points),
+    isActive: item.isActive !== undefined ? Boolean(item.isActive) : item.is_active !== undefined ? Boolean(item.is_active) : undefined,
+    isImanStudent:
+      item.isImanStudent !== undefined ? Boolean(item.isImanStudent) : item.is_iman_student !== undefined ? Boolean(item.is_iman_student) : undefined,
     statusBadge: progress?.status ?? normalizeStatus(item.statusBadge ?? item.status_badge),
     progress,
   };
@@ -312,6 +317,45 @@ function normalizeAiChatMessage(raw: unknown): AiChatMessage | null {
     role,
     text: str(item.text),
     imageUrl: str(item.imageUrl ?? item.image_url) || undefined,
+    createdAt: str(item.createdAt ?? item.created_at),
+  };
+}
+
+function normalizeFriendlyConversation(raw: unknown): FriendlyConversation | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const peer = asRecord(item.peer);
+  if (!peer) return null;
+  const last = asRecord(item.lastMessage ?? item.last_message);
+  return {
+    id: str(item.id),
+    updatedAt: str(item.updatedAt ?? item.updated_at),
+    peer: {
+      id: str(peer.id),
+      fullName: str(peer.fullName ?? peer.full_name),
+      role: normalizeRole(peer.role),
+      avatarUrl: str(peer.avatarUrl ?? peer.avatar) || undefined,
+    },
+    lastMessage: last
+      ? {
+          id: str(last.id),
+          text: str(last.text),
+          senderId: str(last.senderId ?? last.sender_id),
+          createdAt: str(last.createdAt ?? last.created_at),
+        }
+      : undefined,
+  };
+}
+
+function normalizeFriendlyMessage(raw: unknown): FriendlyChatMessage | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  return {
+    id: str(item.id),
+    senderId: str(item.senderId ?? item.sender_id),
+    senderName: str(item.senderName ?? item.sender_name),
+    senderRole: normalizeRole(item.senderRole ?? item.sender_role),
+    text: str(item.text),
     createdAt: str(item.createdAt ?? item.created_at),
   };
 }
@@ -526,5 +570,63 @@ export const platformApi = {
     return readArray<unknown>(data?.messages)
       .map(normalizeAiChatMessage)
       .filter((item): item is AiChatMessage => item !== null);
+  },
+
+  async deactivateStudent(token: string, studentId: string) {
+    return apiRequest<void>(`/teacher/students/${studentId}/deactivate`, {
+      method: "PATCH",
+      token,
+      body: {},
+    });
+  },
+
+  async getFriendlyConversations(token: string) {
+    const response = await apiRequest<unknown>("/chat/friendly/conversations", {
+      method: "GET",
+      token,
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.conversations ?? data)
+      .map(normalizeFriendlyConversation)
+      .filter((item): item is FriendlyConversation => item !== null);
+  },
+
+  async startFriendlyConversation(token: string, targetUserId: string) {
+    const response = await apiRequest<unknown>("/chat/friendly/conversations", {
+      method: "POST",
+      token,
+      body: { targetUserId: Number(targetUserId) },
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    const conversation = normalizeFriendlyConversation(data?.conversation ?? data);
+    if (!conversation) throw new Error("Invalid friendly conversation response");
+    return conversation;
+  },
+
+  async getFriendlyMessages(token: string, conversationId: string) {
+    const response = await apiRequest<unknown>(`/chat/friendly/conversations/${conversationId}/messages`, {
+      method: "GET",
+      token,
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.messages ?? data)
+      .map(normalizeFriendlyMessage)
+      .filter((item): item is FriendlyChatMessage => item !== null);
+  },
+
+  async sendFriendlyMessage(token: string, conversationId: string, text: string) {
+    const response = await apiRequest<unknown>(`/chat/friendly/conversations/${conversationId}/messages`, {
+      method: "POST",
+      token,
+      body: { text },
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    const message = normalizeFriendlyMessage(data?.message ?? data);
+    if (!message) throw new Error("Invalid friendly message response");
+    return message;
   },
 };

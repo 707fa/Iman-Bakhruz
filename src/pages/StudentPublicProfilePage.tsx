@@ -92,7 +92,13 @@ export function StudentPublicProfilePage() {
                   {t("profile.openMine")}
                 </Button>
               </Link>
-            ) : null}
+            ) : (
+              <Link to={`/student/chat?user=${student.id}`}>
+                <Button variant="secondary" className="w-full">
+                  {t("chat.openFromProfile")}
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
 

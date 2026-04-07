@@ -1,4 +1,4 @@
-import { ChevronLeft, Save } from "lucide-react";
+﻿import { ChevronLeft, MessageCircle, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -11,8 +11,9 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
-import { getApiToken } from "../services/tokenStorage";
+import { useUi } from "../hooks/useUi";
 import { platformApi } from "../services/api/platformApi";
+import { getApiToken } from "../services/tokenStorage";
 
 interface ProgressFormState {
   grammar: number;
@@ -47,6 +48,7 @@ export function TeacherStudentProfilePage() {
   const { id } = useParams();
   const { state, currentTeacher, refreshState } = useAppStore();
   const { showToast } = useToast();
+  const { t } = useUi();
 
   const [form, setForm] = useState<ProgressFormState>(emptyProgress);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,14 +73,15 @@ export function TeacherStudentProfilePage() {
 
   useEffect(() => {
     const token = getApiToken();
-    if (!token || !id || !/^\d+$/.test(id)) return;
-    if (!hasAccess) return;
+    if (!token || !id || !/^\d+$/.test(id) || !hasAccess) return;
 
     let disposed = false;
+
     const load = async () => {
       try {
         const profile = await platformApi.getStudentProgress(token, id);
         if (disposed) return;
+
         setForm({
           grammar: profile.grammar,
           vocabulary: profile.vocabulary,
@@ -90,10 +93,12 @@ export function TeacherStudentProfilePage() {
           streakDays: profile.streakDays,
         });
       } catch {
-        // Fallback to already loaded store data.
+        // Keep local state fallback.
       }
     };
+
     void load();
+
     return () => {
       disposed = true;
     };
@@ -108,7 +113,7 @@ export function TeacherStudentProfilePage() {
   async function handleSave() {
     const token = getApiToken();
     if (!token || !id || !/^\d+$/.test(id)) {
-      showToast({ message: "Progress sync requires API backend", tone: "error" });
+      showToast({ message: t("msg.serverUnavailable"), tone: "error" });
       return;
     }
 
@@ -119,9 +124,9 @@ export function TeacherStudentProfilePage() {
         status,
       });
       await refreshState();
-      showToast({ message: "Student progress updated", tone: "success" });
+      showToast({ message: t("msg.scoreUpdated"), tone: "success" });
     } catch {
-      showToast({ message: "Failed to update progress", tone: "error" });
+      showToast({ message: t("msg.serverUnavailable"), tone: "error" });
     } finally {
       setIsSaving(false);
     }
@@ -132,23 +137,23 @@ export function TeacherStudentProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/teacher">
+        <Link to="/teacher/groups">
           <Button variant="ghost" size="sm">
             <ChevronLeft className="mr-1 h-4 w-4" />
-            Back
+            {t("teacher.backToGroups")}
           </Button>
         </Link>
       </div>
 
       {!student ? (
         <Card>
-          <CardContent className="p-6 text-sm text-rose-600">Student not found</CardContent>
+          <CardContent className="p-6 text-sm text-rose-600">{t("profile.notFound")}</CardContent>
         </Card>
       ) : null}
 
       {student && !hasAccess ? (
         <Card>
-          <CardContent className="p-6 text-sm text-rose-600">You do not have access to this student.</CardContent>
+          <CardContent className="p-6 text-sm text-rose-600">{t("teacher.noAccessGroup")}</CardContent>
         </Card>
       ) : null}
 
@@ -156,13 +161,13 @@ export function TeacherStudentProfilePage() {
         <>
           <PageHeader
             title={student.fullName}
-            subtitle={`${group?.title ?? "Group"} • ${group?.time ?? "-"}`}
+            subtitle={`${group?.title ?? t("profile.noGroup")} • ${group?.time ?? "-"}`}
             action={<StatusBadge status={status} />}
           />
 
           <Card>
             <CardHeader>
-              <CardTitle>Student Profile</CardTitle>
+              <CardTitle>{t("profile.title")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
@@ -170,15 +175,24 @@ export function TeacherStudentProfilePage() {
                 <div>
                   <p className="text-lg font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
                   <p className="text-sm text-charcoal/60 dark:text-zinc-400">{student.phone}</p>
-                  <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-burgundy-300">{student.points.toFixed(2)} points</p>
+                  <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-burgundy-300">
+                    {student.points.toFixed(2)} {t("student.points")}
+                  </p>
                 </div>
               </div>
+
+              <Link to={`/teacher/chat?user=${student.id}`}>
+                <Button variant="secondary" className="w-full sm:w-auto">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  {t("chat.openFromProfile")}
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
           <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
             <ProgressOverviewCard
-              title="Current Progress"
+              title={t("profile.progressTitle")}
               progress={{
                 status,
                 grammar: form.grammar,
@@ -194,7 +208,7 @@ export function TeacherStudentProfilePage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Edit Progress</CardTitle>
+                <CardTitle>{t("profile.progressTitle")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -269,7 +283,7 @@ export function TeacherStudentProfilePage() {
 
                 <Button onClick={() => void handleSave()} disabled={isSaving} className="w-full">
                   <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? "Saving..." : "Save Progress"}
+                  {isSaving ? `${t("ui.save")}...` : t("ui.save")}
                 </Button>
               </CardContent>
             </Card>

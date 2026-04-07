@@ -1,11 +1,6 @@
-import { ArrowRight, CalendarDays, Clock3, Trophy, Users } from "lucide-react";
+﻿import { ArrowRight, Bot, CalendarDays, Clock3, MessageCircle, Trophy, User, Users } from "lucide-react";
 import { Link } from "react-router-dom";
-import { FlashcardsGame } from "../components/FlashcardsGame";
-import { GrammarTopicsCard } from "../components/GrammarTopicsCard";
-import { ImanAiChatCard } from "../components/ImanAiChatCard";
 import { PageHeader } from "../components/PageHeader";
-import { ProgressOverviewCard } from "../components/ProgressOverviewCard";
-import { SupportTicketsCard } from "../components/SupportTicketsCard";
 import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -23,7 +18,6 @@ export function StudentDashboardPage() {
   const group = state.groups.find((item) => item.id === currentStudent.groupId);
   const groupPlace = getGroupPlace(state, currentStudent.id, currentStudent.groupId);
   const globalPlace = getGlobalPlace(state, currentStudent.id);
-
   const daysLabel = group ? t(`days.${group.daysPattern}`) : "-";
 
   return (
@@ -75,7 +69,7 @@ export function StudentDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Card>
           <CardContent className="p-5">
             <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("tabs.group")}</p>
@@ -101,19 +95,55 @@ export function StudentDashboardPage() {
             </Link>
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <ProgressOverviewCard title="My Progress" progress={currentStudent.progress} />
-        <FlashcardsGame />
-      </div>
+        <Card>
+          <CardContent className="p-5">
+            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
+              <MessageCircle className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
+              {t("nav.friendly")}
+            </p>
+            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("chat.subtitleStudent")}</p>
+            <Link to="/student/chat" className="mt-4 inline-block">
+              <Button variant="secondary">
+                {t("nav.friendly")}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <GrammarTopicsCard role="student" />
-        <SupportTicketsCard role="student" />
-      </div>
+        <Card>
+          <CardContent className="p-5">
+            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
+              <Bot className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
+              {t("nav.aiChat")}
+            </p>
+            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("ai.subtitleStudent")}</p>
+            <Link to="/student/ai-chat" className="mt-4 inline-block">
+              <Button variant="secondary">
+                {t("nav.aiChat")}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
 
-      <ImanAiChatCard title="Iman AI Chat" />
+        <Card>
+          <CardContent className="p-5">
+            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
+              <User className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
+              {t("tabs.profile")}
+            </p>
+            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("profile.studentSubtitle")}</p>
+            <Link to="/profile" className="mt-4 inline-block">
+              <Button variant="secondary">
+                {t("tabs.profile")}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
