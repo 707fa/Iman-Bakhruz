@@ -27,7 +27,7 @@ export function RankingList({ title, items, groups = [], currentUserId, showMeta
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2 p-4 sm:p-6">
         {mapped.length === 0 ? (
           <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             {t("ui.noData")}

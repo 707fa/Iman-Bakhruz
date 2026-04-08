@@ -165,3 +165,33 @@ export interface FriendlyChatMessage {
   text: string;
   createdAt: string;
 }
+
+export type HomeworkSubmissionStatus = "submitted" | "reviewed";
+
+export interface HomeworkSubmission {
+  id: string;
+  taskId: string;
+  studentId: string;
+  studentName: string;
+  studentGroupId?: string;
+  answerText: string;
+  status: HomeworkSubmissionStatus;
+  teacherComment?: string;
+  score?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HomeworkTask {
+  id: string;
+  teacherId: string;
+  teacherName: string;
+  groupId: string;
+  groupTitle: string;
+  title: string;
+  description: string;
+  dueAt?: string;
+  isActive: boolean;
+  createdAt: string;
+  mySubmission?: HomeworkSubmission;
+}

@@ -28,14 +28,14 @@ export function TeacherTopPage() {
         action={<Badge variant="soft">Top 20</Badge>}
       />
 
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <RankingList title={t("teacher.topAll")} items={globalTop} groups={state.groups} itemHref={(item) => `/teacher/student/${item.studentId}`} />
 
         <Card>
           <CardHeader>
             <CardTitle>{t("teacher.allMyStudents")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 p-4 sm:p-6">
             {teacherStudents.length === 0 ? (
               <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                 {t("ui.noData")}

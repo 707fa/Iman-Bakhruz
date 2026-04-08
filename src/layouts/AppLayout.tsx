@@ -45,24 +45,32 @@ export function AppLayout() {
     return null;
   }
 
-  const navMap: Record<"student" | "teacher", NavItem[]> = {
+  const mainNavMap: Record<"student" | "teacher", NavItem[]> = {
     student: [
       { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true },
       { label: t("tabs.group"), href: "/student/group", icon: UsersRound },
       { label: t("tabs.global"), href: "/student/top", icon: Trophy },
-      { label: t("nav.friendly"), href: "/student/chat", icon: MessageCircle },
-      { label: t("nav.aiChat"), href: "/student/ai-chat", icon: Bot },
     ],
     teacher: [
       { label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true },
       { label: t("nav.teacherGroups"), href: "/teacher/groups", icon: UsersRound },
       { label: t("nav.teacherTop"), href: "/teacher/top", icon: Trophy },
+    ],
+  };
+
+  const chatNavMap: Record<"student" | "teacher", NavItem[]> = {
+    student: [
+      { label: t("nav.friendly"), href: "/student/chat", icon: MessageCircle },
+      { label: t("nav.aiChat"), href: "/student/ai-chat", icon: Bot },
+    ],
+    teacher: [
       { label: t("nav.friendly"), href: "/teacher/chat", icon: MessageCircle },
       { label: t("nav.aiChat"), href: "/teacher/ai-chat", icon: Bot },
     ],
   };
 
-  const navItems = navMap[session.role];
+  const navItems = mainNavMap[session.role];
+  const chatNavItems = chatNavMap[session.role];
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? "User";
   const avatar = currentStudent?.avatarUrl ?? currentTeacher?.avatarUrl;
   const profileHref = session.role === "student" ? "/profile" : "/teacher/profile";
@@ -176,7 +184,7 @@ export function AppLayout() {
 
         <div className="relative flex h-dvh min-w-0 flex-col">
           <header className="sticky top-0 z-40 border-b border-burgundy-100/70 bg-white/95 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
-            <div className="mx-auto flex min-h-16 w-full max-w-[1320px] items-center justify-between gap-2 px-3 py-[max(0.5rem,env(safe-area-inset-top))] sm:px-6 lg:py-2">
+            <div className="mx-auto flex min-h-14 w-full max-w-[1320px] items-center justify-between gap-2 px-2 py-[max(0.45rem,env(safe-area-inset-top))] sm:min-h-16 sm:px-6 lg:py-2">
               <div className="flex min-w-0 items-center gap-2">
                 <Button
                   type="button"
@@ -210,7 +218,7 @@ export function AppLayout() {
             </div>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-6 sm:pt-6">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-6">
             <div className="mx-auto w-full max-w-[1320px]">
               <Outlet />
             </div>
@@ -220,3 +228,6 @@ export function AppLayout() {
     </div>
   );
 }
+
+
+

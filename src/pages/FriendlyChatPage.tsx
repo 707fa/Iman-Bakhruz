@@ -9,8 +9,9 @@ import { Input } from "../components/ui/input";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 import { DATA_PROVIDER_MODE } from "../lib/env";
+import { ApiError } from "../services/api/http";
 import { platformApi } from "../services/api/platformApi";
-import { getApiToken } from "../services/tokenStorage";
+import { clearApiToken, getApiToken } from "../services/tokenStorage";
 import type { FriendlyChatMessage, FriendlyConversation, UserRole } from "../types";
 
 const FRIENDLY_CHAT_STORAGE_KEY = "result-friendly-chat-v1";
@@ -77,6 +78,10 @@ function createMessageId(): string {
   return `m_${Math.random().toString(36).slice(2, 10)}_${Date.now()}`;
 }
 
+function isAuthError(error: unknown): error is ApiError {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
+}
+
 export function FriendlyChatPage() {
   const { state, currentStudent, currentTeacher } = useAppStore();
   const { t } = useUi();
@@ -96,6 +101,14 @@ export function FriendlyChatPage() {
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  function forceRelogin() {
+    clearApiToken();
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("result-dashboard-v6");
+      window.location.assign("/login");
+    }
+  }
 
   useEffect(() => {
     setUseLocalMode(!canUseApi);
@@ -267,7 +280,11 @@ export function FriendlyChatPage() {
       });
       setActiveConversationId(readyConversation.id);
       setModeNotice(null);
-    } catch {
+    } catch (apiError) {
+      if (isAuthError(apiError)) {
+        forceRelogin();
+        return;
+      }
       setUseLocalMode(true);
       setModeNotice(t("chat.localMode"));
       const localId = ensureLocalConversation(targetId);
@@ -302,7 +319,11 @@ export function FriendlyChatPage() {
       if (!activeConversationId && data.length > 0) {
         setActiveConversationId(data[0].id);
       }
-    } catch {
+    } catch (apiError) {
+      if (isAuthError(apiError)) {
+        forceRelogin();
+        return;
+      }
       setUseLocalMode(true);
       setModeNotice(t("chat.localMode"));
       loadLocalConversations();
@@ -365,7 +386,11 @@ export function FriendlyChatPage() {
           setMessages(data);
           setModeNotice(null);
         }
-      } catch {
+      } catch (apiError) {
+        if (isAuthError(apiError)) {
+          forceRelogin();
+          return;
+        }
         if (disposed) return;
         setUseLocalMode(true);
         setModeNotice(t("chat.localMode"));
@@ -465,7 +490,11 @@ export function FriendlyChatPage() {
             : item,
         ),
       );
-    } catch {
+    } catch (apiError) {
+      if (isAuthError(apiError)) {
+        forceRelogin();
+        return;
+      }
       setUseLocalMode(true);
       setModeNotice(t("chat.localMode"));
       setDraft(text);

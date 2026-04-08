@@ -5,6 +5,8 @@ import type {
   FriendlyConversation,
   GrammarTopic,
   Group,
+  HomeworkSubmission,
+  HomeworkTask,
   LoginPayload,
   ProgressSnapshot,
   RankingItem,
@@ -360,6 +362,44 @@ function normalizeFriendlyMessage(raw: unknown): FriendlyChatMessage | null {
   };
 }
 
+function normalizeHomeworkSubmission(raw: unknown): HomeworkSubmission | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const status = str(item.status) === "reviewed" ? "reviewed" : "submitted";
+  return {
+    id: str(item.id),
+    taskId: str(item.taskId ?? item.task_id),
+    studentId: str(item.studentId ?? item.student_id),
+    studentName: str(item.studentName ?? item.student_name),
+    studentGroupId: str(item.studentGroupId ?? item.student_group_id) || undefined,
+    answerText: str(item.answerText ?? item.answer_text),
+    status,
+    teacherComment: str(item.teacherComment ?? item.teacher_comment) || undefined,
+    score: item.score === null || item.score === undefined ? undefined : num(item.score),
+    createdAt: str(item.createdAt ?? item.created_at),
+    updatedAt: str(item.updatedAt ?? item.updated_at),
+  };
+}
+
+function normalizeHomeworkTask(raw: unknown): HomeworkTask | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const mySubmission = normalizeHomeworkSubmission(item.mySubmission ?? item.my_submission);
+  return {
+    id: str(item.id),
+    teacherId: str(item.teacherId ?? item.teacher_id),
+    teacherName: str(item.teacherName ?? item.teacher_name),
+    groupId: str(item.groupId ?? item.group_id),
+    groupTitle: str(item.groupTitle ?? item.group_title),
+    title: str(item.title),
+    description: str(item.description),
+    dueAt: str(item.dueAt ?? item.due_at) || undefined,
+    isActive: item.isActive !== undefined ? Boolean(item.isActive) : Boolean(item.is_active),
+    createdAt: str(item.createdAt ?? item.created_at),
+    mySubmission: mySubmission ?? undefined,
+  };
+}
+
 export function toAppStatePayload(state: RemoteStatePayload, session: AppState["session"]): AppState {
   return {
     students: state.students,
@@ -628,5 +668,100 @@ export const platformApi = {
     const message = normalizeFriendlyMessage(data?.message ?? data);
     if (!message) throw new Error("Invalid friendly message response");
     return message;
+  },
+
+  async getTeacherHomeworkTasks(token: string, groupId?: string) {
+    const query = groupId ? `?group_id=${encodeURIComponent(groupId)}` : "";
+    const response = await apiRequest<unknown>(`/teacher/homework/tasks${query}`, {
+      method: "GET",
+      token,
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.tasks ?? data)
+      .map(normalizeHomeworkTask)
+      .filter((item): item is HomeworkTask => item !== null);
+  },
+
+  async createTeacherHomeworkTask(
+    token: string,
+    payload: { groupId: string; title: string; description?: string; dueAt?: string },
+  ) {
+    const response = await apiRequest<unknown>("/teacher/homework/tasks", {
+      method: "POST",
+      token,
+      body: {
+        group_id: Number(payload.groupId),
+        title: payload.title,
+        description: payload.description ?? "",
+        due_at: payload.dueAt,
+      },
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    const task = normalizeHomeworkTask(data?.task ?? data);
+    if (!task) throw new Error("Invalid homework task response");
+    return task;
+  },
+
+  async getTeacherHomeworkSubmissions(token: string, taskId: string) {
+    const response = await apiRequest<unknown>(`/teacher/homework/tasks/${taskId}/submissions`, {
+      method: "GET",
+      token,
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    return {
+      task: normalizeHomeworkTask(data?.task) ?? null,
+      submissions: readArray<unknown>(data?.submissions)
+        .map(normalizeHomeworkSubmission)
+        .filter((item): item is HomeworkSubmission => item !== null),
+    };
+  },
+
+  async reviewHomeworkSubmission(
+    token: string,
+    submissionId: string,
+    payload: { status?: "submitted" | "reviewed"; teacherComment?: string; score?: number | null },
+  ) {
+    const response = await apiRequest<unknown>(`/teacher/homework/submissions/${submissionId}`, {
+      method: "PATCH",
+      token,
+      body: {
+        status: payload.status,
+        teacher_comment: payload.teacherComment,
+        score: payload.score,
+      },
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    const submission = normalizeHomeworkSubmission(data?.submission ?? data);
+    if (!submission) throw new Error("Invalid homework submission response");
+    return submission;
+  },
+
+  async getStudentHomeworkTasks(token: string) {
+    const response = await apiRequest<unknown>("/student/homework/tasks", {
+      method: "GET",
+      token,
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.tasks ?? data)
+      .map(normalizeHomeworkTask)
+      .filter((item): item is HomeworkTask => item !== null);
+  },
+
+  async submitStudentHomework(token: string, taskId: string, answerText: string) {
+    const response = await apiRequest<unknown>(`/student/homework/tasks/${taskId}/submit`, {
+      method: "POST",
+      token,
+      body: { answer_text: answerText },
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    const submission = normalizeHomeworkSubmission(data?.submission ?? data);
+    if (!submission) throw new Error("Invalid homework submission response");
+    return submission;
   },
 };

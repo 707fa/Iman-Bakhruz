@@ -25,8 +25,8 @@ export function StudentTopPage() {
       />
 
       <Card>
-        <CardContent className="p-5">
-          <div className="inline-flex items-center gap-2 rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900">
+        <CardContent className="p-4 sm:p-5">
+          <div className="inline-flex w-full flex-wrap items-center gap-2 rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 sm:w-auto dark:border-zinc-700 dark:bg-zinc-900">
             <Trophy className="h-5 w-5 text-burgundy-700 dark:text-burgundy-300" />
             <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">
               {t("student.placeGlobal")}: <span className="text-burgundy-700 dark:text-burgundy-300">#{globalPlace > 0 ? globalPlace : "-"}</span>

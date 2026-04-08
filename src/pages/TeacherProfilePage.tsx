@@ -1,5 +1,6 @@
 ﻿import { Camera, Phone, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
+import { ProfileCustomizationCard } from "../components/ProfileCustomizationCard";
 import { UserAvatar } from "../components/UserAvatar";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -23,10 +24,10 @@ export function TeacherProfilePage() {
           <CardTitle>{t("profile.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-4">
             <UserAvatar fullName={currentTeacher.fullName} avatarUrl={currentTeacher.avatarUrl} size="lg" />
-            <div>
-              <p className="text-lg font-semibold text-charcoal dark:text-zinc-100">{currentTeacher.fullName}</p>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-semibold text-charcoal dark:text-zinc-100">{currentTeacher.fullName}</p>
               <p className="text-sm text-charcoal/60 dark:text-zinc-400">{t("profile.teacherRole")}</p>
             </div>
           </div>
@@ -69,6 +70,8 @@ export function TeacherProfilePage() {
           </label>
         </CardContent>
       </Card>
+
+      <ProfileCustomizationCard userId={currentTeacher.id} />
     </div>
   );
 }

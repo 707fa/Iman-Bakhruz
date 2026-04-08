@@ -68,7 +68,7 @@ export function ScoreActions({ onSelect }: ScoreActionsProps) {
             variant={action.value >= 0 ? "positive" : "destructive"}
             size="sm"
             onClick={() => onSelect(action)}
-            className="justify-start gap-1.5"
+            className="h-auto justify-start gap-1.5 whitespace-normal py-2 text-left leading-snug"
           >
             {action.value >= 0 ? <Plus className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
             {action.value > 0 ? "+" : ""}

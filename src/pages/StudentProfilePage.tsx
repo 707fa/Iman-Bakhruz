@@ -1,5 +1,6 @@
 ﻿import { PageHeader } from "../components/PageHeader";
 import { ProfileCard } from "../components/ProfileCard";
+import { ProfileCustomizationCard } from "../components/ProfileCustomizationCard";
 import { ProgressOverviewCard } from "../components/ProgressOverviewCard";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
@@ -14,15 +15,14 @@ export function StudentProfilePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t("profile.title")}
-        subtitle={t("profile.studentSubtitle")}
-      />
+      <PageHeader title={t("profile.title")} subtitle={t("profile.studentSubtitle")} />
 
       <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <ProfileCard student={currentStudent} group={group} onPhotoUpload={updateAvatar} />
         <ProgressOverviewCard title={t("profile.progressTitle")} progress={currentStudent.progress} />
       </div>
+
+      <ProfileCustomizationCard userId={currentStudent.id} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-﻿import { BookOpenCheck, Bot, ClipboardList, MessageCircle, Trophy, Users2 } from "lucide-react";
+﻿import { BookOpenCheck, Bot, ClipboardList, MessageCircle, Trophy, Users2, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
@@ -27,7 +27,7 @@ export function TeacherDashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4 sm:p-5">
             <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">
               <BookOpenCheck className="h-4 w-4 text-burgundy-600 dark:text-burgundy-300" />
               {t("teacher.groups")}
@@ -36,7 +36,7 @@ export function TeacherDashboardPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4 sm:p-5">
             <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">
               <Users2 className="h-4 w-4 text-burgundy-600 dark:text-burgundy-300" />
               {t("teacher.myStudents")}
@@ -45,7 +45,7 @@ export function TeacherDashboardPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4 sm:p-5">
             <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">
               <ClipboardList className="h-4 w-4 text-burgundy-600 dark:text-burgundy-300" />
               {t("teacher.ratingsSet")}
@@ -57,7 +57,7 @@ export function TeacherDashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4 sm:p-5">
             <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("nav.teacherGroups")}</p>
             <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("teacher.groups")}</p>
             <Link to="/teacher/groups" className="mt-4 inline-block">
@@ -67,7 +67,7 @@ export function TeacherDashboardPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4 sm:p-5">
             <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
               <Trophy className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
               {t("nav.teacherTop")}
@@ -80,28 +80,36 @@ export function TeacherDashboardPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4 sm:p-5">
             <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
-              <MessageCircle className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
-              {t("nav.friendly")}
+              <Wrench className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
+              Teacher Tools
             </p>
-            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("chat.subtitleTeacher")}</p>
-            <Link to="/teacher/chat" className="mt-4 inline-block">
-              <Button variant="secondary">{t("nav.friendly")}</Button>
+            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">Grammar topics and support.</p>
+            <Link to="/teacher/tools" className="mt-4 inline-block">
+              <Button variant="secondary">Open tools</Button>
             </Link>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4 sm:p-5">
             <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
               <Bot className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
-              {t("nav.aiChat")}
+              {t("ai.title")}
             </p>
             <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("ai.subtitleTeacher")}</p>
-            <Link to="/teacher/ai-chat" className="mt-4 inline-block">
-              <Button variant="secondary">{t("nav.aiChat")}</Button>
-            </Link>
+            <div className="mt-4 flex gap-2">
+              <Link to="/teacher/ai-chat" className="inline-block">
+                <Button variant="secondary" size="sm">AI</Button>
+              </Link>
+              <Link to="/teacher/chat" className="inline-block">
+                <Button variant="secondary" size="sm">
+                  <MessageCircle className="mr-1 h-3.5 w-3.5" />
+                  Chat
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>

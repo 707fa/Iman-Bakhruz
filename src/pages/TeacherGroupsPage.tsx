@@ -24,11 +24,17 @@ export function TeacherGroupsPage() {
         action={<Badge variant="soft">{t("teacher.groups")}: {teacherGroups.length}</Badge>}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {teacherGroups.map((group) => (
-          <GroupCard key={group.id} group={group} students={state.students.filter((student) => student.groupId === group.id)} />
-        ))}
-      </div>
+      {teacherGroups.length === 0 ? (
+        <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          {t("ui.noData")}
+        </p>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {teacherGroups.map((group) => (
+            <GroupCard key={group.id} group={group} students={state.students.filter((student) => student.groupId === group.id)} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

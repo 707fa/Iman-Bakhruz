@@ -1,6 +1,7 @@
 import { Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { RankingItem } from "../types";
+import { getRankTitle } from "../lib/ranking";
 import { cn } from "../lib/utils";
 import { UserAvatar } from "./UserAvatar";
 
@@ -46,9 +47,12 @@ export function RankingCard({ item, rank, currentUserId, showMeta = true, href }
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className={`h-2.5 w-2.5 rounded-full ${statusDot(item.statusBadge)}`} />
+      <div className="flex flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+        <span className={`hidden h-2.5 w-2.5 rounded-full sm:inline-flex ${statusDot(item.statusBadge)}`} />
         {isTop3 ? <Crown className="h-4 w-4 text-burgundy-600" /> : null}
+        <span className="rounded-full border border-burgundy-200 bg-burgundy-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-900/30 dark:text-burgundy-200 sm:text-[10px]">
+          {getRankTitle(rank)}
+        </span>
         <span className="text-sm font-bold text-burgundy-700">{item.points.toFixed(2)}</span>
       </div>
     </article>

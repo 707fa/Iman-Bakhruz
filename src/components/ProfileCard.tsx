@@ -20,10 +20,10 @@ export function ProfileCard({ student, group, onPhotoUpload }: ProfileCardProps)
         <CardTitle>{t("profile.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4">
           <UserAvatar fullName={student.fullName} avatarUrl={student.avatarUrl} size="lg" />
-          <div>
-            <p className="text-lg font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
             <p className="text-sm text-charcoal/60 dark:text-zinc-400">{t("profile.studentRole")}</p>
           </div>
         </div>
@@ -35,7 +35,7 @@ export function ProfileCard({ student, group, onPhotoUpload }: ProfileCardProps)
           </p>
           <p className="inline-flex items-center gap-2 text-charcoal/70 dark:text-zinc-300">
             <Users className="h-4 w-4 text-burgundy-600 dark:text-burgundy-300" />
-            {group ? `${group.title} • ${group.time}` : t("profile.noGroup")}
+            <span className="break-words">{group ? `${group.title} • ${group.time}` : t("profile.noGroup")}</span>
           </p>
           {group ? (
             <p className="inline-flex items-center gap-2 text-charcoal/70 dark:text-zinc-300">

@@ -45,13 +45,13 @@ export function UserMenu({ fullName, avatarUrl, profileHref, onLogout }: UserMen
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
-          "inline-flex items-center gap-2 rounded-xl border border-burgundy-100 bg-white px-2 py-1.5 transition hover:border-burgundy-300 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-burgundy-700",
+          "inline-flex items-center gap-2 rounded-xl border border-burgundy-100 bg-white px-1.5 py-1.5 transition hover:border-burgundy-300 sm:px-2 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-burgundy-700",
           open && "border-burgundy-300 dark:border-burgundy-700",
         )}
       >
         <UserAvatar fullName={fullName} avatarUrl={avatarUrl} size="sm" />
         <span className="hidden max-w-[10rem] truncate text-sm font-semibold sm:inline">{fullName}</span>
-        <ChevronDown className={cn("h-4 w-4 text-charcoal/60 transition dark:text-zinc-300", open && "rotate-180")} />
+        <ChevronDown className={cn("hidden h-4 w-4 text-charcoal/60 transition sm:inline-flex dark:text-zinc-300", open && "rotate-180")} />
       </button>
 
       {open ? (

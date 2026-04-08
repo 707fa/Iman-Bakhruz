@@ -1,5 +1,7 @@
 import { Activity, Flame, Star } from "lucide-react";
+import { useUi } from "../hooks/useUi";
 import type { ProgressSnapshot } from "../types";
+import { Badge } from "./ui/badge";
 import { StatusBadge } from "./StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
@@ -23,6 +25,7 @@ function valueBar(value: number): string {
 }
 
 export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardProps) {
+  const { t } = useUi();
   const safe = progress ?? {
     status: "yellow" as const,
     grammar: 0,
@@ -42,6 +45,14 @@ export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardPr
         <StatusBadge status={safe.status} />
       </CardHeader>
       <CardContent className="space-y-4">
+        <div>
+          {safe.streakDays >= 5 ? (
+            <Badge variant="positive">{t("progress.streakBadgeReady")}</Badge>
+          ) : (
+            <Badge variant="soft">{t("progress.streakBadgeGoal", { count: 5 - safe.streakDays })}</Badge>
+          )}
+        </div>
+
         <div className="grid gap-2 sm:grid-cols-3">
           <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-3 dark:border-zinc-700 dark:bg-zinc-900">
             <p className="inline-flex items-center gap-1 text-xs text-charcoal/60 dark:text-zinc-400">

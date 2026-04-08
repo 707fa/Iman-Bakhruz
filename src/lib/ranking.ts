@@ -36,3 +36,13 @@ export function getGroupPlace(state: AppState, studentId: string, groupId: strin
     (entry) => entry.studentId === studentId,
   ) + 1;
 }
+
+export function getRankTitle(place: number): string {
+  if (!Number.isFinite(place) || place <= 0) return "Unranked";
+  if (place <= 5) return "Hero";
+  if (place <= 10) return "Best";
+  if (place <= 20) return "Not bad";
+  if (place <= 40) return "Good";
+  if (place <= 60) return "Softly";
+  return "Loser";
+}

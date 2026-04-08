@@ -1,8 +1,9 @@
 import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
-import { DATA_PROVIDER_MODE } from "../lib/env";
-import { getApiToken } from "../services/tokenStorage";
+import { API_BASE_URL, DATA_PROVIDER_MODE } from "../lib/env";
+import { ApiError } from "../services/api/http";
+import { clearApiToken, getApiToken } from "../services/tokenStorage";
 import { platformApi } from "../services/api/platformApi";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -31,6 +32,10 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function isAuthError(error: unknown): error is ApiError {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
+}
+
 export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) {
   const token = getApiToken();
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
@@ -54,9 +59,14 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       try {
         const history = await platformApi.getAiMessages(token);
         if (!disposed) setMessages(history);
-      } catch {
+      } catch (error) {
         if (!disposed) {
-          setError("AI chat unavailable. Check backend/API key.");
+          if (isAuthError(error)) {
+            clearApiToken();
+            window.location.assign("/login");
+            return;
+          }
+          setError(`AI chat unavailable. Check backend/API (${API_BASE_URL}).`);
           setMessages([]);
         }
       } finally {
@@ -91,8 +101,13 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       setMessages(updatedMessages);
       setText("");
       setImageBase64(null);
-    } catch {
-      setError("Failed to get AI reply.");
+    } catch (error) {
+      if (isAuthError(error)) {
+        clearApiToken();
+        window.location.assign("/login");
+        return;
+      }
+      setError(`Failed to get AI reply. Check backend/API (${API_BASE_URL}).`);
     } finally {
       setSending(false);
     }

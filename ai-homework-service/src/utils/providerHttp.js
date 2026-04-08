@@ -1,0 +1,63 @@
+﻿const axios = require("axios");
+const { ProviderError, isRetryableHttpStatus } = require("./errors");
+
+function createHttpClient(baseURL, timeout) {
+  return axios.create({
+    baseURL,
+    timeout,
+    validateStatus: () => true,
+  });
+}
+
+function extractTextFromOpenAIStyle(content) {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+
+  const parts = content
+    .map((part) => {
+      if (typeof part === "string") return part;
+      if (part && typeof part.text === "string") return part.text;
+      return "";
+    })
+    .filter(Boolean);
+
+  return parts.join("\n").trim();
+}
+
+function throwProviderHttpError({ provider, status, data, message }) {
+  const msg = message || data?.error?.message || data?.message || `Provider ${provider} request failed`;
+
+  const lower = String(msg || "").toLowerCase();
+  const unsupportedImage =
+    status === 400 &&
+    (lower.includes("image") || lower.includes("vision") || lower.includes("multimodal") || lower.includes("unsupported"));
+
+  throw new ProviderError(msg, {
+    provider,
+    statusCode: status || 502,
+    code: unsupportedImage ? "PROVIDER_UNSUPPORTED_IMAGE" : "PROVIDER_HTTP_ERROR",
+    retryable: isRetryableHttpStatus(status),
+    fallbackAllowed: unsupportedImage || isRetryableHttpStatus(status),
+    details: {
+      provider,
+      status,
+    },
+  });
+}
+
+function throwProviderNetworkError({ provider, error }) {
+  throw new ProviderError(`Provider ${provider} network error: ${error.message}`, {
+    provider,
+    statusCode: 502,
+    code: "PROVIDER_NETWORK_ERROR",
+    retryable: true,
+    fallbackAllowed: true,
+  });
+}
+
+module.exports = {
+  createHttpClient,
+  extractTextFromOpenAIStyle,
+  throwProviderHttpError,
+  throwProviderNetworkError,
+};

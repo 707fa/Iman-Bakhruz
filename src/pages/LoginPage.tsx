@@ -94,7 +94,7 @@ export function LoginPage() {
 
           <Card className="w-full">
             <CardHeader className="space-y-2">
-              <CardTitle className="text-3xl font-bold">{t("auth.loginTitle")}</CardTitle>
+              <CardTitle className="text-2xl font-bold sm:text-3xl">{t("auth.loginTitle")}</CardTitle>
               <CardDescription>{t("auth.loginSubtitle")}</CardDescription>
             </CardHeader>
             <CardContent>

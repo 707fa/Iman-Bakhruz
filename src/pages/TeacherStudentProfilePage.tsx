@@ -169,11 +169,11 @@ export function TeacherStudentProfilePage() {
             <CardHeader>
               <CardTitle>{t("profile.title")}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="flex min-w-0 items-center gap-3">
                 <UserAvatar fullName={student.fullName} avatarUrl={student.avatarUrl} size="lg" />
-                <div>
-                  <p className="text-lg font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
                   <p className="text-sm text-charcoal/60 dark:text-zinc-400">{student.phone}</p>
                   <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-burgundy-300">
                     {student.points.toFixed(2)} {t("student.points")}
@@ -293,3 +293,5 @@ export function TeacherStudentProfilePage() {
     </div>
   );
 }
+
+
