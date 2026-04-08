@@ -39,6 +39,7 @@ const RU: Dictionary = {
   "menu.open": "Открыть меню",
   "menu.close": "Закрыть меню",
   "menu.navigation": "Навигация",
+  "menu.chats": "Чаты",
 
   "auth.heroTitle": "Единая система рейтинга учеников",
   "auth.heroSubtitle": "Современные кабинеты для учеников и преподавателей с прозрачным учетом прогресса по группам и по всей школе.",
@@ -227,6 +228,7 @@ const UZ: Dictionary = {
   "menu.open": "Menyuni ochish",
   "menu.close": "Menyuni yopish",
   "menu.navigation": "Navigatsiya",
+  "menu.chats": "Chatlar",
 
   "auth.heroTitle": "O'quvchilar reytingining yagona tizimi",
   "auth.heroSubtitle": "O'quvchi va o'qituvchilar uchun zamonaviy kabinetlar, guruhlar bo'yicha va umumiy natijalarni shaffof ko'rsatish.",
@@ -415,6 +417,7 @@ const EN: Dictionary = {
   "menu.open": "Open menu",
   "menu.close": "Close menu",
   "menu.navigation": "Navigation",
+  "menu.chats": "Chats",
 
   "auth.heroTitle": "Unified Student Ranking System",
   "auth.heroSubtitle": "Modern dashboards for students and teachers with transparent progress tracking by group and globally.",

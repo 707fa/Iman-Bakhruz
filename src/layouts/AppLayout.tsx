@@ -137,6 +137,28 @@ export function AppLayout() {
                 );
               })}
             </nav>
+
+            <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">{t("menu.chats")}</p>
+            <nav className="mt-2 space-y-2">
+              {chatNavItems.map((item) => {
+                const active = isItemActive(location.pathname, item);
+                return (
+                  <Link
+                    key={`mobile-chat-${item.label}`}
+                    to={item.href}
+                    className={cn(
+                      "flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
+                      active
+                        ? "bg-burgundy-700 text-white shadow-soft"
+                        : "text-charcoal/70 hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white",
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
           </aside>
         </div>
       ) : null}
@@ -166,6 +188,28 @@ export function AppLayout() {
               return (
                 <Link
                   key={item.label}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
+                    active
+                      ? "bg-burgundy-700 text-white shadow-soft"
+                      : "text-charcoal/70 hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white",
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">{t("menu.chats")}</p>
+          <nav className="mt-2 space-y-2">
+            {chatNavItems.map((item) => {
+              const active = isItemActive(location.pathname, item);
+              return (
+                <Link
+                  key={`chat-${item.label}`}
                   to={item.href}
                   className={cn(
                     "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
