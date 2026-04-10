@@ -1,4 +1,4 @@
-﻿import { Navigate, Outlet } from "react-router-dom";
+﻿import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAppStore } from "../hooks/useAppStore";
 import type { UserRole } from "../types";
 
@@ -23,6 +23,7 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ role }: AuthGuardProps) {
+  const location = useLocation();
   const { state } = useAppStore();
   const session = state.session;
 
@@ -32,6 +33,14 @@ export function AuthGuard({ role }: AuthGuardProps) {
 
   if (session.role !== role) {
     return <Navigate to={roleHome(session.role)} replace />;
+  }
+
+  if (session.role === "student" && session.isPaid === false) {
+    const allowedPaths = ["/student/top", "/student/group", "/student/subscription"];
+    const isAllowed = allowedPaths.some((path) => location.pathname.startsWith(path));
+    if (!isAllowed) {
+      return <Navigate to="/student/subscription" replace />;
+    }
   }
 
   return <Outlet />;

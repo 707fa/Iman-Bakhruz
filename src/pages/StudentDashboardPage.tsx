@@ -1,6 +1,7 @@
-﻿import { ArrowRight, Bot, CalendarDays, Clock3, MessageCircle, Trophy, Users, Wrench } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, Trophy, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { TeacherSpotlightCard } from "../components/TeacherSpotlightCard";
 import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -20,18 +21,19 @@ export function StudentDashboardPage() {
   const globalPlace = getGlobalPlace(state, currentStudent.id);
   const globalRankTitle = getRankTitle(globalPlace);
   const daysLabel = group ? t(`days.${group.daysPattern}`) : "-";
+  const teacher = group ? state.teachers.find((item) => item.id === group.teacherId) : undefined;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <PageHeader
         title={t("student.welcome", { name: currentStudent.fullName })}
         subtitle={t("student.subtitle")}
         action={<Badge variant="soft">{t("student.badge")}</Badge>}
       />
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-burgundy-200/80 shadow-lift">
         <CardContent className="p-0">
-          <div className="grid gap-4 bg-gradient-to-r from-burgundy-900 to-burgundy-700 px-4 py-5 text-white sm:grid-cols-[auto_1fr] sm:items-center sm:px-5 sm:py-6">
+          <div className="grid gap-4 bg-gradient-to-r from-burgundy-900 via-burgundy-800 to-burgundy-700 px-4 py-5 text-white sm:grid-cols-[auto_1fr] sm:items-center sm:px-5 sm:py-6">
             <UserAvatar fullName={currentStudent.fullName} avatarUrl={currentStudent.avatarUrl} size="lg" />
             <div className="space-y-1">
               <p className="break-words text-lg font-semibold sm:text-2xl">{currentStudent.fullName}</p>
@@ -51,21 +53,21 @@ export function StudentDashboardPage() {
           </div>
 
           <div className="grid gap-4 p-4 sm:grid-cols-3 sm:p-5">
-            <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
               <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("student.points")}</p>
-              <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-burgundy-300">{currentStudent.points.toFixed(2)}</p>
+              <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{currentStudent.points.toFixed(2)}</p>
             </div>
-            <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
               <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("student.placeInGroup")}</p>
-              <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-burgundy-300">#{groupPlace > 0 ? groupPlace : "-"}</p>
+              <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">#{groupPlace > 0 ? groupPlace : "-"}</p>
             </div>
-            <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
               <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("student.placeGlobal")}</p>
-              <p className="mt-2 inline-flex items-center gap-2 text-3xl font-bold text-burgundy-700 dark:text-burgundy-300">
-                <Trophy className="h-6 w-6 text-burgundy-600 dark:text-burgundy-300" />
+              <p className="mt-2 inline-flex items-center gap-2 text-3xl font-bold text-burgundy-700 dark:text-white">
+                <Trophy className="h-6 w-6 text-burgundy-600 dark:text-white" />
                 #{globalPlace > 0 ? globalPlace : "-"}
               </p>
-              <p className="mt-2 inline-flex rounded-full border border-burgundy-200 bg-burgundy-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-900/30 dark:text-burgundy-200">
+              <p className="mt-2 inline-flex rounded-full border border-burgundy-200 bg-burgundy-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-900/30 dark:text-white">
                 {globalRankTitle}
               </p>
             </div>
@@ -74,12 +76,12 @@ export function StudentDashboardPage() {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
+        <Card className="h-full">
           <CardContent className="p-5">
             <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("tabs.group")}</p>
             <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("student.groupSubtitle")}</p>
-            <Link to="/student/group" className="mt-4 inline-block">
-              <Button variant="secondary">
+            <Link to="/student/group" className="mt-4 block">
+              <Button variant="secondary" className="w-full justify-between">
                 {t("student.openGroup")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -87,12 +89,12 @@ export function StudentDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full">
           <CardContent className="p-5">
             <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("tabs.global")}</p>
             <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("student.globalSubtitle")}</p>
-            <Link to="/student/top" className="mt-4 inline-block">
-              <Button variant="secondary">
+            <Link to="/student/top" className="mt-4 block">
+              <Button variant="secondary" className="w-full justify-between">
                 {t("student.openTop")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -101,55 +103,7 @@ export function StudentDashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Card>
-          <CardContent className="p-5">
-            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
-              <Wrench className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
-              Study Tools
-            </p>
-            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">Grammar topics, flashcards, support.</p>
-            <Link to="/student/tools" className="mt-4 inline-block">
-              <Button variant="secondary">
-                Open tools
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5">
-            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
-              <Bot className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
-              {t("ai.title")}
-            </p>
-            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("ai.subtitleStudent")}</p>
-            <Link to="/student/ai-chat" className="mt-4 inline-block">
-              <Button variant="secondary">
-                {t("ai.title")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5">
-            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
-              <MessageCircle className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
-              Iman Friendly
-            </p>
-            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">Chat with teacher and classmates.</p>
-            <Link to="/student/chat" className="mt-4 inline-block">
-              <Button variant="secondary">
-                Iman Friendly
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      {teacher ? <TeacherSpotlightCard teacherId={teacher.id} /> : null}
     </div>
   );
 }

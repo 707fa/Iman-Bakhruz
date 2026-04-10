@@ -1,4 +1,4 @@
-import { Activity, Flame, Star } from "lucide-react";
+﻿import { Activity, Flame, Star } from "lucide-react";
 import { useUi } from "../hooks/useUi";
 import type { ProgressSnapshot } from "../types";
 import { Badge } from "./ui/badge";
@@ -19,9 +19,9 @@ const metricConfig: Array<{ key: keyof Omit<ProgressSnapshot, "status" | "weekly
 ];
 
 function valueBar(value: number): string {
-  if (value >= 75) return "bg-emerald-500";
-  if (value >= 45) return "bg-amber-500";
-  return "bg-rose-500";
+  if (value >= 75) return "bg-burgundy-700";
+  if (value >= 45) return "bg-burgundy-500";
+  return "bg-zinc-500";
 }
 
 export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardProps) {
@@ -54,26 +54,26 @@ export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardPr
         </div>
 
         <div className="grid gap-2 sm:grid-cols-3">
-          <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-3 dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
             <p className="inline-flex items-center gap-1 text-xs text-charcoal/60 dark:text-zinc-400">
-              <Activity className="h-3.5 w-3.5 text-burgundy-600 dark:text-burgundy-300" />
+              <Activity className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
               Weekly XP
             </p>
-            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-burgundy-300">{safe.weeklyXp}</p>
+            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-white">{safe.weeklyXp}</p>
           </div>
-          <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-3 dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
             <p className="inline-flex items-center gap-1 text-xs text-charcoal/60 dark:text-zinc-400">
-              <Star className="h-3.5 w-3.5 text-burgundy-600 dark:text-burgundy-300" />
+              <Star className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
               Level
             </p>
-            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-burgundy-300">{safe.level}</p>
+            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-white">{safe.level}</p>
           </div>
-          <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-3 dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
             <p className="inline-flex items-center gap-1 text-xs text-charcoal/60 dark:text-zinc-400">
-              <Flame className="h-3.5 w-3.5 text-burgundy-600 dark:text-burgundy-300" />
+              <Flame className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
               Streak
             </p>
-            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-burgundy-300">{safe.streakDays}d</p>
+            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-white">{safe.streakDays}d</p>
           </div>
         </div>
 
@@ -97,3 +97,5 @@ export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardPr
     </Card>
   );
 }
+
+

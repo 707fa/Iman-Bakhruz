@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type PropsWithChildren } from "react";
+﻿import { createContext, useCallback, useContext, useMemo, useState, type PropsWithChildren } from "react";
 import { CheckCircle2, CircleAlert, Info, X } from "lucide-react";
 import { cn, makeId } from "../lib/utils";
 
@@ -23,9 +23,9 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 const toneStyles: Record<ToastTone, string> = {
-  success: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/45 dark:text-emerald-200",
-  error: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/45 dark:text-rose-200",
-  info: "border-burgundy-200 bg-burgundy-50 text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-burgundy-200",
+  success: "border-burgundy-200 bg-burgundy-50 text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white",
+  error: "border-zinc-300 bg-white text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200",
+  info: "border-burgundy-200 bg-burgundy-50 text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white",
 };
 
 function ToneIcon({ tone }: { tone: ToastTone }) {
@@ -102,3 +102,4 @@ export function useToast() {
   }
   return context;
 }
+

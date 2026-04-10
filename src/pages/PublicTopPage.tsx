@@ -1,4 +1,4 @@
-import { GraduationCap, Lock, LogIn, ShieldCheck, Trophy } from "lucide-react";
+﻿import { GraduationCap, Lock, LogIn, ShieldCheck, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
@@ -72,7 +72,7 @@ export function PublicTopPage() {
           <Card>
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
               <p className="inline-flex items-center gap-2 text-sm text-charcoal/70 dark:text-zinc-300">
-                <Lock className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
+                <Lock className="h-4 w-4 text-burgundy-700 dark:text-white" />
                 {t("public.privateAccess")}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -96,4 +96,5 @@ export function PublicTopPage() {
     </div>
   );
 }
+
 

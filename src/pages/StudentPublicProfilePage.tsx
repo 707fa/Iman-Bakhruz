@@ -30,7 +30,7 @@ export function StudentPublicProfilePage() {
           </Button>
         </Link>
         <Card>
-          <CardContent className="p-6 text-sm text-rose-600">{t("profile.notFound")}</CardContent>
+          <CardContent className="p-6 text-sm text-burgundy-700 dark:text-white">{t("profile.notFound")}</CardContent>
         </Card>
       </div>
     );
@@ -64,26 +64,26 @@ export function StudentPublicProfilePage() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-lg font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
                 <p className="text-sm text-charcoal/60 dark:text-zinc-400">{student.phone}</p>
-                <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-burgundy-300">
+                <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-white">
                   {student.points.toFixed(2)} {t("student.points")}
                 </p>
-                <p className="mt-2 inline-flex rounded-full border border-burgundy-200 bg-burgundy-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-900/30 dark:text-burgundy-200">
+                <p className="mt-2 inline-flex rounded-full border border-burgundy-200 bg-burgundy-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-900/30 dark:text-white">
                   {rankTitle}
                 </p>
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+              <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
                 <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("student.placeInGroup")}</p>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-2xl font-bold text-burgundy-700 dark:text-burgundy-300">
+                <p className="mt-2 inline-flex items-center gap-1.5 text-2xl font-bold text-burgundy-700 dark:text-white">
                   <Users className="h-4 w-4" />
                   #{groupPlace > 0 ? groupPlace : "-"}
                 </p>
               </div>
-              <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+              <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
                 <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("student.placeGlobal")}</p>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-2xl font-bold text-burgundy-700 dark:text-burgundy-300">
+                <p className="mt-2 inline-flex items-center gap-1.5 text-2xl font-bold text-burgundy-700 dark:text-white">
                   <Trophy className="h-4 w-4" />
                   #{globalPlace > 0 ? globalPlace : "-"}
                 </p>
@@ -111,3 +111,5 @@ export function StudentPublicProfilePage() {
     </div>
   );
 }
+
+

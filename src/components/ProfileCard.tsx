@@ -28,18 +28,18 @@ export function ProfileCard({ student, group, onPhotoUpload }: ProfileCardProps)
           </div>
         </div>
 
-        <div className="space-y-2 rounded-2xl border border-burgundy-100 bg-slate-50 p-4 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="space-y-2 rounded-2xl border border-burgundy-100 bg-white p-4 text-sm dark:border-zinc-700 dark:bg-zinc-900">
           <p className="inline-flex items-center gap-2 text-charcoal/70 dark:text-zinc-300">
-            <Phone className="h-4 w-4 text-burgundy-600 dark:text-burgundy-300" />
+            <Phone className="h-4 w-4 text-burgundy-600 dark:text-white" />
             {student.phone}
           </p>
           <p className="inline-flex items-center gap-2 text-charcoal/70 dark:text-zinc-300">
-            <Users className="h-4 w-4 text-burgundy-600 dark:text-burgundy-300" />
+            <Users className="h-4 w-4 text-burgundy-600 dark:text-white" />
             <span className="break-words">{group ? `${group.title} • ${group.time}` : t("profile.noGroup")}</span>
           </p>
           {group ? (
             <p className="inline-flex items-center gap-2 text-charcoal/70 dark:text-zinc-300">
-              <CalendarDays className="h-4 w-4 text-burgundy-600 dark:text-burgundy-300" />
+              <CalendarDays className="h-4 w-4 text-burgundy-600 dark:text-white" />
               {t(`days.${group.daysPattern}`)}
             </p>
           ) : null}
@@ -74,3 +74,5 @@ export function ProfileCard({ student, group, onPhotoUpload }: ProfileCardProps)
     </Card>
   );
 }
+
+

@@ -71,7 +71,7 @@ export function UserMenu({ fullName, avatarUrl, profileHref, onLogout }: UserMen
               setOpen(false);
               onLogout();
             }}
-            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-rose-700 transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-charcoal/85 transition hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-white"
           >
             <LogOut className="h-4 w-4" />
             {t("ui.logout")}

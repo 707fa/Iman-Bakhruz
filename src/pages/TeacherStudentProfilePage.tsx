@@ -147,13 +147,13 @@ export function TeacherStudentProfilePage() {
 
       {!student ? (
         <Card>
-          <CardContent className="p-6 text-sm text-rose-600">{t("profile.notFound")}</CardContent>
+          <CardContent className="p-6 text-sm text-burgundy-700 dark:text-white">{t("profile.notFound")}</CardContent>
         </Card>
       ) : null}
 
       {student && !hasAccess ? (
         <Card>
-          <CardContent className="p-6 text-sm text-rose-600">{t("teacher.noAccessGroup")}</CardContent>
+          <CardContent className="p-6 text-sm text-burgundy-700 dark:text-white">{t("teacher.noAccessGroup")}</CardContent>
         </Card>
       ) : null}
 
@@ -175,7 +175,7 @@ export function TeacherStudentProfilePage() {
                 <div className="min-w-0">
                   <p className="truncate text-lg font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
                   <p className="text-sm text-charcoal/60 dark:text-zinc-400">{student.phone}</p>
-                  <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-burgundy-300">
+                  <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-white">
                     {student.points.toFixed(2)} {t("student.points")}
                   </p>
                 </div>
@@ -293,5 +293,6 @@ export function TeacherStudentProfilePage() {
     </div>
   );
 }
+
 
 

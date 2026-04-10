@@ -1,4 +1,4 @@
-import { cva, type VariantProps } from "class-variance-authority";
+﻿import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
 
@@ -8,9 +8,9 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "bg-burgundy-700 text-white",
-        soft: "bg-burgundy-50 text-burgundy-700 dark:bg-burgundy-900/40 dark:text-burgundy-200",
-        positive: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
-        negative: "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300",
+        soft: "bg-burgundy-700 text-white dark:bg-burgundy-800 dark:text-white",
+        positive: "bg-burgundy-100 text-burgundy-700 dark:bg-burgundy-900/45 dark:text-white",
+        negative: "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200",
       },
     },
     defaultVariants: {
@@ -24,3 +24,4 @@ export interface BadgeProps extends HTMLAttributes<HTMLDivElement>, VariantProps
 export function Badge({ className, variant, ...props }: BadgeProps) {
   return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
+

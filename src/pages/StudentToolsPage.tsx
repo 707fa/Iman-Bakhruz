@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { FlashcardsGame } from "../components/FlashcardsGame";
 import { GrammarTopicsCard } from "../components/GrammarTopicsCard";
 import { PageHeader } from "../components/PageHeader";
-import { SupportTicketsCard } from "../components/SupportTicketsCard";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useUi } from "../hooks/useUi";
@@ -15,7 +14,7 @@ export function StudentToolsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Study Tools"
-        subtitle="AI study, grammar topics, flashcards and teacher support in one place."
+        subtitle="AI study, grammar topics and flashcards in one place."
       />
 
       <Card>
@@ -39,9 +38,6 @@ export function StudentToolsPage() {
         <GrammarTopicsCard role="student" />
         <FlashcardsGame />
       </div>
-
-      <SupportTicketsCard role="student" />
     </div>
   );
 }
-

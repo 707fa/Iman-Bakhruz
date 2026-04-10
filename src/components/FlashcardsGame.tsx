@@ -1,4 +1,4 @@
-import { RefreshCw, Trophy } from "lucide-react";
+﻿import { RefreshCw, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -76,7 +76,7 @@ export function FlashcardsGame() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="inline-flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-burgundy-700 dark:text-burgundy-300" />
+          <Trophy className="h-5 w-5 text-burgundy-700 dark:text-white" />
           Flashcard Game
         </CardTitle>
         <Button variant="ghost" size="sm" onClick={handleReset}>
@@ -86,10 +86,10 @@ export function FlashcardsGame() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-charcoal/70 dark:text-zinc-300">
-          Score: <span className="font-semibold text-burgundy-700 dark:text-burgundy-300">{score}</span> / {cards.length}
+          Score: <span className="font-semibold text-burgundy-700 dark:text-white">{score}</span> / {cards.length}
         </p>
 
-        <div className="rounded-2xl border border-burgundy-100 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
           <p className="text-sm font-medium text-charcoal dark:text-zinc-100">{card.question}</p>
         </div>
 
@@ -105,9 +105,9 @@ export function FlashcardsGame() {
                 className={[
                   "rounded-xl border px-3 py-2 text-left text-sm font-medium transition",
                   "border-burgundy-100 bg-white hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800",
-                  isSelected && isCorrect ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300" : "",
-                  isSelected && !isCorrect ? "border-rose-300 bg-rose-50 text-rose-700 dark:bg-rose-950/35 dark:text-rose-300" : "",
-                  selected && isRightAnswer ? "border-emerald-300 dark:border-emerald-800" : "",
+                  isSelected && isCorrect ? "border-burgundy-300 bg-burgundy-50 text-burgundy-700 dark:border-burgundy-700 dark:bg-burgundy-900/30 dark:text-white" : "",
+                  isSelected && !isCorrect ? "border-zinc-300 bg-white text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200" : "",
+                  selected && isRightAnswer ? "border-burgundy-300 dark:border-burgundy-700" : "",
                 ].join(" ")}
               >
                 {option}
@@ -123,3 +123,5 @@ export function FlashcardsGame() {
     </Card>
   );
 }
+
+

@@ -15,6 +15,7 @@ import type {
   ScoreAction,
   Student,
   Teacher,
+  SubscriptionState,
 } from "../types";
 
 const STORAGE_KEY = "result-dashboard-v6";
@@ -146,9 +147,30 @@ function saveState(state: AppState) {
 }
 
 function buildSessionFromAuth(auth: AuthResponse): AuthSession {
-  return {
+  const session: AuthSession = {
     role: auth.role === "teacher" ? "teacher" : "student",
     userId: String(auth.userId),
+  };
+
+  if (session.role === "student" && auth.subscription) {
+    session.isPaid = Boolean(auth.subscription.isPaid);
+    session.paidUntil = auth.subscription.paidUntil;
+  }
+
+  return session;
+}
+
+function applySubscriptionToSession(session: AuthSession, subscription?: SubscriptionState): AuthSession {
+  if (session.role !== "student") return session;
+
+  if (!subscription) {
+    return session;
+  }
+
+  return {
+    ...session,
+    isPaid: Boolean(subscription.isPaid),
+    paidUntil: subscription.paidUntil,
   };
 }
 
@@ -198,7 +220,9 @@ function resolveSessionFromToken(token: string, remote: RemoteStatePayload): Aut
 }
 
 function withRemoteState(state: AppState, remote: RemoteStatePayload, session: AuthSession | null): AppState {
-  return syncRankingsWithStudents(toAppStatePayload(remote, session ?? state.session));
+  const baseSession = session ?? state.session;
+  const nextSession = baseSession ? applySubscriptionToSession(baseSession, remote.subscription) : null;
+  return syncRankingsWithStudents(toAppStatePayload(remote, nextSession));
 }
 
 function extractApiMessage(payload: unknown): string {
@@ -242,6 +266,7 @@ interface StoreValue {
   updateAvatar: (fileUrl: string) => Promise<void>;
   applyScore: (studentId: string, groupId: string, action: ScoreAction) => Promise<ActionResult>;
   disableStudent: (studentId: string) => Promise<ActionResult>;
+  renameGroup: (groupId: string, nextTitle: string) => Promise<ActionResult>;
   refreshState: () => Promise<void>;
 }
 
@@ -486,6 +511,30 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return { ok: true, messageKey: "msg.studentDisabled" };
   }
 
+  function renameGroupMock(groupId: string, nextTitle: string): ActionResult {
+    if (!state.session || state.session.role !== "teacher") {
+      return { ok: false, messageKey: "msg.scoreOnlyTeacher" };
+    }
+
+    const trimmedTitle = nextTitle.trim();
+    if (trimmedTitle.length < 2) {
+      return { ok: false, messageKey: "msg.groupRenameInvalid" };
+    }
+
+    const teacher = state.teachers.find((item) => item.id === state.session?.userId);
+    const group = state.groups.find((item) => item.id === groupId);
+    if (!teacher || !group || !teacher.groupIds.includes(groupId)) {
+      return { ok: false, messageKey: "msg.scoreNoAccess" };
+    }
+
+    setState((prev) => ({
+      ...prev,
+      groups: prev.groups.map((item) => (item.id === groupId ? { ...item, title: trimmedTitle } : item)),
+    }));
+
+    return { ok: true, messageKey: "msg.groupRenameSuccess" };
+  }
+
   async function login(payload: LoginPayload): Promise<ActionResult> {
     const normalizedPayload: LoginPayload = {
       phone: toPhone(payload.phone),
@@ -503,7 +552,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
         try {
           const remote = await platformApi.getState(auth.token);
-          const nextSession = resolveSessionFromRemote(auth, remote);
+          const nextSession = applySubscriptionToSession(resolveSessionFromRemote(auth, remote), auth.subscription ?? remote.subscription);
           setState((prev) => withRemoteState(prev, remote, nextSession));
           return {
             ok: true,
@@ -582,7 +631,10 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         void (async () => {
           try {
             const remote = await platformApi.getState(auth.token);
-            const syncedSession = resolveSessionFromRemote(auth, remote);
+            const syncedSession = applySubscriptionToSession(
+              resolveSessionFromRemote(auth, remote),
+              auth.subscription ?? remote.subscription,
+            );
             setState((prev) => withRemoteState(prev, remote, syncedSession));
           } catch {
             // Local state remains valid when backend sync is slow/unavailable.
@@ -743,6 +795,31 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return disableStudentMock(studentId);
   }
 
+  async function renameGroup(groupId: string, nextTitle: string): Promise<ActionResult> {
+    if (!state.session || state.session.role !== "teacher") {
+      return { ok: false, messageKey: "msg.scoreOnlyTeacher" };
+    }
+
+    if (DATA_PROVIDER_MODE === "api") {
+      const token = getApiToken();
+      if (!token) {
+        return renameGroupMock(groupId, nextTitle);
+      }
+
+      try {
+        await platformApi.renameTeacherGroup(token, groupId, nextTitle.trim());
+        const remote = await platformApi.getState(token);
+        setState((prev) => withRemoteState(prev, remote, prev.session));
+        return { ok: true, messageKey: "msg.groupRenameSuccess" };
+      } catch {
+        // Fallback to local update to keep UX smooth if backend endpoint is not ready yet.
+        return renameGroupMock(groupId, nextTitle);
+      }
+    }
+
+    return renameGroupMock(groupId, nextTitle);
+  }
+
   async function refreshState(): Promise<void> {
     if (DATA_PROVIDER_MODE !== "api") return;
     const token = getApiToken();
@@ -768,6 +845,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       updateAvatar,
       applyScore,
       disableStudent,
+      renameGroup,
       refreshState,
     }),
     [state, currentStudent, currentTeacher],

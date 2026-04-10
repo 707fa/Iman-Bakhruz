@@ -1,5 +1,5 @@
 import { LogIn, PhoneCall } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
@@ -17,19 +17,13 @@ import { formatUzPhoneInput } from "../lib/utils";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login, state } = useAppStore();
+  const { login } = useAppStore();
   const { t } = useUi();
   const { showToast } = useToast();
 
   const [phone, setPhone] = useState(() => formatUzPhoneInput(""));
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!state.session) return;
-    if (state.session.role === "teacher") navigate("/teacher");
-    else navigate("/student");
-  }, [state.session, navigate]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,13 +34,20 @@ export function LoginPage() {
       const result = await login({ phone, password });
       const text = t(result.messageKey, result.messageParams);
       showToast({ message: text, tone: result.ok ? "success" : "error" });
+      if (result.ok) {
+        if (result.messageKey === "msg.loginTeacher") {
+          navigate("/teacher");
+        } else {
+          navigate("/student");
+        }
+      }
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="grid min-h-dvh bg-[#f6f6f8] dark:bg-black lg:min-h-screen lg:grid-cols-2">
+    <div className="grid min-h-dvh bg-white dark:bg-black lg:min-h-screen lg:grid-cols-2">
       <section className="relative hidden overflow-hidden bg-gradient-to-br from-burgundy-900 via-burgundy-800 to-burgundy-700 p-10 text-white lg:block">
         <div className="absolute right-8 top-8 z-20 flex items-center gap-2">
           <LanguageSwitcher compact mode="single" />
@@ -143,7 +144,7 @@ export function LoginPage() {
 
               <p className="mt-5 text-center text-sm text-charcoal/65 dark:text-zinc-400">
                 {t("auth.noAccount")}{" "}
-                <Link to="/register" className="font-semibold text-burgundy-700 hover:text-burgundy-600 dark:text-burgundy-300 dark:hover:text-burgundy-200">
+                <Link to="/register" className="font-semibold text-charcoal hover:text-black dark:text-white dark:hover:text-zinc-200">
                   {t("auth.registerLink")}
                 </Link>
               </p>

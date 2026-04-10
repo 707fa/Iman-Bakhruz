@@ -40,11 +40,11 @@ export function ScoreActions({ onSelect }: ScoreActionsProps) {
   return (
     <div className="space-y-3">
       <form
-        className="rounded-2xl border border-burgundy-100 bg-slate-50 p-3 dark:border-zinc-700 dark:bg-zinc-900"
+        className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
         onSubmit={applyCustomScore}
       >
         <p className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-400">
-          <SlidersHorizontal className="h-3.5 w-3.5 text-burgundy-600 dark:text-burgundy-300" />
+          <SlidersHorizontal className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
           {t("score.custom")}
         </p>
 
@@ -79,3 +79,5 @@ export function ScoreActions({ onSelect }: ScoreActionsProps) {
     </div>
   );
 }
+
+

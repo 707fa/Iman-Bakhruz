@@ -1,4 +1,4 @@
-import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
+﻿import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
 import { API_BASE_URL, DATA_PROVIDER_MODE } from "../lib/env";
@@ -117,24 +117,24 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     <Card>
       <CardHeader>
         <CardTitle className="inline-flex items-center gap-2">
-          <Bot className="h-5 w-5 text-burgundy-700 dark:text-burgundy-300" />
+          <Bot className="h-5 w-5 text-burgundy-700 dark:text-white" />
           {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {!isApiMode ? (
-          <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             AI chat is available only in API mode.
           </p>
         ) : !token ? (
-          <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             Re-login in API mode to get a valid backend token. Backend should have `AI_PROVIDER=gemini` and `GEMINI_API_KEY`.
           </p>
         ) : (
           <>
             <div
               ref={listRef}
-              className="h-80 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-slate-50 p-3 dark:border-zinc-700 dark:bg-zinc-900"
+              className="h-80 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
             >
               {loading ? (
                 <div className="flex items-center gap-2 text-sm text-charcoal/65 dark:text-zinc-400">
@@ -179,7 +179,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             </div>
 
             {error ? (
-              <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+              <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
                 {error}
               </p>
             ) : null}
@@ -240,3 +240,5 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     </Card>
   );
 }
+
+

@@ -32,6 +32,8 @@ export interface Student {
   points: number;
   isActive?: boolean;
   isImanStudent?: boolean;
+  isPaid?: boolean;
+  paidUntil?: string;
   statusBadge?: StatusBadge;
   progress?: ProgressSnapshot;
 }
@@ -67,6 +69,8 @@ export interface RatingLog {
 export interface AuthSession {
   role: UserRole;
   userId: string;
+  isPaid?: boolean;
+  paidUntil?: string;
 }
 
 export interface AppState {
@@ -194,4 +198,23 @@ export interface HomeworkTask {
   isActive: boolean;
   createdAt: string;
   mySubmission?: HomeworkSubmission;
+}
+
+export type PaymentProvider = "payme" | "click";
+export type PaymentStatus = "pending" | "paid" | "failed";
+
+export interface PaymentTransaction {
+  id: string;
+  provider: PaymentProvider;
+  amount: number;
+  status: PaymentStatus;
+  checkoutUrl?: string;
+  createdAt: string;
+  paidAt?: string;
+}
+
+export interface SubscriptionState {
+  isPaid: boolean;
+  paidUntil?: string;
+  required: boolean;
 }

@@ -1,4 +1,4 @@
-import { BookText, Plus } from "lucide-react";
+﻿import { BookText, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { UserRole } from "../types";
 import { platformApi } from "../services/api/platformApi";
@@ -68,19 +68,19 @@ export function GrammarTopicsCard({ role }: GrammarTopicsCardProps) {
     <Card>
       <CardHeader>
         <CardTitle className="inline-flex items-center gap-2">
-          <BookText className="h-5 w-5 text-burgundy-700 dark:text-burgundy-300" />
+          <BookText className="h-5 w-5 text-burgundy-700 dark:text-white" />
           Grammar Topics
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {!token ? (
-          <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             Materials list is available in API mode.
           </p>
         ) : null}
 
         {role === "teacher" && token ? (
-          <div className="space-y-3 rounded-2xl border border-burgundy-100 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="space-y-3 rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Title</Label>
@@ -120,7 +120,7 @@ export function GrammarTopicsCard({ role }: GrammarTopicsCardProps) {
         <div className="space-y-2">
           {loading ? <p className="text-sm text-charcoal/65 dark:text-zinc-400">Loading topics...</p> : null}
           {topics.length === 0 && !loading ? (
-            <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+            <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
               No topics yet.
             </p>
           ) : (
@@ -128,7 +128,7 @@ export function GrammarTopicsCard({ role }: GrammarTopicsCardProps) {
               <article key={topic.id} className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{topic.title}</p>
-                  <span className="rounded-full bg-burgundy-50 px-2 py-1 text-xs font-semibold text-burgundy-700 dark:bg-burgundy-900/35 dark:text-burgundy-300">
+                  <span className="rounded-full bg-burgundy-50 px-2 py-1 text-xs font-semibold text-burgundy-700 dark:bg-burgundy-900/35 dark:text-white">
                     {topic.level}
                   </span>
                 </div>
@@ -137,7 +137,7 @@ export function GrammarTopicsCard({ role }: GrammarTopicsCardProps) {
                   href={topic.pptUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-2 inline-flex text-sm font-semibold text-burgundy-700 hover:text-burgundy-600 dark:text-burgundy-300 dark:hover:text-burgundy-200"
+                  className="mt-2 inline-flex text-sm font-semibold text-burgundy-700 hover:text-burgundy-600 dark:text-white dark:hover:text-white"
                 >
                   Open PPT
                 </a>
@@ -149,3 +149,5 @@ export function GrammarTopicsCard({ role }: GrammarTopicsCardProps) {
     </Card>
   );
 }
+
+

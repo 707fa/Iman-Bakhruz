@@ -1,4 +1,4 @@
-import { Badge } from "./ui/badge";
+﻿import { Badge } from "./ui/badge";
 import type { StatusBadge as StatusBadgeType } from "../types";
 
 interface StatusBadgeProps {
@@ -6,9 +6,9 @@ interface StatusBadgeProps {
 }
 
 const styleMap: Record<StatusBadgeType, string> = {
-  red: "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300",
-  yellow: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
-  green: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+  red: "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200",
+  yellow: "bg-burgundy-50 text-burgundy-700 dark:bg-burgundy-900/35 dark:text-white",
+  green: "bg-burgundy-100 text-burgundy-700 dark:bg-burgundy-900/45 dark:text-white",
 };
 
 const labelMap: Record<StatusBadgeType, string> = {
@@ -24,3 +24,4 @@ export function StatusBadge({ status = "yellow" }: StatusBadgeProps) {
     </Badge>
   );
 }
+

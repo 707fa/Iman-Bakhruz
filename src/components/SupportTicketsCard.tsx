@@ -1,4 +1,4 @@
-import { LifeBuoy, Send } from "lucide-react";
+﻿import { LifeBuoy, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { SupportTicketStatus, UserRole } from "../types";
 import { getApiToken } from "../services/tokenStorage";
@@ -18,9 +18,9 @@ function statusLabel(value: SupportTicketStatus): string {
 }
 
 function statusClass(value: SupportTicketStatus): string {
-  if (value === "in_progress") return "bg-amber-100 text-amber-700 dark:bg-amber-950/35 dark:text-amber-300";
-  if (value === "closed") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300";
-  return "bg-burgundy-100 text-burgundy-700 dark:bg-burgundy-900/35 dark:text-burgundy-300";
+  if (value === "in_progress") return "bg-burgundy-50 text-burgundy-700 dark:bg-burgundy-900/30 dark:text-white";
+  if (value === "closed") return "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200";
+  return "bg-burgundy-100 text-burgundy-700 dark:bg-burgundy-900/35 dark:text-white";
 }
 
 export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
@@ -86,13 +86,13 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     <Card>
       <CardHeader>
         <CardTitle className="inline-flex items-center gap-2">
-          <LifeBuoy className="h-5 w-5 text-burgundy-700 dark:text-burgundy-300" />
+          <LifeBuoy className="h-5 w-5 text-burgundy-700 dark:text-white" />
           Teacher Support
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {!token ? (
-          <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             Support center is available in API mode.
           </p>
         ) : null}
@@ -121,7 +121,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
 
         <div className="space-y-2">
           {tickets.length === 0 && !loading ? (
-            <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+            <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
               No support requests yet.
             </p>
           ) : (
@@ -156,3 +156,5 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     </Card>
   );
 }
+
+

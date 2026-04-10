@@ -1,4 +1,4 @@
-import { cn } from "../lib/utils";
+﻿import { cn } from "../lib/utils";
 
 interface UserAvatarProps {
   fullName: string;
@@ -27,7 +27,7 @@ export function UserAvatar({ fullName, avatarUrl, size = "md" }: UserAvatarProps
     <div
       className={cn(
         "grid place-content-center rounded-full border border-burgundy-200 bg-burgundy-50 font-semibold uppercase text-burgundy-700",
-        "dark:border-zinc-600 dark:bg-zinc-800 dark:text-burgundy-300",
+        "dark:border-zinc-600 dark:bg-zinc-800 dark:text-white",
         sizeMap[size],
       )}
     >
@@ -35,3 +35,4 @@ export function UserAvatar({ fullName, avatarUrl, size = "md" }: UserAvatarProps
     </div>
   );
 }
+

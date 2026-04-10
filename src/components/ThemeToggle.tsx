@@ -16,7 +16,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
       size={compact ? "sm" : "default"}
       variant="secondary"
       onClick={toggleTheme}
-      className="gap-2"
+      className="gap-2 text-white"
       aria-label={t("ui.theme")}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

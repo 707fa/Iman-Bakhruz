@@ -14,7 +14,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-left text-base text-charcoal ring-offset-white placeholder:text-charcoal/45 focus:outline-none focus:ring-2 focus:ring-burgundy-300 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate sm:h-10 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500",
+      "flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-burgundy-100 bg-white px-3.5 py-2 text-left text-base text-charcoal ring-offset-white placeholder:text-charcoal/45 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-burgundy-300 focus:border-burgundy-300 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate sm:h-10 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500",
       className,
     )}
     {...props}
@@ -35,7 +35,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-burgundy-100 bg-white text-charcoal shadow-lift dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
+        "relative z-50 w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-burgundy-100 bg-white text-charcoal shadow-lift dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
         position === "popper" && "translate-y-1",
         className,
       )}
@@ -104,3 +104,4 @@ export {
   SelectItem,
   SelectSeparator,
 };
+

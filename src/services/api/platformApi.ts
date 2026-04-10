@@ -13,7 +13,10 @@ import type {
   RatingLog,
   RegisterPayload,
   ScoreAction,
+  SubscriptionState,
   Student,
+  PaymentProvider,
+  PaymentTransaction,
   SupportTicket,
   SupportTicketStatus,
   Teacher,
@@ -25,6 +28,7 @@ export interface AuthResponse {
   token: string;
   role: UserRole;
   userId: string;
+  subscription?: SubscriptionState;
 }
 
 export interface RemoteStatePayload {
@@ -33,6 +37,7 @@ export interface RemoteStatePayload {
   groups: Group[];
   rankings: RankingItem[];
   ratingLogs: RatingLog[];
+  subscription?: SubscriptionState;
 }
 
 export interface UserProfilePayload {
@@ -132,8 +137,39 @@ function normalizeStudent(raw: unknown): Student | null {
     isActive: item.isActive !== undefined ? Boolean(item.isActive) : item.is_active !== undefined ? Boolean(item.is_active) : undefined,
     isImanStudent:
       item.isImanStudent !== undefined ? Boolean(item.isImanStudent) : item.is_iman_student !== undefined ? Boolean(item.is_iman_student) : undefined,
+    isPaid: item.isPaid !== undefined ? Boolean(item.isPaid) : item.is_paid !== undefined ? Boolean(item.is_paid) : undefined,
+    paidUntil: str(item.paidUntil ?? item.paid_until) || undefined,
     statusBadge: progress?.status ?? normalizeStatus(item.statusBadge ?? item.status_badge),
     progress,
+  };
+}
+
+function normalizeSubscription(raw: unknown): SubscriptionState | undefined {
+  const item = asRecord(raw);
+  if (!item) return undefined;
+  return {
+    isPaid: Boolean(item.isPaid ?? item.is_paid),
+    paidUntil: str(item.paidUntil ?? item.paid_until) || undefined,
+    required: Boolean(item.required),
+  };
+}
+
+function normalizePaymentTransaction(raw: unknown): PaymentTransaction | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const provider = str(item.provider) === "click" ? "click" : "payme";
+  const statusRaw = str(item.status);
+  const status: PaymentTransaction["status"] =
+    statusRaw === "paid" || statusRaw === "failed" ? statusRaw : "pending";
+
+  return {
+    id: str(item.id),
+    provider,
+    amount: num(item.amount),
+    status,
+    checkoutUrl: str(item.checkoutUrl ?? item.checkout_url) || undefined,
+    createdAt: str(item.createdAt ?? item.created_at),
+    paidAt: str(item.paidAt ?? item.paid_at) || undefined,
   };
 }
 
@@ -212,6 +248,7 @@ function normalizeAuthResponse(payload: unknown): AuthResponse {
     token: str(token),
     role,
     userId: str(userId),
+    subscription: normalizeSubscription(data.subscription),
   };
 }
 
@@ -233,6 +270,7 @@ function normalizeStatePayload(payload: unknown): RemoteStatePayload {
     groups: readArray<unknown>(data.groups).map(normalizeGroup).filter((item): item is Group => item !== null),
     rankings: readArray<unknown>(data.rankings).map(normalizeRanking).filter((item): item is RankingItem => item !== null),
     ratingLogs: readArray<unknown>(data.ratingLogs).map(normalizeRatingLog).filter((item): item is RatingLog => item !== null),
+    subscription: normalizeSubscription(data.subscription),
   };
 }
 
@@ -450,6 +488,37 @@ export const platformApi = {
     return normalizeStatePayload(response);
   },
 
+  async createPayment(token: string, provider: PaymentProvider, amount?: number) {
+    const response = await apiRequest<unknown>("/payments/create", {
+      method: "POST",
+      token,
+      body: { provider, amount },
+    });
+    const data = getDataObject(response);
+    if (!data) {
+      throw new Error("Invalid payment response");
+    }
+    return {
+      transaction: normalizePaymentTransaction(data.transaction),
+      subscription: normalizeSubscription(data.subscription),
+    };
+  },
+
+  async getPaymentStatus(token: string) {
+    const response = await apiRequest<unknown>("/payments/status", {
+      method: "GET",
+      token,
+    });
+    const data = getDataObject(response);
+    if (!data) {
+      throw new Error("Invalid payment status response");
+    }
+    return {
+      subscription: normalizeSubscription(data.subscription),
+      lastTransaction: normalizePaymentTransaction(data.lastTransaction ?? data.last_transaction),
+    };
+  },
+
   applyScore(token: string, studentId: string, groupId: string, action: ScoreAction) {
     return apiRequest<void>(`/teacher/groups/${groupId}/students/${studentId}/score`, {
       method: "POST",
@@ -617,6 +686,14 @@ export const platformApi = {
       method: "PATCH",
       token,
       body: {},
+    });
+  },
+
+  async renameTeacherGroup(token: string, groupId: string, title: string) {
+    return apiRequest<void>(`/teacher/groups/${groupId}`, {
+      method: "PATCH",
+      token,
+      body: { title: title.trim() },
     });
   },
 

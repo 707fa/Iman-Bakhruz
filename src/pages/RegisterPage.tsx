@@ -136,7 +136,7 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-start justify-center bg-[#f6f6f8] p-4 pb-8 pt-5 dark:bg-black sm:min-h-screen sm:items-center sm:p-8">
+    <div className="flex min-h-dvh items-start justify-center bg-white p-4 pb-8 pt-5 dark:bg-black sm:min-h-screen sm:items-center sm:p-8">
       <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-3">
           <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
@@ -293,7 +293,7 @@ export function RegisterPage() {
 
           <p className="mt-5 text-center text-sm text-charcoal/65 dark:text-zinc-400">
             {t("auth.haveAccount")}{" "}
-            <Link to="/login" className="font-semibold text-burgundy-700 hover:text-burgundy-600 dark:text-burgundy-300 dark:hover:text-burgundy-200">
+            <Link to="/login" className="font-semibold text-charcoal hover:text-black dark:text-white dark:hover:text-zinc-200">
               {t("auth.loginButton")}
             </Link>
           </p>

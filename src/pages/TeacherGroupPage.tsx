@@ -26,7 +26,7 @@ interface ReviewDraft {
 
 export function TeacherGroupPage() {
   const { id } = useParams();
-  const { state, currentTeacher, applyScore, disableStudent } = useAppStore();
+  const { state, currentTeacher, applyScore, disableStudent, renameGroup } = useAppStore();
   const { t } = useUi();
   const { showToast } = useToast();
   const token = getApiToken();
@@ -39,10 +39,13 @@ export function TeacherGroupPage() {
   const [homeworkDescription, setHomeworkDescription] = useState("");
   const [homeworkDueAt, setHomeworkDueAt] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [studentSearch, setStudentSearch] = useState("");
   const [taskSubmissions, setTaskSubmissions] = useState<HomeworkSubmission[]>([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, ReviewDraft>>({});
   const [savingSubmissionId, setSavingSubmissionId] = useState<string | null>(null);
+  const [groupTitleDraft, setGroupTitleDraft] = useState("");
+  const [renamingGroup, setRenamingGroup] = useState(false);
 
   if (!currentTeacher) return null;
 
@@ -54,12 +57,23 @@ export function TeacherGroupPage() {
     : [];
 
   const top = hasAccess ? getGroupTop(state, group!.id, 10) : [];
+  const normalizedStudentSearch = studentSearch.trim().toLowerCase();
+  const filteredStudents = normalizedStudentSearch
+    ? students.filter((student) => student.fullName.toLowerCase().includes(normalizedStudentSearch))
+    : students;
+  const filteredTop = normalizedStudentSearch
+    ? top.filter((item) => item.fullName.toLowerCase().includes(normalizedStudentSearch))
+    : top;
   const daysLabel = group ? t(`days.${group.daysPattern}`) : "";
 
   const selectedTask = useMemo(
     () => homeworkTasks.find((task) => task.id === selectedTaskId) ?? null,
     [homeworkTasks, selectedTaskId],
   );
+
+  useEffect(() => {
+    setGroupTitleDraft(group?.title ?? "");
+  }, [group?.id, group?.title]);
 
   useEffect(() => {
     if (!hasAccess || !canUseApi || !token || !group) {
@@ -191,6 +205,22 @@ export function TeacherGroupPage() {
     }
   }
 
+  async function handleRenameGroup() {
+    if (!group) return;
+    if (renamingGroup) return;
+
+    setRenamingGroup(true);
+    try {
+      const result = await renameGroup(group.id, groupTitleDraft);
+      showToast({
+        tone: result.ok ? "success" : "error",
+        message: t(result.messageKey, result.messageParams),
+      });
+    } finally {
+      setRenamingGroup(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -217,15 +247,51 @@ export function TeacherGroupPage() {
 
       {group && !hasAccess ? (
         <Card>
-          <CardContent className="p-6 text-sm text-rose-600">{t("teacher.noAccessGroup")}</CardContent>
+          <CardContent className="p-6 text-sm text-burgundy-700 dark:text-white">{t("teacher.noAccessGroup")}</CardContent>
         </Card>
       ) : null}
 
       {hasAccess ? (
         <>
+          <Card>
+            <CardContent className="grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-end sm:p-5">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("teacher.renameGroupLabel")}</label>
+                <Input
+                  value={groupTitleDraft}
+                  onChange={(event) => setGroupTitleDraft(event.target.value)}
+                  placeholder={t("teacher.renameGroupPlaceholder")}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void handleRenameGroup();
+                    }
+                  }}
+                />
+              </div>
+
+              <Button
+                onClick={() => void handleRenameGroup()}
+                disabled={renamingGroup || groupTitleDraft.trim().length < 2 || groupTitleDraft.trim() === (group?.title ?? "")}
+              >
+                {renamingGroup ? t("teacher.renaming") : t("teacher.renameGroupSave")}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 sm:p-5">
+              <Input
+                value={studentSearch}
+                onChange={(event) => setStudentSearch(event.target.value)}
+                placeholder={t("search.studentByName")}
+              />
+            </CardContent>
+          </Card>
+
           <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
             <section className="grid gap-3 md:grid-cols-2">
-              {students.map((student) => (
+              {filteredStudents.map((student) => (
                 <Card key={student.id}>
                   <CardContent className="space-y-2.5 p-3 sm:p-3.5">
                     <div className="flex items-center justify-between gap-2">
@@ -254,13 +320,13 @@ export function TeacherGroupPage() {
                               });
                             })();
                           }}
-                          className="text-xs font-semibold text-rose-700 transition hover:text-rose-600 dark:text-rose-300 dark:hover:text-rose-200"
+                          className="text-xs font-semibold text-charcoal/75 transition hover:text-burgundy-700 dark:text-zinc-300 dark:hover:text-white"
                         >
                           {t("teacher.disableStudent")}
                         </button>
                         <Link
                           to={`/teacher/student/${student.id}`}
-                          className="text-xs font-semibold text-burgundy-700 transition hover:text-burgundy-600 dark:text-burgundy-300 dark:hover:text-burgundy-200"
+                          className="text-xs font-semibold text-burgundy-700 transition hover:text-burgundy-600 dark:text-white dark:hover:text-white"
                         >
                           {t("menu.profile")}
                         </Link>
@@ -281,16 +347,21 @@ export function TeacherGroupPage() {
                   </CardContent>
                 </Card>
               ))}
+              {filteredStudents.length === 0 ? (
+                <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 md:col-span-2">
+                  {t("ui.noData")}
+                </p>
+              ) : null}
             </section>
 
             <Card>
               <CardContent className="p-4 sm:p-5">
                 <h3 className="mb-3 inline-flex items-center gap-2 text-lg font-semibold">
-                  <Sparkles className="h-4 w-4 text-burgundy-700 dark:text-burgundy-300" />
+                  <Sparkles className="h-4 w-4 text-burgundy-700 dark:text-white" />
                   {t("teacher.groupTopTitle")}
                 </h3>
                 <div className="space-y-2">
-                  {top.map((item, index) => (
+                  {filteredTop.map((item, index) => (
                     <div
                       key={item.studentId}
                       className="flex items-center justify-between rounded-xl border border-burgundy-100 p-3 text-sm dark:border-zinc-700"
@@ -298,9 +369,14 @@ export function TeacherGroupPage() {
                       <span className="font-semibold text-charcoal dark:text-zinc-100">
                         {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`} {item.fullName}
                       </span>
-                      <span className="font-bold text-burgundy-700 dark:text-burgundy-300">{item.points.toFixed(2)}</span>
+                      <span className="font-bold text-burgundy-700 dark:text-white">{item.points.toFixed(2)}</span>
                     </div>
                   ))}
+                  {filteredTop.length === 0 ? (
+                    <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                      {t("ui.noData")}
+                    </p>
+                  ) : null}
                 </div>
               </CardContent>
             </Card>
@@ -311,7 +387,7 @@ export function TeacherGroupPage() {
               <h3 className="text-lg font-semibold text-charcoal dark:text-zinc-100">Домашние задания группы</h3>
 
               {!canUseApi ? (
-                <p className="rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                   Домашние задания доступны в API режиме.
                 </p>
               ) : (
@@ -328,7 +404,7 @@ export function TeacherGroupPage() {
                         value={homeworkDescription}
                         onChange={(event) => setHomeworkDescription(event.target.value)}
                         rows={3}
-                        className="w-full resize-y rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-base text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-100 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-burgundy-700 dark:focus:ring-burgundy-900/40"
+                        className="w-full resize-y rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-base text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-100 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-burgundy-700 dark:focus:ring-burgundy-900/40"
                         placeholder="Что нужно сделать ученикам..."
                       />
                     </div>
@@ -348,7 +424,7 @@ export function TeacherGroupPage() {
                   {loadingHomework ? (
                     <p className="text-sm text-charcoal/60 dark:text-zinc-400">Загрузка заданий...</p>
                   ) : homeworkTasks.length === 0 ? (
-                    <p className="rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                       В этой группе пока нет заданий.
                     </p>
                   ) : (
@@ -378,11 +454,11 @@ export function TeacherGroupPage() {
                         {loadingSubmissions ? (
                           <p className="text-sm text-charcoal/60 dark:text-zinc-400">Загрузка сдач...</p>
                         ) : !selectedTask ? (
-                          <p className="rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                          <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                             Выберите задание слева.
                           </p>
                         ) : taskSubmissions.length === 0 ? (
-                          <p className="rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                          <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                             Пока никто не сдал это задание.
                           </p>
                         ) : (
@@ -400,7 +476,7 @@ export function TeacherGroupPage() {
                                     {submission.status === "reviewed" ? "Проверено" : "Ожидает"}
                                   </Badge>
                                 </div>
-                                <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-charcoal dark:bg-zinc-900 dark:text-zinc-200">{submission.answerText}</p>
+                                <p className="rounded-lg bg-white px-3 py-2 text-sm text-charcoal dark:bg-zinc-900 dark:text-zinc-200">{submission.answerText}</p>
 
                                 <div className="grid gap-2 lg:grid-cols-[1fr_140px_150px_auto]">
                                   <Input
@@ -462,4 +538,3 @@ export function TeacherGroupPage() {
     </div>
   );
 }
-

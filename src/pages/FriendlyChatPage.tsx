@@ -532,7 +532,7 @@ export function FriendlyChatPage() {
                 {t("chat.loading")}
               </p>
             ) : conversations.length === 0 ? (
-              <p className="rounded-2xl border border-burgundy-100 bg-slate-50 px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+              <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                 {t("chat.noConversations")}
               </p>
             ) : (
@@ -563,7 +563,7 @@ export function FriendlyChatPage() {
 
             <div className="pt-1">
               <p className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">
-                <Users2 className="h-3.5 w-3.5 text-burgundy-600 dark:text-burgundy-300" />
+                <Users2 className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
                 {t("chat.contacts")}
               </p>
               <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
@@ -572,7 +572,7 @@ export function FriendlyChatPage() {
                     key={peer.id}
                     type="button"
                     onClick={() => void startConversationWithTarget(peer.id)}
-                    className="flex w-full items-center gap-2 rounded-xl border border-burgundy-100 bg-slate-50 px-2.5 py-2 text-left transition hover:border-burgundy-300 hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-burgundy-700"
+                    className="flex w-full items-center gap-2 rounded-xl border border-burgundy-100 bg-white px-2.5 py-2 text-left transition hover:border-burgundy-300 hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-burgundy-700"
                   >
                     <UserAvatar fullName={peer.fullName} avatarUrl={peer.avatarUrl} size="sm" />
                     <div className="min-w-0">
@@ -582,7 +582,7 @@ export function FriendlyChatPage() {
                   </button>
                 ))}
                 {availablePeers.length === 0 ? (
-                  <p className="rounded-xl border border-burgundy-100 bg-slate-50 px-3 py-2 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                  <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
                     {t("ui.noData")}
                   </p>
                 ) : null}
@@ -592,14 +592,14 @@ export function FriendlyChatPage() {
         </Card>
 
         <Card>
-          <CardContent className="flex h-[70vh] min-h-[420px] flex-col gap-3 p-4">
+          <CardContent className="flex h-[62dvh] min-h-[340px] flex-col gap-3 p-3 sm:h-[70vh] sm:min-h-[420px] sm:p-4">
             {!activeConversation ? (
-              <div className="grid flex-1 place-items-center rounded-2xl border border-burgundy-100 bg-slate-50 text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+              <div className="grid flex-1 place-items-center rounded-2xl border border-burgundy-100 bg-white text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
                 {t("chat.select")}
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2 rounded-2xl border border-burgundy-100 bg-slate-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                <div className="flex items-center gap-2 rounded-2xl border border-burgundy-100 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
                   <UserAvatar fullName={activeConversation.peer.fullName} avatarUrl={activeConversation.peer.avatarUrl} size="sm" />
                   <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{activeConversation.peer.fullName}</p>
                 </div>
@@ -622,7 +622,7 @@ export function FriendlyChatPage() {
                               "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
                               mine
                                 ? "bg-burgundy-700 text-white"
-                                : "border border-burgundy-100 bg-slate-50 text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
+                                : "border border-burgundy-100 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
                             ].join(" ")}
                           >
                             <p className="whitespace-pre-wrap break-words">{message.text}</p>
@@ -660,17 +660,19 @@ export function FriendlyChatPage() {
       </div>
 
       {modeNotice ? (
-        <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+        <p className="rounded-2xl border border-burgundy-200 bg-burgundy-50 px-4 py-3 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
           {modeNotice}
         </p>
       ) : null}
 
       {error ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+        <p className="rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
           {error}
         </p>
       ) : null}
     </div>
   );
 }
+
+
 
