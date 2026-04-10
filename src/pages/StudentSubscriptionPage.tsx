@@ -8,6 +8,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
+import { ApiError } from "../services/api/http";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
 import type { PaymentProvider, PaymentTransaction, SubscriptionState } from "../types";
@@ -69,7 +70,17 @@ export function StudentSubscriptionPage() {
 
       window.open(url, "_blank", "noopener,noreferrer");
       showToast({ tone: "success", message: t("pay.redirected") });
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 503) {
+          showToast({ tone: "error", message: t("pay.providerUnavailable") });
+          return;
+        }
+        if (error.status === 401) {
+          showToast({ tone: "error", message: t("msg.loginInvalid") });
+          return;
+        }
+      }
       showToast({ tone: "error", message: t("msg.serverUnavailable") });
     } finally {
       setLoading(false);
@@ -91,7 +102,11 @@ export function StudentSubscriptionPage() {
       } else {
         showToast({ tone: "info", message: t("pay.pending") });
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        showToast({ tone: "error", message: t("msg.loginInvalid") });
+        return;
+      }
       showToast({ tone: "error", message: t("msg.serverUnavailable") });
     } finally {
       setLoading(false);
