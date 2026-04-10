@@ -35,11 +35,16 @@ export function AuthGuard({ role }: AuthGuardProps) {
     return <Navigate to={roleHome(session.role)} replace />;
   }
 
-  if (session.role === "student" && session.isPaid === false) {
-    const allowedPaths = ["/student/top", "/student/group", "/student/subscription"];
-    const isAllowed = allowedPaths.some((path) => location.pathname.startsWith(path));
-    if (!isAllowed) {
-      return <Navigate to="/student/subscription" replace />;
+  if (session.role === "student") {
+    const student = state.students.find((item) => item.id === session.userId);
+    const isPaid = session.isPaid ?? student?.isPaid ?? false;
+
+    if (!isPaid) {
+      const allowedPaths = ["/student/top", "/student/group", "/student/subscription"];
+      const isAllowed = allowedPaths.some((path) => location.pathname.startsWith(path));
+      if (!isAllowed) {
+        return <Navigate to="/student/subscription" replace />;
+      }
     }
   }
 

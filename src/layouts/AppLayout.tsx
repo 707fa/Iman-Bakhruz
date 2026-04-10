@@ -81,7 +81,7 @@ export function AppLayout() {
     teacher: [{ label: t("nav.games"), href: "/teacher/games", icon: Gamepad2 }],
   };
 
-  const isUnpaidStudent = session.role === "student" && (session.isPaid === false || currentStudent?.isPaid === false);
+  const isUnpaidStudent = session.role === "student" && !Boolean(session.isPaid ?? currentStudent?.isPaid ?? false);
   if (isUnpaidStudent) {
     mainNavMap.student = [
       { label: t("tabs.group"), href: "/student/group", icon: UsersRound },
