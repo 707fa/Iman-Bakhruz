@@ -488,11 +488,11 @@ export const platformApi = {
     return normalizeStatePayload(response);
   },
 
-  async createPayment(token: string, provider: PaymentProvider, amount?: number) {
+  async createPayment(token: string, provider: PaymentProvider) {
     const response = await apiRequest<unknown>("/payments/create", {
       method: "POST",
       token,
-      body: { provider, amount },
+      body: { provider },
     });
     const data = getDataObject(response);
     if (!data) {
