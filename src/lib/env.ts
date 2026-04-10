@@ -5,8 +5,14 @@ function normalizeProvider(value: string | undefined): DataProviderMode {
 }
 
 function normalizeApiUrl(value: string | undefined): string {
-  const url = (value?.trim() || "http://localhost:4000").replace(/\/+$/, "");
-  return url || "http://localhost:4000";
+  const explicit = (value?.trim() || "").replace(/\/+$/, "");
+  if (explicit) return explicit;
+
+  if (typeof window !== "undefined" && window.location.hostname.endsWith("vercel.app")) {
+    return "https://result-backend-ynme.onrender.com";
+  }
+
+  return "http://localhost:4000";
 }
 
 function normalizeOptionalText(value: string | undefined): string | null {
