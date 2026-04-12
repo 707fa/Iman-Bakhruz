@@ -1,7 +1,7 @@
-﻿import { Crown } from "lucide-react";
+import { Crown } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { RankingItem } from "../types";
 import { getRankTitle } from "../lib/ranking";
+import type { RankingItem } from "../types";
 import { cn } from "../lib/utils";
 import { UserAvatar } from "./UserAvatar";
 
@@ -13,22 +13,17 @@ interface RankingCardProps {
   href?: string;
 }
 
-function medal(rank: number): string {
-  if (rank === 1) return "\u{1F947}";
-  if (rank === 2) return "\u{1F948}";
-  if (rank === 3) return "\u{1F949}";
-  return `${rank}.`;
-}
-
-function statusDot(status?: "red" | "yellow" | "green"): string {
-  if (status === "green") return "bg-burgundy-600";
-  if (status === "red") return "bg-zinc-800 dark:bg-zinc-200";
-  return "bg-burgundy-300";
+function crownClass(rank: number): string {
+  if (rank === 1) return "text-amber-500";
+  if (rank === 2) return "text-slate-400";
+  if (rank === 3) return "text-orange-500";
+  return "text-charcoal/55 dark:text-zinc-400";
 }
 
 export function RankingCard({ item, rank, currentUserId, showMeta = true, href }: RankingCardProps) {
   const isCurrent = item.studentId === currentUserId;
   const isTop3 = rank <= 3;
+
   const content = (
     <article
       className={cn(
@@ -39,8 +34,13 @@ export function RankingCard({ item, rank, currentUserId, showMeta = true, href }
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <span className="w-8 text-center text-sm font-semibold text-charcoal/70 dark:text-zinc-300">{medal(rank)}</span>
+        <div className="flex w-10 items-center justify-center gap-1">
+          {isTop3 ? <Crown className={cn("h-4 w-4", crownClass(rank))} /> : null}
+          <span className="text-xs font-semibold text-charcoal/70 dark:text-zinc-300">#{rank}</span>
+        </div>
+
         <UserAvatar fullName={item.fullName} avatarUrl={item.avatarUrl} size="sm" />
+
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-charcoal dark:text-zinc-100">{item.fullName}</p>
           {showMeta ? <p className="truncate text-xs text-charcoal/55 dark:text-zinc-400">{item.groupId}</p> : null}
@@ -48,8 +48,6 @@ export function RankingCard({ item, rank, currentUserId, showMeta = true, href }
       </div>
 
       <div className="flex flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-        <span className={`hidden h-2.5 w-2.5 rounded-full sm:inline-flex ${statusDot(item.statusBadge)}`} />
-        {isTop3 ? <Crown className="h-4 w-4 text-burgundy-600" /> : null}
         <span className="rounded-full border border-burgundy-200 bg-burgundy-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-900/30 dark:text-white sm:text-[10px]">
           {getRankTitle(rank)}
         </span>
@@ -66,4 +64,3 @@ export function RankingCard({ item, rank, currentUserId, showMeta = true, href }
     </Link>
   );
 }
-

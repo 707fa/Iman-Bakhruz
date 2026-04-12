@@ -1,4 +1,4 @@
-﻿import { ChevronLeft, Clock3, Sparkles } from "lucide-react";
+﻿import { ChevronLeft, Clock3, Crown, Loader2, Sparkles, UserX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -24,6 +24,13 @@ interface ReviewDraft {
   status: "submitted" | "reviewed";
 }
 
+function crownClass(rank: number): string {
+  if (rank === 1) return "text-amber-500";
+  if (rank === 2) return "text-slate-400";
+  if (rank === 3) return "text-orange-500";
+  return "text-charcoal/50 dark:text-zinc-400";
+}
+
 export function TeacherGroupPage() {
   const { id } = useParams();
   const { state, currentTeacher, applyScore, disableStudent, renameGroup } = useAppStore();
@@ -46,6 +53,7 @@ export function TeacherGroupPage() {
   const [savingSubmissionId, setSavingSubmissionId] = useState<string | null>(null);
   const [groupTitleDraft, setGroupTitleDraft] = useState("");
   const [renamingGroup, setRenamingGroup] = useState(false);
+  const [deletingStudentId, setDeletingStudentId] = useState<string | null>(null);
 
   if (!currentTeacher) return null;
 
@@ -221,6 +229,21 @@ export function TeacherGroupPage() {
     }
   }
 
+  async function handleDisableStudent(studentId: string) {
+    if (!window.confirm(t("teacher.disableConfirm"))) return;
+
+    setDeletingStudentId(studentId);
+    try {
+      const result = await disableStudent(studentId);
+      showToast({
+        message: t(result.messageKey, result.messageParams),
+        tone: result.ok ? "success" : "error",
+      });
+    } finally {
+      setDeletingStudentId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -308,22 +331,18 @@ export function TeacherGroupPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <StatusBadge status={student.statusBadge} />
                       <div className="flex flex-wrap items-center gap-3">
-                        <button
+                        <Button
                           type="button"
-                          onClick={() => {
-                            if (!window.confirm(t("teacher.disableConfirm"))) return;
-                            void (async () => {
-                              const result = await disableStudent(student.id);
-                              showToast({
-                                message: t(result.messageKey, result.messageParams),
-                                tone: result.ok ? "success" : "error",
-                              });
-                            })();
-                          }}
-                          className="text-xs font-semibold text-charcoal/75 transition hover:text-burgundy-700 dark:text-zinc-300 dark:hover:text-white"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void handleDisableStudent(student.id)}
+                          disabled={deletingStudentId === student.id}
+                          aria-label={t("teacher.disableStudent")}
+                          title={t("teacher.disableStudent")}
+                          className="h-8 w-8 rounded-full border border-burgundy-100 p-0 text-burgundy-700 hover:border-burgundy-200 hover:bg-burgundy-50 hover:text-burgundy-800 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-white"
                         >
-                          {t("teacher.disableStudent")}
-                        </button>
+                          {deletingStudentId === student.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserX className="h-3.5 w-3.5" />}
+                        </Button>
                         <Link
                           to={`/teacher/student/${student.id}`}
                           className="text-xs font-semibold text-burgundy-700 transition hover:text-burgundy-600 dark:text-white dark:hover:text-white"
@@ -366,8 +385,10 @@ export function TeacherGroupPage() {
                       key={item.studentId}
                       className="flex items-center justify-between rounded-xl border border-burgundy-100 p-3 text-sm dark:border-zinc-700"
                     >
-                      <span className="font-semibold text-charcoal dark:text-zinc-100">
-                        {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`} {item.fullName}
+                      <span className="inline-flex items-center gap-2 font-semibold text-charcoal dark:text-zinc-100">
+                        {index < 3 ? <Crown className={`h-4 w-4 ${crownClass(index + 1)}`} /> : null}
+                        <span className="text-xs text-charcoal/65 dark:text-zinc-300">#{index + 1}</span>
+                        <span>{item.fullName}</span>
                       </span>
                       <span className="font-bold text-burgundy-700 dark:text-white">{item.points.toFixed(2)}</span>
                     </div>
@@ -538,3 +559,11 @@ export function TeacherGroupPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+

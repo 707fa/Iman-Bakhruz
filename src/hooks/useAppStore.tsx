@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
 import { initialState } from "../data/mockData";
 import { DATA_PROVIDER_MODE } from "../lib/env";
 import { makeId, toPhone } from "../lib/utils";
@@ -14,11 +14,17 @@ import type {
   RegisterPayload,
   ScoreAction,
   Student,
+  StudentAccessState,
   Teacher,
   SubscriptionState,
 } from "../types";
 
 const STORAGE_KEY = "result-dashboard-v6";
+const TOP5_GRANTS_KEY = "result-top5-grants-v1";
+const TOP5_GRANT_DAYS = 30;
+const TOP5_LIMIT = 5;
+
+type Top5GrantMap = Record<string, string>;
 
 function toArrayOrFallback<T>(value: unknown, fallback: T[]): T[] {
   return Array.isArray(value) ? (value as T[]) : fallback;
@@ -28,6 +34,114 @@ function isAuthSession(value: unknown): value is AuthSession {
   if (!value || typeof value !== "object") return false;
   const maybe = value as { role?: unknown; userId?: unknown };
   return (maybe.role === "student" || maybe.role === "teacher") && typeof maybe.userId === "string";
+}
+
+function toIsoAfterDays(days: number): string {
+  const now = new Date();
+  now.setDate(now.getDate() + days);
+  return now.toISOString();
+}
+
+function isFutureIso(value?: string): boolean {
+  if (!value) return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && timestamp > Date.now();
+}
+
+function readTop5Grants(): Top5GrantMap {
+  if (typeof window === "undefined") return {};
+
+  const raw = window.localStorage.getItem(TOP5_GRANTS_KEY);
+  if (!raw) return {};
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+
+    const next: Top5GrantMap = {};
+    for (const [studentId, paidUntil] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof studentId !== "string" || typeof paidUntil !== "string") continue;
+      if (!isFutureIso(paidUntil)) continue;
+      next[studentId] = paidUntil;
+    }
+
+    return next;
+  } catch {
+    return {};
+  }
+}
+
+function saveTop5Grants(grants: Top5GrantMap) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(TOP5_GRANTS_KEY, JSON.stringify(grants));
+}
+
+function areGrantMapsEqual(current: Top5GrantMap, next: Top5GrantMap): boolean {
+  const currentKeys = Object.keys(current);
+  const nextKeys = Object.keys(next);
+  if (currentKeys.length !== nextKeys.length) return false;
+
+  for (const key of currentKeys) {
+    if (current[key] !== next[key]) return false;
+  }
+
+  return true;
+}
+
+function getTopStudentIds(students: Student[], limit = TOP5_LIMIT): string[] {
+  return [...students]
+    .sort((a, b) => b.points - a.points || a.fullName.localeCompare(b.fullName))
+    .slice(0, limit)
+    .map((student) => student.id);
+}
+
+function syncTop5GrantMap(students: Student[], current: Top5GrantMap): Top5GrantMap {
+  const topStudentIds = getTopStudentIds(students);
+  const next: Top5GrantMap = {};
+
+  for (const studentId of topStudentIds) {
+    const existing = current[studentId];
+    next[studentId] = isFutureIso(existing) ? existing : toIsoAfterDays(TOP5_GRANT_DAYS);
+  }
+
+  return next;
+}
+
+function resolveStudentAccessState(
+  state: AppState,
+  studentId: string,
+  session: AuthSession | null,
+  top5Grants: Top5GrantMap,
+): StudentAccessState {
+  const student = state.students.find((item) => item.id === studentId);
+  const studentPaidUntil = student?.paidUntil;
+  const sessionPaidUntil = session?.role === "student" && session.userId === studentId ? session.paidUntil : undefined;
+  const paidUntil = sessionPaidUntil ?? studentPaidUntil;
+  const paidBySubscription = Boolean(
+    (session?.role === "student" && session.userId === studentId ? session.isPaid : undefined) ?? student?.isPaid,
+  );
+
+  if (paidBySubscription) {
+    return {
+      hasFullAccess: true,
+      source: "paid",
+      paidUntil,
+    };
+  }
+
+  const top5PaidUntil = top5Grants[studentId];
+  if (isFutureIso(top5PaidUntil)) {
+    return {
+      hasFullAccess: true,
+      source: "top5",
+      paidUntil: top5PaidUntil,
+    };
+  }
+
+  return {
+    hasFullAccess: false,
+    source: "none",
+  };
 }
 
 function syncRankingsWithStudents(state: AppState): AppState {
@@ -97,9 +211,8 @@ function mergeForAuth<T extends { id: string; phone: string; password: string }>
 
   for (const item of current) {
     const prev = map.get(item.id);
-    const nextPhone = typeof item.phone === "string" && item.phone.trim().length > 0 ? item.phone : prev?.phone ?? "";
-    const nextPassword =
-      typeof item.password === "string" && item.password.trim().length > 0 ? item.password : prev?.password ?? "";
+    const nextPhone = prev?.phone ?? (typeof item.phone === "string" && item.phone.trim().length > 0 ? item.phone : "");
+    const nextPassword = prev?.password ?? (typeof item.password === "string" && item.password.trim().length > 0 ? item.password : "");
 
     map.set(item.id, {
       ...(prev ?? item),
@@ -258,7 +371,9 @@ function extractApiMessage(payload: unknown): string {
 interface StoreValue {
   state: AppState;
   currentStudent: Student | null;
+  currentStudentAccess: StudentAccessState | null;
   currentTeacher: Teacher | null;
+  getStudentAccess: (studentId: string) => StudentAccessState;
   isApiMode: boolean;
   login: (payload: LoginPayload) => Promise<ActionResult>;
   registerStudent: (payload: RegisterPayload) => Promise<ActionResult>;
@@ -274,10 +389,28 @@ const StoreContext = createContext<StoreValue | undefined>(undefined);
 
 export function AppStoreProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(() => readState());
+  const [top5Grants, setTop5Grants] = useState<Top5GrantMap>(() => readTop5Grants());
 
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  useEffect(() => {
+    saveTop5Grants(top5Grants);
+  }, [top5Grants]);
+
+  useEffect(() => {
+    setTop5Grants((current) => {
+      const next = syncTop5GrantMap(state.students, current);
+      return areGrantMapsEqual(current, next) ? current : next;
+    });
+  }, [state.students]);
+
+  useEffect(() => {
+    if (DATA_PROVIDER_MODE !== "api") {
+      clearApiToken();
+    }
+  }, []);
 
   useEffect(() => {
     if (DATA_PROVIDER_MODE !== "api") return;
@@ -323,27 +456,41 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return state.teachers.find((teacher) => teacher.id === session.userId) ?? null;
   }, [state.session, state.teachers]);
 
+  const getStudentAccess = useCallback(
+    (studentId: string): StudentAccessState => resolveStudentAccessState(state, studentId, state.session, top5Grants),
+    [state, top5Grants],
+  );
+
+  const currentStudentAccess = useMemo(() => {
+    if (!currentStudent) return null;
+    return resolveStudentAccessState(state, currentStudent.id, state.session, top5Grants);
+  }, [currentStudent, state, top5Grants]);
+
   function loginMock(payload: LoginPayload): ActionResult {
     const phone = toPhone(payload.phone);
     const password = payload.password.trim();
+    const normalizedPassword = password.toLowerCase();
     if (!phone) {
       return { ok: false, messageKey: "msg.phoneInvalid" };
     }
     const authCollections = getAuthCollections(state);
-    const student = authCollections.students.find((item) => toPhone(item.phone) === phone);
-    const teacher = authCollections.teachers.find((item) => toPhone(item.phone) === phone);
-
-    if (student && student.password === password) {
-      if (student.isActive === false || student.isImanStudent === false) {
-        return { ok: false, messageKey: "msg.loginInvalid" };
-      }
-      setState((prev) => ({ ...withSeedData(prev), session: { role: "student", userId: student.id } }));
-      return { ok: true, messageKey: "msg.loginStudent" };
+    const teacherMatch = authCollections.teachers.find(
+      (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
+    );
+    if (teacherMatch) {
+      setState((prev) => ({ ...withSeedData(prev), session: { role: "teacher", userId: teacherMatch.id } }));
+      return { ok: true, messageKey: "msg.loginTeacher" };
     }
 
-    if (teacher && teacher.password === password) {
-      setState((prev) => ({ ...withSeedData(prev), session: { role: "teacher", userId: teacher.id } }));
-      return { ok: true, messageKey: "msg.loginTeacher" };
+    const studentMatch = authCollections.students.find(
+      (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
+    );
+    if (studentMatch) {
+      if (studentMatch.isActive === false || studentMatch.isImanStudent === false) {
+        return { ok: false, messageKey: "msg.loginInvalid" };
+      }
+      setState((prev) => ({ ...withSeedData(prev), session: { role: "student", userId: studentMatch.id } }));
+      return { ok: true, messageKey: "msg.loginStudent" };
     }
 
     return { ok: false, messageKey: "msg.loginInvalid" };
@@ -567,9 +714,22 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
           };
         }
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
-          return { ok: false, messageKey: "msg.loginInvalid" };
+        if (error instanceof ApiError) {
+          // If backend says 401 or is temporarily unavailable,
+          // allow local fallback for known demo/local accounts.
+          if (error.status === 401 || error.status >= 500 || error.status === 0 || error.status === 408) {
+            clearApiToken();
+            const localFallback = loginMock(payload);
+            if (localFallback.ok) {
+              return localFallback;
+            }
+          }
+
+          if (error.status === 401) {
+            return { ok: false, messageKey: "msg.loginInvalid" };
+          }
         }
+
         return { ok: false, messageKey: "msg.serverUnavailable" };
       }
     }
@@ -837,7 +997,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     () => ({
       state,
       currentStudent,
+      currentStudentAccess,
       currentTeacher,
+      getStudentAccess,
       isApiMode: DATA_PROVIDER_MODE === "api",
       login,
       registerStudent,
@@ -848,7 +1010,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       renameGroup,
       refreshState,
     }),
-    [state, currentStudent, currentTeacher],
+    [state, currentStudent, currentStudentAccess, currentTeacher, getStudentAccess],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

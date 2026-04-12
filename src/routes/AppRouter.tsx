@@ -1,9 +1,11 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAppStore } from "../hooks/useAppStore";
-import { AuthGuard } from "./guards";
+import { AuthGuard, PublicOnlyGuard } from "./guards";
 
 const AppLayout = lazy(() => import("../layouts/AppLayout").then((module) => ({ default: module.AppLayout })));
+const HomePage = lazy(() => import("../pages/HomePage").then((module) => ({ default: module.HomePage })));
+const HomeCenterPage = lazy(() => import("../pages/HomeCenterPage").then((module) => ({ default: module.HomeCenterPage })));
 const LoginPage = lazy(() => import("../pages/LoginPage").then((module) => ({ default: module.LoginPage })));
 const RegisterPage = lazy(() => import("../pages/RegisterPage").then((module) => ({ default: module.RegisterPage })));
 const PublicTopPage = lazy(() => import("../pages/PublicTopPage").then((module) => ({ default: module.PublicTopPage })));
@@ -42,7 +44,7 @@ function RootRedirect() {
   const session = state.session;
 
   if (!session) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (session.role === "teacher") {
@@ -62,11 +64,15 @@ export function AppRouter() {
       }
     >
       <Routes>
-        <Route path="/" element={<RootRedirect />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/home-center" element={<HomeCenterPage />} />
+        <Route path="/dashboard" element={<RootRedirect />} />
         <Route path="/top" element={<PublicTopPage />} />
 
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route element={<PublicOnlyGuard />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Route>
 
         <Route element={<AuthGuard role="student" />}>
           <Route element={<AppLayout />}>

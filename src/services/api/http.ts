@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../../lib/env";
+import { API_BASE_URL, API_REQUEST_TIMEOUT_MS } from "../../lib/env";
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -31,9 +31,6 @@ async function parseJsonSafe(response: Response): Promise<unknown> {
   }
 }
 
-// Render free instance may take longer to wake up after idle.
-const DEFAULT_TIMEOUT_MS = 65000;
-
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -44,7 +41,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   const controller = new AbortController();
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutMs = options.timeoutMs ?? API_REQUEST_TIMEOUT_MS;
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
   const handleAbort = () => controller.abort();

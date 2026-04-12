@@ -689,6 +689,14 @@ export const platformApi = {
     });
   },
 
+  async grantStudentSubscription(token: string, studentId: string, days?: number) {
+    return apiRequest<void>(`/teacher/students/${studentId}/subscription`, {
+      method: "POST",
+      token,
+      body: days ? { days } : {},
+    });
+  },
+
   async renameTeacherGroup(token: string, groupId: string, title: string) {
     return apiRequest<void>(`/teacher/groups/${groupId}`, {
       method: "PATCH",

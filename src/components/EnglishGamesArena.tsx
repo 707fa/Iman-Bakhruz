@@ -1,5 +1,5 @@
 ﻿import { Bot, Globe2, Loader2, RefreshCw, Sparkles, Swords, UsersRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAppStore } from "../hooks/useAppStore";
 import { DATA_PROVIDER_MODE } from "../lib/env";
@@ -25,6 +25,7 @@ interface QuizChallenge extends BaseChallenge {
   type: "quiz";
   question: string;
   options: string[];
+  correctOption?: string;
 }
 
 interface BuilderChallenge extends BaseChallenge {
@@ -55,55 +56,120 @@ interface LeaderboardEntry {
   isMe: boolean;
 }
 
-const FALLBACK_QUIZ: QuizChallenge[] = [
+interface QuizTemplate {
+  question: string;
+  correct: string;
+  distractors: [string, string, string];
+  hint: string;
+}
+
+const QUIZ_TEMPLATES: QuizTemplate[] = [
   {
-    type: "quiz",
-    title: "Speed Quiz",
     question: "Choose the correct sentence:",
-    options: ["He go to school.", "He goes to school.", "He going school.", "He gone to school."],
-    hint: "With he/she/it add -s in Present Simple.",
+    correct: "He goes to school every day.",
+    distractors: ["He go to school every day.", "He going to school every day.", "He gone to school every day."],
+    hint: "In Present Simple, he/she/it takes -s.",
   },
   {
-    type: "quiz",
-    title: "Speed Quiz",
-    question: "Choose the best phrase:",
-    options: ["do a progress", "make progress", "build progress", "write progress"],
-    hint: "Native collocation is make progress.",
+    question: "Choose the best collocation:",
+    correct: "make progress",
+    distractors: ["do progress", "build progress", "create progress"],
+    hint: "Native phrase is make progress.",
+  },
+  {
+    question: "Choose the right option:",
+    correct: "I have lived here for three years.",
+    distractors: ["I live here since three years.", "I lived here for three years ago.", "I am living here from three years."],
+    hint: "Use Present Perfect + for/since for duration.",
+  },
+  {
+    question: "Choose the natural sentence:",
+    correct: "Can you explain this rule to me?",
+    distractors: ["Can you explain me this rule?", "Can you explain this rule for me?", "Can you explain this rule on me?"],
+    hint: "Explain something to someone.",
+  },
+  {
+    question: "Choose the correct sentence:",
+    correct: "There are many books on the table.",
+    distractors: ["There is many books on the table.", "There are much books on the table.", "There have many books on the table."],
+    hint: "Use there are with plural countable nouns.",
+  },
+  {
+    question: "Choose the right phrase:",
+    correct: "interested in",
+    distractors: ["interested on", "interested at", "interested to"],
+    hint: "Interested in is the standard form.",
+  },
+  {
+    question: "Choose the best sentence:",
+    correct: "If it rains, we will stay home.",
+    distractors: ["If it will rain, we stay home.", "If it rains, we stay home yesterday.", "If it rain, we will stay home."],
+    hint: "First conditional: if + present simple, will + verb.",
+  },
+  {
+    question: "Choose the natural response:",
+    correct: "I am used to waking up early.",
+    distractors: ["I am used to wake up early.", "I use to waking up early.", "I am use to wake up early."],
+    hint: "Be used to + noun/gerund.",
   },
 ];
 
-const FALLBACK_BUILDER: BuilderChallenge[] = [
+const BUILDER_SETS: { words: string[]; hint: string }[] = [
   {
-    type: "builder",
-    title: "Sentence Builder",
-    instruction: "Build a natural sentence from these words:",
     words: ["I", "need", "to", "improve", "my", "speaking", "skills"],
-    hint: "Start with subject + need to + verb.",
+    hint: "Subject + need to + verb.",
   },
   {
-    type: "builder",
-    title: "Sentence Builder",
-    instruction: "Build a natural sentence from these words:",
     words: ["we", "have", "an", "English", "lesson", "tomorrow"],
     hint: "Use present simple for schedule.",
   },
+  {
+    words: ["she", "has", "already", "finished", "her", "homework"],
+    hint: "Use Present Perfect structure.",
+  },
+  {
+    words: ["they", "were", "watching", "a", "movie", "last", "night"],
+    hint: "Past Continuous for background actions.",
+  },
+  {
+    words: ["my", "teacher", "gave", "us", "a", "new", "task"],
+    hint: "Past Simple: gave.",
+  },
+  {
+    words: ["I", "would", "like", "to", "join", "the", "advanced", "group"],
+    hint: "Would like to + verb.",
+  },
+  {
+    words: ["this", "topic", "is", "more", "difficult", "than", "the", "previous", "one"],
+    hint: "Comparative structure.",
+  },
+  {
+    words: ["we", "have", "been", "practicing", "grammar", "since", "Monday"],
+    hint: "Since + start point.",
+  },
+  {
+    words: ["he", "doesn't", "understand", "why", "this", "answer", "is", "wrong"],
+    hint: "Use auxiliary does not for third person.",
+  },
+  {
+    words: ["our", "group", "is", "preparing", "for", "the", "weekly", "test"],
+    hint: "Present Continuous for current process.",
+  },
 ];
 
-const FALLBACK_NATIVE_FIX: NativeFixChallenge[] = [
-  {
-    type: "native_fix",
-    title: "Fix Like Native",
-    instruction: "Rewrite this sentence naturally in English:",
-    wrongSentence: "I very like this movie.",
-    hint: "Use like ... very much or really like.",
-  },
-  {
-    type: "native_fix",
-    title: "Fix Like Native",
-    instruction: "Rewrite this sentence naturally in English:",
-    wrongSentence: "Can you explain me this grammar?",
-    hint: "Explain ... to someone.",
-  },
+const NATIVE_FIX_SETS: { wrong: string; hint: string }[] = [
+  { wrong: "I very like this movie.", hint: "Use really like or like ... very much." },
+  { wrong: "Can you explain me this grammar?", hint: "Explain something to someone." },
+  { wrong: "I am agree with you.", hint: "Use I agree with you." },
+  { wrong: "She go to English course every day.", hint: "He/she/it takes -s." },
+  { wrong: "We discussed about the homework.", hint: "Discuss does not need about." },
+  { wrong: "He has 20 years.", hint: "Use is with age: He is 20." },
+  { wrong: "I have much friends in my group.", hint: "Use many with countable nouns." },
+  { wrong: "I look forward to meet you.", hint: "To here is preposition: use meeting." },
+  { wrong: "I didn't went to class yesterday.", hint: "Use base verb after did not." },
+  { wrong: "My level became more better.", hint: "Do not use more with better." },
+  { wrong: "I am living here since two years.", hint: "Use have lived ... for/since." },
+  { wrong: "Teacher gave to us many tasks.", hint: "Gave us many tasks is natural." },
 ];
 
 function parseJsonObject<T>(raw: string): T | null {
@@ -131,11 +197,15 @@ function normalizeChallenge(payload: unknown, expected: GameType): GameChallenge
     const question = String(data.question ?? "").trim();
     const options = Array.isArray(data.options) ? data.options.map((option) => String(option).trim()).filter(Boolean) : [];
     if (!question || options.length < 4) return null;
+    const normalizedOptions = options.slice(0, 4);
+    const correctOptionRaw = String(data.correctOption ?? data.correct_option ?? "").trim();
+    const correctOption = normalizedOptions.includes(correctOptionRaw) ? correctOptionRaw : undefined;
     return {
       type: "quiz",
       title: title || "Speed Quiz",
       question,
-      options: options.slice(0, 4),
+      options: normalizedOptions,
+      correctOption,
       hint: hint || "Read carefully and choose the best option.",
     };
   }
@@ -169,21 +239,102 @@ function normalizeChallenge(payload: unknown, expected: GameType): GameChallenge
   return null;
 }
 
-function fallbackChallenge(type: GameType): GameChallenge {
-  const randomIndex = Math.floor(Math.random() * 1000);
-  if (type === "quiz") {
-    return FALLBACK_QUIZ[randomIndex % FALLBACK_QUIZ.length];
+function hashString(value: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
   }
-  if (type === "builder") {
-    return FALLBACK_BUILDER[randomIndex % FALLBACK_BUILDER.length];
+  return hash >>> 0;
+}
+
+function createRng(seedKey: string): () => number {
+  let seed = hashString(seedKey) || 1;
+  return () => {
+    seed += 0x6d2b79f5;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pickOne<T>(items: readonly T[], rng: () => number): T {
+  return items[Math.floor(rng() * items.length)];
+}
+
+function shuffle<T>(items: readonly T[], rng: () => number): T[] {
+  const next = [...items];
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(rng() * (index + 1));
+    [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
   }
-  return FALLBACK_NATIVE_FIX[randomIndex % FALLBACK_NATIVE_FIX.length];
+  return next;
+}
+
+function challengeFingerprint(challenge: GameChallenge): string {
+  if (challenge.type === "quiz") {
+    return `${challenge.type}:${challenge.question}:${challenge.options.join("|")}`;
+  }
+  if (challenge.type === "builder") {
+    return `${challenge.type}:${challenge.instruction}:${challenge.words.join("|")}`;
+  }
+  return `${challenge.type}:${challenge.instruction}:${challenge.wrongSentence}`;
+}
+
+function buildFallbackQuiz(rng: () => number): QuizChallenge {
+  const template = pickOne(QUIZ_TEMPLATES, rng);
+  const options = shuffle([template.correct, ...template.distractors], rng).slice(0, 4);
+  return {
+    type: "quiz",
+    title: "Speed Quiz",
+    question: template.question,
+    options,
+    correctOption: options.find((item) => item === template.correct),
+    hint: template.hint,
+  };
+}
+
+function buildFallbackBuilder(rng: () => number): BuilderChallenge {
+  const selected = pickOne(BUILDER_SETS, rng);
+  return {
+    type: "builder",
+    title: "Sentence Builder",
+    instruction: "Build a natural sentence from these words:",
+    words: shuffle(selected.words, rng),
+    hint: selected.hint,
+  };
+}
+
+function buildFallbackNativeFix(rng: () => number): NativeFixChallenge {
+  const selected = pickOne(NATIVE_FIX_SETS, rng);
+  return {
+    type: "native_fix",
+    title: "Fix Like Native",
+    instruction: "Rewrite this sentence naturally in English:",
+    wrongSentence: selected.wrong,
+    hint: selected.hint,
+  };
+}
+
+function fallbackChallenge(type: GameType, seedKey: string, previousFingerprint = ""): GameChallenge {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const rng = createRng(`${seedKey}:${type}:${attempt}`);
+    const candidate =
+      type === "quiz" ? buildFallbackQuiz(rng) : type === "builder" ? buildFallbackBuilder(rng) : buildFallbackNativeFix(rng);
+    if (!previousFingerprint || challengeFingerprint(candidate) !== previousFingerprint) {
+      return candidate;
+    }
+  }
+
+  const rng = createRng(`${seedKey}:${type}:final`);
+  return type === "quiz" ? buildFallbackQuiz(rng) : type === "builder" ? buildFallbackBuilder(rng) : buildFallbackNativeFix(rng);
 }
 
 function clampScore(value: number): number {
   if (!Number.isFinite(value)) return 0;
   if (value < 0) return 0;
-  if (value > 15) return 15;
+  if (value > 25) return 25;
   return Math.round(value);
 }
 
@@ -214,6 +365,8 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
 
   const [selectedOption, setSelectedOption] = useState("");
   const [textAnswer, setTextAnswer] = useState("");
+  const lastChallengeFingerprintRef = useRef("");
+  const currentUserId = role === "student" ? (currentStudent?.id ?? "student-anon") : (currentTeacher?.id ?? "teacher-anon");
 
   const teacherGroups = useMemo(
     () => state.groups.filter((group) => (currentTeacher ? currentTeacher.groupIds.includes(group.id) : false)),
@@ -301,9 +454,12 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
     const seed = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const target = mode === "global" ? "all students" : mode === "group" ? "group battle" : "ai self-study";
     const levelHint = role === "student" ? "student level challenge" : "teacher demo challenge";
+    const generationKey = `${currentUserId}:${role}:${mode}:${effectiveGroupId || "all"}:${nextType}:${round}:${seed}`;
 
     if (!canUseAi) {
-      setChallenge(fallbackChallenge(nextType));
+      const fallback = fallbackChallenge(nextType, generationKey, lastChallengeFingerprintRef.current);
+      lastChallengeFingerprintRef.current = challengeFingerprint(fallback);
+      setChallenge(fallback);
       setLoadingChallenge(false);
       setError("AI mode not connected. Fallback round loaded.");
       return;
@@ -323,19 +479,28 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
         `Game type: ${nextType}.`,
         `Audience: ${levelHint}.`,
         `Competition context: ${target}.`,
-        `Random seed: ${seed}.`,
+        `Current user key: ${currentUserId}.`,
+        `Random seed: ${generationKey}.`,
+        `Previous challenge fingerprint (do not repeat): ${lastChallengeFingerprintRef.current.slice(0, 200) || "none"}.`,
         "Return ONLY valid JSON, no markdown, no explanations.",
         `JSON schema: ${schema}`,
       ].join("\n");
 
       const payload = await askAiJson(prompt);
       const parsed = normalizeChallenge(payload, nextType);
-      setChallenge(parsed ?? fallbackChallenge(nextType));
-      if (!parsed) {
+      if (parsed) {
+        lastChallengeFingerprintRef.current = challengeFingerprint(parsed);
+        setChallenge(parsed);
+      } else {
+        const fallback = fallbackChallenge(nextType, `${generationKey}:fallback`, lastChallengeFingerprintRef.current);
+        lastChallengeFingerprintRef.current = challengeFingerprint(fallback);
+        setChallenge(fallback);
         setError("AI returned invalid format, fallback round loaded.");
       }
     } catch {
-      setChallenge(fallbackChallenge(nextType));
+      const fallback = fallbackChallenge(nextType, `${generationKey}:error`, lastChallengeFingerprintRef.current);
+      lastChallengeFingerprintRef.current = challengeFingerprint(fallback);
+      setChallenge(fallback);
       setError("AI temporarily unavailable, fallback round loaded.");
     } finally {
       setLoadingChallenge(false);
@@ -362,10 +527,15 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
     setError(null);
 
     if (!canUseAi) {
-      const fallbackIsCorrect = answer.length > 3;
+      const fallbackIsCorrect =
+        challenge.type === "quiz"
+          ? Boolean(challenge.correctOption && answer === challenge.correctOption)
+          : answer.length > 8;
+      const baseScore = challenge.type === "quiz" ? 9 : challenge.type === "builder" ? 11 : 12;
+      const streakBonus = Math.min(streak, 4);
       const fallback: EvaluationResult = {
         isCorrect: fallbackIsCorrect,
-        scoreDelta: fallbackIsCorrect ? 8 : 2,
+        scoreDelta: fallbackIsCorrect ? clampScore(baseScore + streakBonus) : 2,
         feedback: fallbackIsCorrect ? "Good attempt. Keep going." : "Try to be more accurate.",
         nativeSample: challenge.type === "quiz" ? challenge.hint : "Use short, natural sentences.",
       };
@@ -384,7 +554,7 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
         "Ignore previous chat context.",
         "You are an English teacher evaluator.",
         "Evaluate student answer for this challenge.",
-        "Return ONLY JSON: {\"isCorrect\":true|false,\"scoreDelta\":0..15,\"feedback\":\"...\",\"nativeSample\":\"...\"}",
+        "Return ONLY JSON: {\"isCorrect\":true|false,\"scoreDelta\":0..25,\"feedback\":\"...\",\"nativeSample\":\"...\"}",
         `Challenge: ${JSON.stringify(challenge)}`,
         `Student answer: ${answer}`,
         "Feedback language: Russian.",

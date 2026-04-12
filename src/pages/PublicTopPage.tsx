@@ -60,6 +60,10 @@ export function PublicTopPage() {
               </p>
               <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{t("public.title")}</h1>
               <p className="max-w-2xl text-sm text-white/85 sm:text-base">{t("public.subtitle")}</p>
+              <p className="inline-flex w-fit items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white/95 sm:text-sm">
+                <Trophy className="h-4 w-4" />
+                {t("promo.top5WeeklyFree")}
+              </p>
               <p className="inline-flex items-start gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs text-white/90 sm:text-sm">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
                 {t("public.privacy")}

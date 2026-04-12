@@ -23,9 +23,9 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 const toneStyles: Record<ToastTone, string> = {
-  success: "border-burgundy-200 bg-burgundy-50 text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white",
-  error: "border-zinc-300 bg-white text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200",
-  info: "border-burgundy-200 bg-burgundy-50 text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white",
+  success: "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-100",
+  error: "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/45 dark:text-rose-100",
+  info: "border-burgundy-200 bg-burgundy-50 text-burgundy-900 dark:border-burgundy-800 dark:bg-burgundy-950/45 dark:text-burgundy-100",
 };
 
 function ToneIcon({ tone }: { tone: ToastTone }) {
@@ -47,7 +47,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
       const hasSameToast = prev.some((item) => item.message === message && item.tone === tone);
       if (hasSameToast) return prev;
       id = makeId("toast");
-      return [...prev, { id, message, tone }];
+      return [{ id, message, tone }];
     });
 
     if (!id) return;

@@ -35,11 +35,7 @@ export function LoginPage() {
       const text = t(result.messageKey, result.messageParams);
       showToast({ message: text, tone: result.ok ? "success" : "error" });
       if (result.ok) {
-        if (result.messageKey === "msg.loginTeacher") {
-          navigate("/teacher");
-        } else {
-          navigate("/student");
-        }
+        navigate("/", { replace: true });
       }
     } finally {
       setIsSubmitting(false);
@@ -97,6 +93,9 @@ export function LoginPage() {
             <CardHeader className="space-y-2">
               <CardTitle className="text-2xl font-bold sm:text-3xl">{t("auth.loginTitle")}</CardTitle>
               <CardDescription>{t("auth.loginSubtitle")}</CardDescription>
+              <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
+                {t("promo.top5WeeklyFree")}
+              </p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">

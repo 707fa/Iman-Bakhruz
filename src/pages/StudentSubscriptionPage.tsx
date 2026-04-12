@@ -15,10 +15,10 @@ import type { PaymentProvider, PaymentTransaction, SubscriptionState } from "../
 
 export function StudentSubscriptionPage() {
   const navigate = useNavigate();
-  const { state, refreshState } = useAppStore();
+  const { state, currentStudentAccess, refreshState, isApiMode } = useAppStore();
   const { t } = useUi();
   const { showToast } = useToast();
-  const token = getApiToken();
+  const token = isApiMode ? getApiToken() : null;
 
   const [loading, setLoading] = useState(false);
   const [subState, setSubState] = useState<SubscriptionState | undefined>(state.session?.isPaid === undefined ? undefined : {
@@ -29,7 +29,7 @@ export function StudentSubscriptionPage() {
   const [lastTx, setLastTx] = useState<PaymentTransaction | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!isApiMode || !token) return;
     let disposed = false;
 
     const load = async () => {
@@ -50,12 +50,18 @@ export function StudentSubscriptionPage() {
     return () => {
       disposed = true;
     };
-  }, [token]);
+  }, [isApiMode, token]);
 
-  const isPaid = subState?.isPaid ?? Boolean(state.session?.isPaid);
+  const isPaidBySubscription = subState?.isPaid ?? Boolean(state.session?.isPaid);
+  const isPaid = Boolean(currentStudentAccess?.hasFullAccess || isPaidBySubscription);
+  const isTop5Access = currentStudentAccess?.source === "top5";
+  const accessUntil = currentStudentAccess?.paidUntil ?? subState?.paidUntil ?? state.session?.paidUntil;
 
   async function handleCreatePayment(provider: PaymentProvider) {
-    if (!token) return;
+    if (!isApiMode || !token) {
+      showToast({ tone: "error", message: t("pay.providerUnavailable") });
+      return;
+    }
     setLoading(true);
     try {
       const response = await platformApi.createPayment(token, provider);
@@ -77,7 +83,7 @@ export function StudentSubscriptionPage() {
           return;
         }
         if (error.status === 401) {
-          showToast({ tone: "error", message: t("msg.loginInvalid") });
+          showToast({ tone: "error", message: t("msg.reloginRequired") });
           return;
         }
       }
@@ -88,7 +94,10 @@ export function StudentSubscriptionPage() {
   }
 
   async function handleRefreshStatus() {
-    if (!token) return;
+    if (!isApiMode || !token) {
+      showToast({ tone: "error", message: t("pay.providerUnavailable") });
+      return;
+    }
     setLoading(true);
     try {
       const response = await platformApi.getPaymentStatus(token);
@@ -104,7 +113,7 @@ export function StudentSubscriptionPage() {
       }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        showToast({ tone: "error", message: t("msg.loginInvalid") });
+        showToast({ tone: "error", message: t("msg.reloginRequired") });
         return;
       }
       showToast({ tone: "error", message: t("msg.serverUnavailable") });
@@ -129,7 +138,8 @@ export function StudentSubscriptionPage() {
                 <CheckCircle2 className="h-5 w-5" />
                 {t("pay.active")}
               </p>
-              {subState?.paidUntil ? <p className="mt-1 text-sm">{t("pay.until", { date: subState.paidUntil })}</p> : null}
+              {isTop5Access ? <p className="mt-1 text-sm">{t("promo.top5WeeklyFree")}</p> : null}
+              {accessUntil ? <p className="mt-1 text-sm">{t("pay.until", { date: accessUntil })}</p> : null}
               <div className="mt-3">
                 <Link to="/student/top">
                   <Button>{t("tabs.global")}</Button>

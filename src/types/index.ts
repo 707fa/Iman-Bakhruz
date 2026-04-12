@@ -218,3 +218,11 @@ export interface SubscriptionState {
   paidUntil?: string;
   required: boolean;
 }
+
+export type StudentAccessSource = "paid" | "top5" | "none";
+
+export interface StudentAccessState {
+  hasFullAccess: boolean;
+  source: StudentAccessSource;
+  paidUntil?: string;
+}

@@ -26,7 +26,7 @@ export const teachers: Teacher[] = [
     id: "t_2",
     fullName: "Фаррух Ахроров",
     phone: "+998978778177",
-    password: "alex2024",
+    password: "Alex2024",
     groupIds: ["g_104", "g_105", "g_106", "g_203", "g_204", "g_205"],
   },
   {
@@ -43,9 +43,11 @@ export const students: Student[] = [
     id: "s_1",
     fullName: "Фаррух Ахроров",
     phone: "+998978778177",
-    password: "alex2024m",
-    groupId: "g_101",
+    password: "Alex2024m",
+    groupId: "g_104",
     points: 0,
+    isPaid: true,
+    paidUntil: "2035-01-01T00:00:00+05:00",
   },
 ];
 

@@ -128,7 +128,7 @@ export function RegisterPage() {
         tone: result.ok ? "success" : "error",
       });
       if (result.ok) {
-        navigate("/student");
+        navigate("/", { replace: true });
       }
     } finally {
       setIsSubmitting(false);
@@ -155,6 +155,9 @@ export function RegisterPage() {
           </div>
           <CardTitle className="text-2xl font-bold sm:text-3xl">{t("auth.registerTitle")}</CardTitle>
           <CardDescription className="max-w-[38ch]">{t("auth.registerSubtitle")}</CardDescription>
+          <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
+            {t("promo.top5WeeklyFree")}
+          </p>
         </CardHeader>
         <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
           <form onSubmit={handleSubmit} className="grid gap-3.5 sm:grid-cols-2 sm:gap-4">
