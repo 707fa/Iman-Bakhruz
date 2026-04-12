@@ -28,16 +28,28 @@ function throwProviderHttpError({ provider, status, data, message }) {
   const msg = message || data?.error?.message || data?.message || `Provider ${provider} request failed`;
 
   const lower = String(msg || "").toLowerCase();
+  const quotaOrLimit =
+    lower.includes("quota") ||
+    lower.includes("rate limit") ||
+    lower.includes("resource exhausted") ||
+    lower.includes("too many requests");
   const unsupportedImage =
     status === 400 &&
     (lower.includes("image") || lower.includes("vision") || lower.includes("multimodal") || lower.includes("unsupported"));
+  const retryable = isRetryableHttpStatus(status);
+  const fallbackAllowed = unsupportedImage || quotaOrLimit || retryable;
+  const code = unsupportedImage
+    ? "PROVIDER_UNSUPPORTED_IMAGE"
+    : quotaOrLimit
+      ? "PROVIDER_QUOTA_EXCEEDED"
+      : "PROVIDER_HTTP_ERROR";
 
   throw new ProviderError(msg, {
     provider,
     statusCode: status || 502,
-    code: unsupportedImage ? "PROVIDER_UNSUPPORTED_IMAGE" : "PROVIDER_HTTP_ERROR",
-    retryable: isRetryableHttpStatus(status),
-    fallbackAllowed: unsupportedImage || isRetryableHttpStatus(status),
+    code,
+    retryable,
+    fallbackAllowed,
     details: {
       provider,
       status,

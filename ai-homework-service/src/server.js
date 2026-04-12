@@ -1,4 +1,4 @@
-﻿const http = require("http");
+const http = require("http");
 const app = require("./app");
 const { env, validateEnv } = require("./config/env");
 const { redis } = require("./config/redis");
@@ -9,9 +9,11 @@ async function bootstrap() {
 
   try {
     await redis.ping();
+    logger.info("bootstrap.redis_ok", {});
   } catch (error) {
-    logger.error("bootstrap.redis_failed", { message: error.message });
-    process.exit(1);
+    logger.warn("bootstrap.redis_unavailable_continue_with_local_fallback", {
+      message: error.message,
+    });
   }
 
   const server = http.createServer(app);
@@ -47,3 +49,4 @@ bootstrap().catch((error) => {
   });
   process.exit(1);
 });
+

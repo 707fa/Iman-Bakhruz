@@ -1,4 +1,4 @@
-﻿const { analyzeHomework } = require("../services/aiCheckService");
+const { analyzeHomework } = require("../services/aiCheckService");
 const { AppError } = require("../utils/errors");
 const { ok } = require("../utils/response");
 
@@ -7,7 +7,7 @@ function normalizeText(raw) {
   return text.length ? text : "";
 }
 
-async function checkHomework(req, res, next) {
+async function runAiCheck(req, res, next) {
   try {
     const text = normalizeText(req.body?.text);
     const imageBuffer = req.file?.buffer || null;
@@ -29,7 +29,7 @@ async function checkHomework(req, res, next) {
       {
         requestId: req.requestId,
         userKey: req.userIdentity?.key,
-      }
+      },
     );
 
     return ok(res, result);
@@ -38,6 +38,20 @@ async function checkHomework(req, res, next) {
   }
 }
 
+async function checkHomework(req, res, next) {
+  return runAiCheck(req, res, next);
+}
+
+async function chat(req, res, next) {
+  return runAiCheck(req, res, next);
+}
+
+async function homeworkCheck(req, res, next) {
+  return runAiCheck(req, res, next);
+}
+
 module.exports = {
   checkHomework,
+  chat,
+  homeworkCheck,
 };

@@ -16,21 +16,30 @@ function toCsv(value, fallback) {
     .filter(Boolean);
 }
 
+function toCsvRaw(value, fallback) {
+  const raw = (value || fallback || "").trim();
+  return raw
+    .split(",")
+    .map((item) => item.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+}
+
 const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: toNumber(process.env.PORT, 8080),
+  corsAllowedOrigins: toCsvRaw(process.env.CORS_ALLOWED_ORIGINS, "http://127.0.0.1:5188,http://localhost:5188"),
 
   redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
   redisPrefix: process.env.REDIS_PREFIX || "aihw",
 
   cacheTtlSeconds: toNumber(process.env.CACHE_TTL_SECONDS, 86400),
 
-  rateLimitPerMinute: toNumber(process.env.RATE_LIMIT_PER_MINUTE, 20),
-  rateLimitPerDay: toNumber(process.env.RATE_LIMIT_PER_DAY, 300),
+  rateLimitPerMinute: toNumber(process.env.RATE_LIMIT_PER_MINUTE, 8),
+  rateLimitPerDay: toNumber(process.env.RATE_LIMIT_PER_DAY, 220),
 
-  queueConcurrency: toNumber(process.env.QUEUE_CONCURRENCY, 3),
-  queueIntervalCap: toNumber(process.env.QUEUE_INTERVAL_CAP, 20),
-  queueIntervalMs: toNumber(process.env.QUEUE_INTERVAL_MS, 1000),
+  queueConcurrency: toNumber(process.env.QUEUE_CONCURRENCY, 1),
+  queueIntervalCap: toNumber(process.env.QUEUE_INTERVAL_CAP, 8),
+  queueIntervalMs: toNumber(process.env.QUEUE_INTERVAL_MS, 60000),
   queueTaskTimeoutMs: toNumber(process.env.QUEUE_TASK_TIMEOUT_MS, 60000),
 
   aiRequestTimeoutMs: toNumber(process.env.AI_REQUEST_TIMEOUT_MS, 30000),
