@@ -30,7 +30,19 @@ function normalizeOptionalText(value: string | undefined): string | null {
 function normalizeOptionalUrl(value: string | undefined): string | null {
   const normalized = value?.trim();
   if (!normalized) return null;
-  return normalized.replace(/\/+$/, "");
+  const cleaned = normalized.replace(/\/+$/, "");
+  const lower = cleaned.toLowerCase();
+
+  // Ignore common placeholder values to avoid broken runtime requests.
+  if (
+    lower.includes("your-ai-gateway-domain.com") ||
+    lower.includes("<your-gateway-domain>") ||
+    lower.includes("result-backend-abc123.onrender.com")
+  ) {
+    return null;
+  }
+
+  return cleaned;
 }
 
 function normalizeTimeout(value: string | undefined, fallbackMs: number): number {

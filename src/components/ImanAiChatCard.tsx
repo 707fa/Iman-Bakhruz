@@ -186,27 +186,51 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         setImageFile(null);
         setImagePreview(null);
 
-        const response = await aiGatewayCheckHomework({
-          text: trimmedText || undefined,
-          imageFile: selectedFile,
-          userId: sessionUserId,
-        });
+        try {
+          const response = await aiGatewayCheckHomework({
+            text: trimmedText || undefined,
+            imageFile: selectedFile,
+            userId: sessionUserId,
+          });
 
-        const providerTail =
-          response.provider && response.provider !== "cache"
-            ? `\n\n[${response.provider}${response.cached ? " | cache" : ""}]`
-            : response.cached
-              ? "\n\n[cache]"
-              : "";
+          const providerTail =
+            response.provider && response.provider !== "cache"
+              ? `\n\n[${response.provider}${response.cached ? " | cache" : ""}]`
+              : response.cached
+                ? "\n\n[cache]"
+                : "";
 
-        const assistantMessage: AiChatMessage = {
-          id: makeMessageId("a"),
-          role: "assistant",
-          text: `${response.result}${providerTail}`,
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-        return;
+          const assistantMessage: AiChatMessage = {
+            id: makeMessageId("a"),
+            role: "assistant",
+            text: `${response.result}${providerTail}`,
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+          return;
+        } catch (gatewayError) {
+          // Soft fallback: if gateway is unreachable, try existing backend AI route.
+          if (isApiMode && token) {
+            try {
+              const imageBase64 = selectedFile ? await fileToDataUrl(selectedFile) : undefined;
+              const updatedMessages = await platformApi.sendAiMessage(token, {
+                text: trimmedText || undefined,
+                imageBase64,
+              });
+              setMessages(updatedMessages);
+              setError("Gateway unavailable. Switched to backend AI.");
+              return;
+            } catch (fallbackError) {
+              if (isAuthError(fallbackError)) {
+                clearApiToken();
+                window.location.assign("/login");
+                return;
+              }
+            }
+          }
+
+          throw gatewayError;
+        }
       }
 
       const imageBase64 = selectedFile ? await fileToDataUrl(selectedFile) : undefined;
