@@ -95,11 +95,12 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gatewayDisabled, setGatewayDisabled] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const sessionUserId = state.session?.userId;
   const isApiMode = DATA_PROVIDER_MODE === "api";
-  const useGatewayMode = Boolean(AI_GATEWAY_URL);
+  const useGatewayMode = Boolean(AI_GATEWAY_URL) && !gatewayDisabled;
   const canUseApi = useGatewayMode || (isApiMode && Boolean(token));
   const localStorageKey = useMemo(
     () => `iman-ai-chat-v2:${sessionUserId ?? "guest"}`,
@@ -219,6 +220,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               });
               setMessages(updatedMessages);
               setError("Gateway unavailable. Switched to backend AI.");
+              setGatewayDisabled(true);
               return;
             } catch (fallbackError) {
               if (isAuthError(fallbackError)) {
@@ -226,6 +228,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 window.location.assign("/login");
                 return;
               }
+
+              setGatewayDisabled(true);
+              setError(`Gateway unavailable. Backend AI also failed (${API_BASE_URL}).`);
+              return;
             }
           }
 
