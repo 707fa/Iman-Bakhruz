@@ -33,6 +33,15 @@ function normalizeOptionalUrl(value: string | undefined): string | null {
   const cleaned = normalized.replace(/\/+$/, "");
   const lower = cleaned.toLowerCase();
 
+  const isLocalGateway = lower.startsWith("http://127.0.0.1") || lower.startsWith("http://localhost");
+  if (
+    isLocalGateway &&
+    typeof window !== "undefined" &&
+    (window.location.hostname.endsWith("vercel.app") || window.location.protocol === "https:")
+  ) {
+    return null;
+  }
+
   // Ignore common placeholder values to avoid broken runtime requests.
   if (
     lower.includes("your-ai-gateway-domain.com") ||

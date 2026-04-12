@@ -210,6 +210,8 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           setMessages((prev) => [...prev, assistantMessage]);
           return;
         } catch (gatewayError) {
+          setGatewayDisabled(true);
+
           // Soft fallback: if gateway is unreachable, try existing backend AI route.
           if (isApiMode && token) {
             try {
@@ -229,13 +231,18 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 return;
               }
 
-              setGatewayDisabled(true);
               setError(`Gateway unavailable. Backend AI also failed (${API_BASE_URL}).`);
               return;
             }
           }
 
-          throw gatewayError;
+          if (isApiMode && !token) {
+            setError("Gateway unavailable. Re-login in API mode to use backend AI.");
+            return;
+          }
+
+          setError(mapAiGatewayErrorToMessage(gatewayError));
+          return;
         }
       }
 
