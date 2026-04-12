@@ -717,7 +717,14 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         if (error instanceof ApiError) {
           // If backend says 401 or is temporarily unavailable,
           // allow local fallback for known demo/local accounts.
-          if (error.status === 401 || error.status >= 500 || error.status === 0 || error.status === 408) {
+          if (
+            error.status === 400 ||
+            error.status === 401 ||
+            error.status === 403 ||
+            error.status >= 500 ||
+            error.status === 0 ||
+            error.status === 408
+          ) {
             clearApiToken();
             const localFallback = loginMock(payload);
             if (localFallback.ok) {
@@ -725,7 +732,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             }
           }
 
-          if (error.status === 401) {
+          if (error.status === 400 || error.status === 401 || error.status === 403) {
             return { ok: false, messageKey: "msg.loginInvalid" };
           }
         }
