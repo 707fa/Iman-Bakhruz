@@ -715,12 +715,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         }
       } catch (error) {
         if (error instanceof ApiError) {
-          // If backend says 401 or is temporarily unavailable,
-          // allow local fallback for known demo/local accounts.
+          // Allow local fallback only when backend is temporarily unavailable.
+          // For auth errors (400/401/403), keep strict API login so token is always present.
           if (
-            error.status === 400 ||
-            error.status === 401 ||
-            error.status === 403 ||
             error.status >= 500 ||
             error.status === 0 ||
             error.status === 408
