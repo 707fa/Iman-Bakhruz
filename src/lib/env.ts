@@ -63,10 +63,18 @@ function normalizeTimeout(value: string | undefined, fallbackMs: number): number
   return intValue;
 }
 
+function normalizeBoolean(value: string | undefined, fallback: boolean): boolean {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on") return true;
+  if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off") return false;
+  return fallback;
+}
+
 export const DATA_PROVIDER_MODE: DataProviderMode = normalizeProvider(import.meta.env.VITE_DATA_PROVIDER, import.meta.env.VITE_API_URL);
 export const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL);
 export const API_REQUEST_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_API_TIMEOUT_MS, 65000);
-export const AI_GATEWAY_URL = normalizeOptionalUrl(import.meta.env.VITE_AI_GATEWAY_URL);
+export const AI_GATEWAY_ENABLED = normalizeBoolean(import.meta.env.VITE_AI_GATEWAY_ENABLED, false);
+export const AI_GATEWAY_URL = normalizeOptionalUrl(AI_GATEWAY_ENABLED ? import.meta.env.VITE_AI_GATEWAY_URL : undefined);
 export const AI_GATEWAY_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_AI_GATEWAY_TIMEOUT_MS, 90000);
 export const API_HINT_TEACHER_PHONE = normalizeOptionalText(import.meta.env.VITE_API_HINT_TEACHER_PHONE);
 export const API_HINT_TEACHER_PASSWORD = normalizeOptionalText(import.meta.env.VITE_API_HINT_TEACHER_PASSWORD);
