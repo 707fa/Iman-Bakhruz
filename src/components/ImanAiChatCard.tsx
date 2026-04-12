@@ -1,10 +1,12 @@
-﻿import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
+import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
-import { API_BASE_URL, DATA_PROVIDER_MODE } from "../lib/env";
+import { AI_GATEWAY_URL, API_BASE_URL, DATA_PROVIDER_MODE } from "../lib/env";
+import { useAppStore } from "../hooks/useAppStore";
 import { ApiError } from "../services/api/http";
 import { clearApiToken, getApiToken } from "../services/tokenStorage";
 import { platformApi } from "../services/api/platformApi";
+import { aiGatewayCheckHomework, mapAiGatewayErrorToMessage } from "../services/api/aiGatewayApi";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
@@ -36,23 +38,87 @@ function isAuthError(error: unknown): error is ApiError {
   return error instanceof ApiError && (error.status === 401 || error.status === 403);
 }
 
+function makeMessageId(prefix: "u" | "a"): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function readLocalMessages(storageKey: string): AiChatMessage[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(storageKey);
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+
+    const normalized: AiChatMessage[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== "object") continue;
+      const rec = item as Record<string, unknown>;
+      const role = rec.role === "assistant" ? "assistant" : rec.role === "user" ? "user" : null;
+      if (!role) continue;
+      const createdAt = typeof rec.createdAt === "string" ? rec.createdAt : "";
+      const text = typeof rec.text === "string" ? rec.text : "";
+      const imageUrl = typeof rec.imageUrl === "string" ? rec.imageUrl : undefined;
+      if (!text && !imageUrl) continue;
+
+      const next: AiChatMessage = {
+        id: typeof rec.id === "string" ? rec.id : makeMessageId(role === "assistant" ? "a" : "u"),
+        role,
+        text,
+        createdAt: createdAt || new Date().toISOString(),
+      };
+      if (imageUrl) {
+        next.imageUrl = imageUrl;
+      }
+      normalized.push(next);
+    }
+
+    return normalized.slice(-80);
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalMessages(storageKey: string, messages: AiChatMessage[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(storageKey, JSON.stringify(messages.slice(-80)));
+}
+
 export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) {
+  const { state } = useAppStore();
   const token = getApiToken();
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
   const [text, setText] = useState("");
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
+  const sessionUserId = state.session?.userId;
   const isApiMode = DATA_PROVIDER_MODE === "api";
-  const canUseApi = isApiMode && Boolean(token);
+  const useGatewayMode = Boolean(AI_GATEWAY_URL);
+  const canUseApi = useGatewayMode || (isApiMode && Boolean(token));
+  const localStorageKey = useMemo(
+    () => `iman-ai-chat-v2:${sessionUserId ?? "guest"}`,
+    [sessionUserId],
+  );
 
   useEffect(() => {
-    if (!canUseApi || !token) return;
-    let disposed = false;
+    if (!canUseApi) return;
 
+    if (useGatewayMode) {
+      setMessages(readLocalMessages(localStorageKey));
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    if (!token) return;
+
+    let disposed = false;
     const load = async () => {
       setLoading(true);
       setError(null);
@@ -78,7 +144,12 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     return () => {
       disposed = true;
     };
-  }, [canUseApi, token]);
+  }, [canUseApi, token, useGatewayMode, localStorageKey]);
+
+  useEffect(() => {
+    if (!useGatewayMode) return;
+    writeLocalMessages(localStorageKey, messages);
+  }, [useGatewayMode, localStorageKey, messages]);
 
   useEffect(() => {
     if (!listRef.current) return;
@@ -86,28 +157,74 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   }, [messages, loading, sending]);
 
   const canSend = useMemo(() => {
-    return Boolean((text || "").trim() || imageBase64);
-  }, [text, imageBase64]);
+    return Boolean((text || "").trim() || imageFile);
+  }, [text, imageFile]);
 
   async function handleSend() {
-    if (!token || !canSend || sending) return;
+    if (!canSend || sending) return;
+    if (!useGatewayMode && !token) return;
+
     setSending(true);
     setError(null);
+
+    const trimmedText = text.trim();
+    const selectedFile = imageFile;
+    const selectedPreview = imagePreview;
+
     try {
-      const updatedMessages = await platformApi.sendAiMessage(token, {
-        text: text.trim() || undefined,
-        imageBase64: imageBase64 || undefined,
+      if (useGatewayMode) {
+        const userMessage: AiChatMessage = {
+          id: makeMessageId("u"),
+          role: "user",
+          text: trimmedText || "Homework photo",
+          imageUrl: selectedPreview || undefined,
+          createdAt: new Date().toISOString(),
+        };
+
+        setMessages((prev) => [...prev, userMessage]);
+        setText("");
+        setImageFile(null);
+        setImagePreview(null);
+
+        const response = await aiGatewayCheckHomework({
+          text: trimmedText || undefined,
+          imageFile: selectedFile,
+          userId: sessionUserId,
+        });
+
+        const providerTail =
+          response.provider && response.provider !== "cache"
+            ? `\n\n[${response.provider}${response.cached ? " | cache" : ""}]`
+            : response.cached
+              ? "\n\n[cache]"
+              : "";
+
+        const assistantMessage: AiChatMessage = {
+          id: makeMessageId("a"),
+          role: "assistant",
+          text: `${response.result}${providerTail}`,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        return;
+      }
+
+      const imageBase64 = selectedFile ? await fileToDataUrl(selectedFile) : undefined;
+      const updatedMessages = await platformApi.sendAiMessage(token!, {
+        text: trimmedText || undefined,
+        imageBase64,
       });
       setMessages(updatedMessages);
       setText("");
-      setImageBase64(null);
+      setImageFile(null);
+      setImagePreview(null);
     } catch (error) {
       if (isAuthError(error)) {
         clearApiToken();
         window.location.assign("/login");
         return;
       }
-      setError(`Failed to get AI reply. Check backend/API (${API_BASE_URL}).`);
+      setError(useGatewayMode ? mapAiGatewayErrorToMessage(error) : `Failed to get AI reply. Check backend/API (${API_BASE_URL}).`);
     } finally {
       setSending(false);
     }
@@ -122,16 +239,22 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {!isApiMode ? (
+        {!isApiMode && !useGatewayMode ? (
           <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             AI chat is available only in API mode.
           </p>
-        ) : !token ? (
+        ) : !canUseApi ? (
           <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            Re-login in API mode to get a valid backend token. Backend should have `AI_PROVIDER=gemini` and `GEMINI_API_KEY`.
+            Re-login in API mode to get a valid backend token.
           </p>
         ) : (
           <>
+            {useGatewayMode ? (
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300">
+                Gateway mode: queue + cache + fallback active
+              </p>
+            ) : null}
+
             <div
               ref={listRef}
               className="h-80 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
@@ -184,9 +307,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               </p>
             ) : null}
 
-            {imageBase64 ? (
+            {imagePreview ? (
               <div className="rounded-2xl border border-burgundy-100 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-950">
-                <img src={imageBase64} alt="Selected homework" className="max-h-48 rounded-xl object-contain" />
+                <img src={imagePreview} alt="Selected homework" className="max-h-48 rounded-xl object-contain" />
               </div>
             ) : null}
 
@@ -214,7 +337,8 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                     void (async () => {
                       try {
                         const dataUrl = await fileToDataUrl(file);
-                        setImageBase64(dataUrl);
+                        setImageFile(file);
+                        setImagePreview(dataUrl);
                       } catch {
                         setError("Failed to read image.");
                       }
@@ -240,5 +364,3 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     </Card>
   );
 }
-
-
