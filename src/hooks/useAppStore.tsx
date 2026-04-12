@@ -416,7 +416,10 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     if (DATA_PROVIDER_MODE !== "api") return;
 
     const token = getApiToken();
-    if (!token) return;
+    if (!token) {
+      setState((prev) => (prev.session ? { ...prev, session: null } : prev));
+      return;
+    }
 
     let disposed = false;
 
@@ -432,7 +435,15 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
           return withRemoteState(prev, remote, restoredSession);
         });
-      } catch {
+      } catch (error) {
+        if (disposed) return;
+
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          clearApiToken();
+          setState((prev) => (prev.session ? { ...prev, session: null } : prev));
+          return;
+        }
+
         // Keep last local snapshot if backend is unavailable.
       }
     };
