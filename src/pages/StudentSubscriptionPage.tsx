@@ -1,4 +1,4 @@
-import { CheckCircle2, CreditCard, ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -11,7 +11,7 @@ import { useUi } from "../hooks/useUi";
 import { ApiError } from "../services/api/http";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
-import type { PaymentProvider, PaymentTransaction, SubscriptionState } from "../types";
+import type { PaymentTransaction, SubscriptionState } from "../types";
 
 export function StudentSubscriptionPage() {
   const navigate = useNavigate();
@@ -57,28 +57,25 @@ export function StudentSubscriptionPage() {
   const isTop5Access = currentStudentAccess?.source === "top5";
   const accessUntil = currentStudentAccess?.paidUntil ?? subState?.paidUntil ?? state.session?.paidUntil;
 
-  async function handleCreatePayment(provider: PaymentProvider) {
+  async function handleCreatePaymentRequest() {
     if (!isApiMode || !token) {
       showToast({ tone: "error", message: t("pay.providerUnavailable") });
       return;
     }
     setLoading(true);
     try {
-      const response = await platformApi.createPayment(token, provider);
+      const response = await platformApi.createPayment(token, "manual");
       setSubState(response.subscription);
       setLastTx(response.transaction);
 
       const url = response.transaction?.checkoutUrl;
-      if (!url) {
-        showToast({ tone: "error", message: t("pay.providerUnavailable") });
-        return;
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
       }
-
-      window.open(url, "_blank", "noopener,noreferrer");
-      showToast({ tone: "success", message: t("pay.redirected") });
+      showToast({ tone: "success", message: t("pay.manualRequested") });
     } catch (error) {
       if (error instanceof ApiError) {
-        if (error.status === 503) {
+        if (error.status === 503 || error.status === 402) {
           showToast({ tone: "error", message: t("pay.providerUnavailable") });
           return;
         }
@@ -150,19 +147,14 @@ export function StudentSubscriptionPage() {
             <div className="rounded-2xl border border-burgundy-200 bg-burgundy-50 p-4 dark:border-burgundy-900/40 dark:bg-burgundy-900/20">
               <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("pay.required")}</p>
               <p className="mt-1 text-sm text-charcoal/75 dark:text-zinc-300">{t("pay.freeHint")}</p>
+              <p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{t("pay.manualHint")}</p>
             </div>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button type="button" className="w-full" onClick={() => void handleCreatePayment("payme")} disabled={loading || isPaid}>
+          <div className="grid gap-3 sm:grid-cols-1">
+            <Button type="button" className="w-full" onClick={() => void handleCreatePaymentRequest()} disabled={loading || isPaid}>
               <CreditCard className="mr-2 h-4 w-4" />
-              Payme
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-            <Button type="button" variant="secondary" className="w-full" onClick={() => void handleCreatePayment("click")} disabled={loading || isPaid}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Click
-              <ExternalLink className="ml-2 h-4 w-4" />
+              {t("pay.requestAccess")}
             </Button>
           </div>
 

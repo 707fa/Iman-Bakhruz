@@ -1,4 +1,4 @@
-﻿import { BookOpenCheck, Bot, ClipboardList, Gamepad2, MessageCircle, Trophy, Users2, Wrench } from "lucide-react";
+﻿import { BookOpenCheck, ClipboardList, Gamepad2, Trophy, Users2, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TeacherSpotlightCard } from "../components/TeacherSpotlightCard";
@@ -58,7 +58,7 @@ export function TeacherDashboardPage() {
 
       <TeacherSpotlightCard teacherId={currentTeacher.id} />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className="h-full">
           <CardContent className="p-4 sm:p-5">
             <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("nav.teacherGroups")}</p>
@@ -95,26 +95,6 @@ export function TeacherDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="h-full">
-          <CardContent className="p-4 sm:p-5">
-            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
-              <Bot className="h-4 w-4 text-burgundy-700 dark:text-white" />
-              {t("ai.title")}
-            </p>
-            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("ai.subtitleTeacher")}</p>
-            <div className="mt-4 flex gap-2">
-              <Link to="/teacher/ai-chat" className="inline-block w-full">
-                <Button variant="secondary" size="sm" className="w-full">AI</Button>
-              </Link>
-              <Link to="/teacher/chat" className="inline-block w-full">
-                <Button variant="secondary" size="sm" className="w-full">
-                  <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                  Chat
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card className="h-full">
           <CardContent className="p-4 sm:p-5">
@@ -132,5 +112,6 @@ export function TeacherDashboardPage() {
     </div>
   );
 }
+
 
 

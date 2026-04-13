@@ -1,4 +1,4 @@
-import { Bot, CreditCard, Gamepad2, GraduationCap, LayoutDashboard, MessageCircle, Trophy, UsersRound } from "lucide-react";
+import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, MessageCircle, Trophy, UsersRound } from "lucide-react";
 import { useMemo } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
@@ -51,14 +51,8 @@ export function AppLayout() {
   };
 
   const chatNavMap: Record<"student" | "teacher", NavItem[]> = {
-    student: [
-      { label: t("nav.friendly"), href: "/student/chat", icon: MessageCircle },
-      { label: t("nav.aiChat"), href: "/student/ai-chat", icon: Bot },
-    ],
-    teacher: [
-      { label: t("nav.friendly"), href: "/teacher/chat", icon: MessageCircle },
-      { label: t("nav.aiChat"), href: "/teacher/ai-chat", icon: Bot },
-    ],
+    student: [{ label: t("nav.friendly"), href: "/student/chat", icon: MessageCircle }],
+    teacher: [{ label: t("nav.friendly"), href: "/teacher/chat", icon: MessageCircle }],
   };
 
   const gamesNavMap: Record<"student" | "teacher", NavItem[]> = {

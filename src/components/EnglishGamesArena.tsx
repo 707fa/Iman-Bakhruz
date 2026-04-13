@@ -432,7 +432,7 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
   }, [leaderboard, duelTargetId, mode]);
 
   const duelTarget = leaderboard.find((entry) => entry.id === duelTargetId && !entry.isMe) ?? null;
-  const aiHref = role === "student" ? "/student/ai-chat" : "/teacher/ai-chat";
+  const aiHref = role === "student" ? "/student/chat" : "/teacher/chat";
 
   async function askAiJson(prompt: string): Promise<Record<string, unknown> | null> {
     if (!token) return null;
@@ -795,7 +795,7 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
                 </div>
               )}
               <Link to={aiHref} className="inline-block">
-                <Button variant="secondary">Open Iman Chat</Button>
+                <Button variant="secondary">Open Iman Friendly</Button>
               </Link>
             </>
           ) : (

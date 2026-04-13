@@ -52,6 +52,18 @@ export interface UserProfilePayload {
   progress?: ProgressSnapshot;
 }
 
+export interface TeacherManualPaymentRequest {
+  transaction: PaymentTransaction;
+  student: {
+    id: string;
+    fullName: string;
+    phone: string;
+    groupId?: string;
+    groupTitle?: string;
+    groupTime?: string;
+  };
+}
+
 export interface ProgressResponse extends ProgressSnapshot {
   userId: string;
   role?: UserRole;
@@ -157,7 +169,9 @@ function normalizeSubscription(raw: unknown): SubscriptionState | undefined {
 function normalizePaymentTransaction(raw: unknown): PaymentTransaction | null {
   const item = asRecord(raw);
   if (!item) return null;
-  const provider = str(item.provider) === "click" ? "click" : "payme";
+  const providerRaw = str(item.provider);
+  const provider: PaymentTransaction["provider"] =
+    providerRaw === "click" ? "click" : providerRaw === "manual" ? "manual" : "payme";
   const statusRaw = str(item.status);
   const status: PaymentTransaction["status"] =
     statusRaw === "paid" || statusRaw === "failed" ? statusRaw : "pending";
@@ -170,6 +184,26 @@ function normalizePaymentTransaction(raw: unknown): PaymentTransaction | null {
     checkoutUrl: str(item.checkoutUrl ?? item.checkout_url) || undefined,
     createdAt: str(item.createdAt ?? item.created_at),
     paidAt: str(item.paidAt ?? item.paid_at) || undefined,
+  };
+}
+
+function normalizeTeacherManualPaymentRequest(raw: unknown): TeacherManualPaymentRequest | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const transaction = normalizePaymentTransaction(item.transaction);
+  const student = asRecord(item.student);
+  if (!transaction || !student) return null;
+
+  return {
+    transaction,
+    student: {
+      id: str(student.id),
+      fullName: str(student.fullName ?? student.full_name),
+      phone: str(student.phone),
+      groupId: str(student.groupId ?? student.group_id) || undefined,
+      groupTitle: str(student.groupTitle ?? student.group_title) || undefined,
+      groupTime: str(student.groupTime ?? student.group_time) || undefined,
+    },
   };
 }
 
@@ -517,6 +551,33 @@ export const platformApi = {
       subscription: normalizeSubscription(data.subscription),
       lastTransaction: normalizePaymentTransaction(data.lastTransaction ?? data.last_transaction),
     };
+  },
+
+  async getTeacherManualPaymentRequests(token: string) {
+    const response = await apiRequest<unknown>("/teacher/payments/manual-requests", {
+      method: "GET",
+      token,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.requests)
+      .map(normalizeTeacherManualPaymentRequest)
+      .filter((item): item is TeacherManualPaymentRequest => item !== null);
+  },
+
+  async approveTeacherManualPaymentRequest(token: string, transactionId: string, days?: number) {
+    return apiRequest<void>(`/teacher/payments/manual-requests/${transactionId}/approve`, {
+      method: "POST",
+      token,
+      body: days ? { days } : {},
+    });
+  },
+
+  async rejectTeacherManualPaymentRequest(token: string, transactionId: string) {
+    return apiRequest<void>(`/teacher/payments/manual-requests/${transactionId}/reject`, {
+      method: "POST",
+      token,
+      body: {},
+    });
   },
 
   applyScore(token: string, studentId: string, groupId: string, action: ScoreAction) {

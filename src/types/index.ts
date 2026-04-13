@@ -200,7 +200,7 @@ export interface HomeworkTask {
   mySubmission?: HomeworkSubmission;
 }
 
-export type PaymentProvider = "payme" | "click";
+export type PaymentProvider = "payme" | "click" | "manual";
 export type PaymentStatus = "pending" | "paid" | "failed";
 
 export interface PaymentTransaction {

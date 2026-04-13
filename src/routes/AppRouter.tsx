@@ -37,7 +37,6 @@ const TeacherStudentProfilePage = lazy(() =>
 const TeacherToolsPage = lazy(() => import("../pages/TeacherToolsPage").then((module) => ({ default: module.TeacherToolsPage })));
 const TeacherGamesPage = lazy(() => import("../pages/TeacherGamesPage").then((module) => ({ default: module.TeacherGamesPage })));
 const FriendlyChatPage = lazy(() => import("../pages/FriendlyChatPage").then((module) => ({ default: module.FriendlyChatPage })));
-const ImanAiChatPage = lazy(() => import("../pages/ImanAiChatPage").then((module) => ({ default: module.ImanAiChatPage })));
 
 function RootRedirect() {
   const { state } = useAppStore();
@@ -83,7 +82,7 @@ export function AppRouter() {
             <Route path="/student/subscription" element={<StudentSubscriptionPage />} />
             <Route path="/student/tools" element={<StudentToolsPage />} />
             <Route path="/student/chat" element={<FriendlyChatPage />} />
-            <Route path="/student/ai-chat" element={<ImanAiChatPage />} />
+            <Route path="/student/ai-chat" element={<Navigate to="/student/chat" replace />} />
             <Route path="/student/profile/:id" element={<StudentPublicProfilePage />} />
             <Route path="/profile" element={<StudentProfilePage />} />
           </Route>
@@ -98,7 +97,7 @@ export function AppRouter() {
             <Route path="/teacher/top" element={<TeacherTopPage />} />
             <Route path="/teacher/tools" element={<TeacherToolsPage />} />
             <Route path="/teacher/chat" element={<FriendlyChatPage />} />
-            <Route path="/teacher/ai-chat" element={<ImanAiChatPage />} />
+            <Route path="/teacher/ai-chat" element={<Navigate to="/teacher/chat" replace />} />
             <Route path="/teacher/group/:id" element={<TeacherGroupPage />} />
             <Route path="/teacher/student/:id" element={<TeacherStudentProfilePage />} />
             <Route path="/teacher/profile" element={<TeacherProfilePage />} />
