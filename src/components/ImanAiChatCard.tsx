@@ -298,13 +298,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {!isApiMode && !useGatewayMode ? (
+        {!canUseApi ? (
           <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            AI chat is available only in API mode.
-          </p>
-        ) : !canUseApi ? (
-          <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            Re-login in API mode to get a valid backend token.
+            AI chat is temporarily unavailable. Please log in again.
           </p>
         ) : (
           <>
