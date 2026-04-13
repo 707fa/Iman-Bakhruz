@@ -85,7 +85,14 @@ export function AppLayout() {
   const hasGameItems = gameItems.length > 0;
 
   const mobileQuickNav = useMemo<NavItem[]>(() => {
-    return [...navItems, ...(chatItems[0] ? [chatItems[0]] : [])].slice(0, 4);
+    const quick: NavItem[] = [...navItems];
+    if (chatItems[0]) {
+      quick.push(chatItems[0]);
+    }
+    if (chatItems[1]) {
+      quick.push(chatItems[1]);
+    }
+    return quick.slice(0, 5);
   }, [navItems, chatItems]);
 
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? "User";
@@ -213,7 +220,10 @@ export function AppLayout() {
       </div>
 
       <nav className="fixed inset-x-2 bottom-[max(0.4rem,env(safe-area-inset-bottom))] z-[65] rounded-2xl border border-burgundy-100 bg-white/95 p-1.5 shadow-lift backdrop-blur lg:hidden dark:border-zinc-800 dark:bg-zinc-950/95">
-        <div className="grid grid-cols-4 gap-1">
+        <div
+          className="grid gap-1"
+          style={{ gridTemplateColumns: `repeat(${Math.max(mobileQuickNav.length, 1)}, minmax(0, 1fr))` }}
+        >
           {mobileQuickNav.map((item) => {
             const active = isItemActive(location.pathname, item);
             return (
