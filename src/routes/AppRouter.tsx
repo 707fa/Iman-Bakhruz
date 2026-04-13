@@ -14,6 +14,9 @@ const StudentDashboardPage = lazy(() =>
 );
 const StudentGroupPage = lazy(() => import("../pages/StudentGroupPage").then((module) => ({ default: module.StudentGroupPage })));
 const StudentTopPage = lazy(() => import("../pages/StudentTopPage").then((module) => ({ default: module.StudentTopPage })));
+const StudentSpeakingPage = lazy(() =>
+  import("../pages/StudentSpeakingPage").then((module) => ({ default: module.StudentSpeakingPage })),
+);
 const StudentProfilePage = lazy(() => import("../pages/StudentProfilePage").then((module) => ({ default: module.StudentProfilePage })));
 const StudentSubscriptionPage = lazy(() =>
   import("../pages/StudentSubscriptionPage").then((module) => ({ default: module.StudentSubscriptionPage })),
@@ -80,6 +83,7 @@ export function AppRouter() {
             <Route path="/student/group" element={<StudentGroupPage />} />
             <Route path="/student/games" element={<StudentGamesPage />} />
             <Route path="/student/top" element={<StudentTopPage />} />
+            <Route path="/student/speaking" element={<StudentSpeakingPage />} />
             <Route path="/student/subscription" element={<StudentSubscriptionPage />} />
             <Route path="/student/tools" element={<StudentToolsPage />} />
             <Route path="/student/chat" element={<FriendlyChatPage />} />

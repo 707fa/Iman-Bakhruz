@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, Clock3, Trophy, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, Mic, Trophy, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TeacherSpotlightCard } from "../components/TeacherSpotlightCard";
@@ -75,7 +75,7 @@ export function StudentDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="h-full">
           <CardContent className="p-5">
             <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("tabs.group")}</p>
@@ -96,6 +96,22 @@ export function StudentDashboardPage() {
             <Link to="/student/top" className="mt-4 block">
               <Button variant="secondary" className="w-full justify-between">
                 {t("student.openTop")}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full">
+          <CardContent className="p-5">
+            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
+              <Mic className="h-4 w-4 text-burgundy-700 dark:text-white" />
+              {t("nav.speaking")}
+            </p>
+            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.subtitle")}</p>
+            <Link to="/student/speaking" className="mt-4 block">
+              <Button variant="secondary" className="w-full justify-between">
+                {t("speaking.openPractice")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

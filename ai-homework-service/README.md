@@ -14,11 +14,18 @@ Express gateway for AI requests with:
 - `POST /api/ai/chat`
 - `POST /api/ai/homework-check`
 - `POST /api/ai/check` (legacy alias)
+- `POST /api/ai/speaking/check`
 
 `POST` accepts `multipart/form-data`:
 - `text` (optional)
 - `image` (optional, jpeg/png/webp)
 - at least one of `text` or `image` is required
+
+`POST /api/ai/speaking/check` accepts `application/json`:
+- `question` (required)
+- `transcript` (required)
+- `level` (optional)
+- `language` (optional)
 
 Success response:
 

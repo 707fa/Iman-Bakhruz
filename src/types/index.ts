@@ -226,3 +226,38 @@ export interface StudentAccessState {
   source: StudentAccessSource;
   paidUntil?: string;
 }
+
+export interface SpeakingQuestion {
+  id: string;
+  prompt: string;
+  level: "beginner" | "elementary" | "pre-intermediate" | "intermediate";
+  topic: string;
+}
+
+export interface SpeakingMistake {
+  original: string;
+  corrected: string;
+  reason: string;
+}
+
+export interface SpeakingAnalysisResult {
+  score: number;
+  grammarScore: number;
+  fluencyScore: number;
+  vocabularyScore: number;
+  transcript: string;
+  correctedAnswer: string;
+  mistakes: SpeakingMistake[];
+  feedback: string;
+  modelAnswer: string;
+  levelEstimate: string;
+}
+
+export interface SpeakingAttemptHistoryItem {
+  id: string;
+  questionId: string;
+  question: string;
+  transcript: string;
+  score: number;
+  createdAt: string;
+}
