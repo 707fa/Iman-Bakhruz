@@ -4,11 +4,21 @@ function hasExplicitApiUrl(value: string | undefined): boolean {
   return Boolean(value?.trim());
 }
 
+function shouldPreferApiMode(apiUrlValue: string | undefined): boolean {
+  if (hasExplicitApiUrl(apiUrlValue)) return true;
+
+  if (typeof window !== "undefined" && window.location.hostname.endsWith("vercel.app")) {
+    return true;
+  }
+
+  return false;
+}
+
 function normalizeProvider(value: string | undefined, apiUrlValue: string | undefined): DataProviderMode {
   const normalized = value?.trim().toLowerCase();
   if (normalized === "api") return "api";
   if (normalized === "mock") return "mock";
-  return hasExplicitApiUrl(apiUrlValue) ? "api" : "mock";
+  return shouldPreferApiMode(apiUrlValue) ? "api" : "mock";
 }
 
 function normalizeApiUrl(value: string | undefined): string {

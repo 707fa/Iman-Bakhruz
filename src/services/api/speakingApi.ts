@@ -164,7 +164,11 @@ export async function checkSpeakingAnswer(payload: SpeakingCheckPayload): Promis
       try {
         return await sendRequest(baseUrl, path, { ...payload, question, transcript });
       } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
+        if (error instanceof ApiError && [0, 404, 408, 429, 500, 502, 503, 504].includes(error.status)) {
+          lastError = error;
+          continue;
+        }
+        if (error instanceof TypeError) {
           lastError = error;
           continue;
         }

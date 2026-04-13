@@ -118,12 +118,11 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [gatewayDisabled, setGatewayDisabled] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const sessionUserId = state.session?.userId;
   const isApiMode = DATA_PROVIDER_MODE === "api";
-  const useGatewayMode = Boolean(AI_GATEWAY_URL) && !gatewayDisabled;
+  const useGatewayMode = Boolean(AI_GATEWAY_URL);
   const canUseApi = useGatewayMode || (isApiMode && Boolean(token));
   const localStorageKey = useMemo(
     () => `iman-ai-chat-v2:${sessionUserId ?? "guest"}`,
@@ -233,8 +232,6 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           setMessages((prev) => [...prev, assistantMessage]);
           return;
         } catch (gatewayError) {
-          setGatewayDisabled(true);
-
           // Soft fallback: if gateway is unreachable, try existing backend AI route.
           if (isApiMode && token) {
             try {
@@ -245,7 +242,6 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               });
               setMessages(updatedMessages);
               setError("Gateway unavailable. Switched to backend AI.");
-              setGatewayDisabled(true);
               return;
             } catch (fallbackError) {
               if (isAuthError(fallbackError)) {
