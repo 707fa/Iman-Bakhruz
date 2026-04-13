@@ -114,9 +114,6 @@ async function sendRequest(baseUrl: string, path: string, payload: SpeakingCheck
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  if (userId) {
-    headers["x-user-id"] = userId;
-  }
 
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), AI_GATEWAY_TIMEOUT_MS);
