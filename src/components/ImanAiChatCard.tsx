@@ -38,6 +38,29 @@ function isAuthError(error: unknown): error is ApiError {
   return error instanceof ApiError && (error.status === 401 || error.status === 403);
 }
 
+function mapBackendAiErrorToMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    const payload = error.payload as Record<string, unknown> | undefined;
+    const code = typeof payload?.code === "string" ? payload.code : "";
+    const message = typeof payload?.message === "string" ? payload.message : "";
+    const raw = `${code} ${message}`.toUpperCase();
+
+    if (error.status === 402 || raw.includes("PAYMENT_REQUIRED")) {
+      return "AI access is paid for this account. Activate subscription or ask teacher to grant full access.";
+    }
+
+    if (error.status === 429) {
+      return "Too many AI requests. Please wait 1-2 minutes and try again.";
+    }
+
+    if (error.status >= 500 || error.status === 408 || error.status === 0) {
+      return `AI service is temporarily unavailable. Check backend/API (${API_BASE_URL}).`;
+    }
+  }
+
+  return `Failed to get AI reply. Check backend/API (${API_BASE_URL}).`;
+}
+
 function makeMessageId(prefix: "u" | "a"): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -133,7 +156,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             window.location.assign("/login");
             return;
           }
-          setError(`AI chat unavailable. Check backend/API (${API_BASE_URL}).`);
+          setError(mapBackendAiErrorToMessage(error));
           setMessages([]);
         }
       } finally {
@@ -230,8 +253,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 window.location.assign("/login");
                 return;
               }
-
-              setError(`Gateway unavailable. Backend AI also failed (${API_BASE_URL}).`);
+              setError(mapBackendAiErrorToMessage(fallbackError));
               return;
             }
           }
@@ -261,7 +283,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         window.location.assign("/login");
         return;
       }
-      setError(useGatewayMode ? mapAiGatewayErrorToMessage(error) : `Failed to get AI reply. Check backend/API (${API_BASE_URL}).`);
+      setError(useGatewayMode ? mapAiGatewayErrorToMessage(error) : mapBackendAiErrorToMessage(error));
     } finally {
       setSending(false);
     }
