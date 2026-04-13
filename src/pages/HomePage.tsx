@@ -53,7 +53,7 @@ export function HomePage() {
 
   const teacher = state.teachers[0];
   const displayPhone = teacher?.phone || DEFAULT_PHONE;
-  const teacherName = teacher?.fullName || "Iman Bekhruz";
+  const teacherName = "Iman Bekhruz";
   const dashboardHref = state.session ? roleHome(state.session.role) : "/login";
 
   useEffect(() => {
