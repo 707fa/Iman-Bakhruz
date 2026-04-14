@@ -1,4 +1,4 @@
-﻿import { ChevronLeft, Clock3, Crown, Loader2, Sparkles, UserX } from "lucide-react";
+﻿import { BookOpenCheck, ChevronLeft, Clock3, Crown, Loader2, Mic, Sparkles, UserX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -51,6 +51,15 @@ export function TeacherGroupPage() {
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, ReviewDraft>>({});
   const [savingSubmissionId, setSavingSubmissionId] = useState<string | null>(null);
+
+  const [speakingTasks, setSpeakingTasks] = useState<HomeworkTask[]>([]);
+  const [loadingSpeaking, setLoadingSpeaking] = useState(false);
+  const [creatingSpeaking, setCreatingSpeaking] = useState(false);
+  const [speakingTitle, setSpeakingTitle] = useState("");
+  const [speakingTopic, setSpeakingTopic] = useState("");
+  const [speakingQuestionsText, setSpeakingQuestionsText] = useState("");
+  const [speakingDueAt, setSpeakingDueAt] = useState("");
+
   const [groupTitleDraft, setGroupTitleDraft] = useState("");
   const [renamingGroup, setRenamingGroup] = useState(false);
   const [deletingStudentId, setDeletingStudentId] = useState<string | null>(null);
@@ -118,6 +127,39 @@ export function TeacherGroupPage() {
       disposed = true;
     };
   }, [hasAccess, canUseApi, token, group, selectedTaskId]);
+
+  useEffect(() => {
+    if (!hasAccess || !canUseApi || !token || !group) {
+      setSpeakingTasks([]);
+      return;
+    }
+
+    let disposed = false;
+
+    const loadSpeaking = async () => {
+      setLoadingSpeaking(true);
+      try {
+        const tasks = await platformApi.getTeacherSpeakingTasks(token, group.id);
+        if (!disposed) {
+          setSpeakingTasks(tasks);
+        }
+      } catch {
+        if (!disposed) {
+          setSpeakingTasks([]);
+        }
+      } finally {
+        if (!disposed) {
+          setLoadingSpeaking(false);
+        }
+      }
+    };
+
+    void loadSpeaking();
+
+    return () => {
+      disposed = true;
+    };
+  }, [hasAccess, canUseApi, token, group]);
 
   useEffect(() => {
     if (!selectedTaskId || !canUseApi || !token) {
@@ -188,6 +230,50 @@ export function TeacherGroupPage() {
       showToast({ tone: "error", message: t("msg.serverUnavailable") });
     } finally {
       setCreatingHomework(false);
+    }
+  }
+
+  async function handleCreateSpeakingTask() {
+    if (!group || !token) return;
+    const title = speakingTitle.trim();
+    if (title.length < 3) {
+      showToast({ tone: "error", message: "Название speaking-задания слишком короткое." });
+      return;
+    }
+
+    const rawQuestions = speakingQuestionsText
+      .split(/\r?\n|;/g)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const speakingQuestions = [...new Set(rawQuestions)].slice(0, 20);
+
+    if (speakingQuestions.length === 0) {
+      showToast({ tone: "error", message: "Добавьте минимум 1 speaking-вопрос." });
+      return;
+    }
+
+    setCreatingSpeaking(true);
+    try {
+      const task = await platformApi.createTeacherSpeakingTask(token, {
+        groupId: group.id,
+        title,
+        description: "",
+        speakingTopic: speakingTopic.trim() || title,
+        speakingLevel: group.title.toLowerCase(),
+        speakingQuestions,
+        dueAt: speakingDueAt ? new Date(speakingDueAt).toISOString() : undefined,
+      });
+
+      setSpeakingTasks((prev) => [task, ...prev]);
+      setSpeakingTitle("");
+      setSpeakingTopic("");
+      setSpeakingQuestionsText("");
+      setSpeakingDueAt("");
+      showToast({ tone: "success", message: "Speaking-задание создано." });
+    } catch {
+      showToast({ tone: "error", message: t("msg.serverUnavailable") });
+    } finally {
+      setCreatingSpeaking(false);
     }
   }
 
@@ -405,6 +491,100 @@ export function TeacherGroupPage() {
 
           <Card>
             <CardContent className="space-y-4 p-4 sm:p-5">
+              <h3 className="inline-flex items-center gap-2 text-lg font-semibold text-charcoal dark:text-zinc-100">
+                <Mic className="h-4 w-4 text-burgundy-700 dark:text-white" />
+                Speaking задания урока
+              </h3>
+
+              {!canUseApi ? (
+                <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                  Speaking задания доступны в API режиме.
+                </p>
+              ) : (
+                <>
+                  <div className="grid gap-3 rounded-2xl border border-burgundy-100 p-4 dark:border-zinc-700 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Название</label>
+                      <Input
+                        value={speakingTitle}
+                        onChange={(event) => setSpeakingTitle(event.target.value)}
+                        placeholder="Например: Speaking Task - Was/Were"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Тема урока</label>
+                      <Input
+                        value={speakingTopic}
+                        onChange={(event) => setSpeakingTopic(event.target.value)}
+                        placeholder="Например: Was/Were"
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Вопросы (каждый с новой строки)</label>
+                      <textarea
+                        value={speakingQuestionsText}
+                        onChange={(event) => setSpeakingQuestionsText(event.target.value)}
+                        rows={6}
+                        className="w-full resize-y rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-base text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-100 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-burgundy-700 dark:focus:ring-burgundy-900/40"
+                        placeholder={"1) What were you doing yesterday evening?\n2) Tell me about your last weekend."}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Дедлайн</label>
+                      <Input type="datetime-local" value={speakingDueAt} onChange={(event) => setSpeakingDueAt(event.target.value)} />
+                    </div>
+
+                    <div className="flex items-end">
+                      <Button onClick={() => void handleCreateSpeakingTask()} disabled={creatingSpeaking || speakingTitle.trim().length < 3}>
+                        {creatingSpeaking ? "Создаем..." : "Создать speaking"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {loadingSpeaking ? (
+                    <p className="text-sm text-charcoal/60 dark:text-zinc-400">Загрузка speaking заданий...</p>
+                  ) : speakingTasks.length === 0 ? (
+                    <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                      Speaking задания пока не созданы.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {speakingTasks.map((task) => (
+                        <div key={task.id} className="rounded-xl border border-burgundy-100 p-3 dark:border-zinc-700">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-semibold text-charcoal dark:text-zinc-100">{task.speakingTopic || task.title}</p>
+                            <Badge variant="soft">{(task.speakingQuestions ?? []).length} вопросов</Badge>
+                          </div>
+                          <p className="mt-1 text-xs text-charcoal/60 dark:text-zinc-400">
+                            {task.dueAt ? `дедлайн: ${new Date(task.dueAt).toLocaleString()}` : "без дедлайна"}
+                          </p>
+                          {task.speakingQuestions && task.speakingQuestions.length > 0 ? (
+                            <div className="mt-2 rounded-lg border border-burgundy-100 bg-white px-3 py-2 text-xs text-charcoal/80 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                              <p className="mb-1 inline-flex items-center gap-1 font-semibold">
+                                <BookOpenCheck className="h-3.5 w-3.5 text-burgundy-700 dark:text-white" />
+                                Вопросы:
+                              </p>
+                              <ul className="space-y-1">
+                                {task.speakingQuestions.slice(0, 3).map((question, index) => (
+                                  <li key={`${task.id}-${index}`}>• {question}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="space-y-4 p-4 sm:p-5">
               <h3 className="text-lg font-semibold text-charcoal dark:text-zinc-100">Домашние задания группы</h3>
 
               {!canUseApi ? (
@@ -559,6 +739,12 @@ export function TeacherGroupPage() {
     </div>
   );
 }
+
+
+
+
+
+
 
 
 

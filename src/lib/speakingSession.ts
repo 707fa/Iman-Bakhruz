@@ -54,6 +54,8 @@ function emptySnapshot(now = new Date()): SpeakingSessionSnapshot {
       weekKey: asWeekKey(now),
       questionIds: [],
       completedQuestionIds: [],
+      started: false,
+      promptShownWeekKey: undefined,
     },
   };
 }
@@ -133,6 +135,9 @@ function normalizeSnapshot(raw: unknown): SpeakingSessionSnapshot {
       weekKey: typeof weeklyRaw?.weekKey === "string" ? weeklyRaw.weekKey : fallback.weeklyExam.weekKey,
       questionIds: readArray<string>(weeklyRaw?.questionIds).filter((item) => typeof item === "string"),
       completedQuestionIds: readArray<string>(weeklyRaw?.completedQuestionIds).filter((item) => typeof item === "string"),
+      started: Boolean(weeklyRaw?.started),
+      promptShownWeekKey:
+        typeof weeklyRaw?.promptShownWeekKey === "string" ? weeklyRaw.promptShownWeekKey : undefined,
     },
   };
 }
@@ -157,6 +162,8 @@ function withCurrentPeriods(snapshot: SpeakingSessionSnapshot): SpeakingSessionS
           weekKey: currentWeek,
           questionIds: [],
           completedQuestionIds: [],
+          started: false,
+          promptShownWeekKey: undefined,
         };
 
   if (nextDaily === snapshot.daily && nextWeekly === snapshot.weeklyExam) return snapshot;
@@ -167,10 +174,17 @@ function withCurrentPeriods(snapshot: SpeakingSessionSnapshot): SpeakingSessionS
   };
 }
 
-function shuffle<T>(items: T[]): T[] {
+function seededShuffle<T>(items: T[], seedKey: string): T[] {
   const copy = [...items];
+  let seed = 0;
+  for (let index = 0; index < seedKey.length; index += 1) {
+    seed = (seed * 31 + seedKey.charCodeAt(index)) >>> 0;
+  }
+  if (seed === 0) seed = 123456789;
+
   for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const j = seed % (i + 1);
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
@@ -216,11 +230,15 @@ export function ensureWeeklyQuestionSet(
   snapshot: SpeakingSessionSnapshot,
   levelQuestions: SpeakingQuestion[],
   target = WEEKLY_TARGET_DEFAULT,
+  seedKey = "default",
 ): SpeakingSessionSnapshot {
   const normalized = withCurrentPeriods(snapshot);
   if (normalized.weeklyExam.questionIds.length >= target) return normalized;
 
-  const picked = shuffle(levelQuestions).slice(0, Math.min(target, levelQuestions.length)).map((item) => item.id);
+  const baseSeed = `${normalized.weeklyExam.weekKey}:${seedKey}:${levelQuestions.length}`;
+  const picked = seededShuffle(levelQuestions, baseSeed)
+    .slice(0, Math.min(target, levelQuestions.length))
+    .map((item) => item.id);
   return {
     ...normalized,
     weeklyExam: {
@@ -384,6 +402,20 @@ export function resetWeeklyExam(snapshot: SpeakingSessionSnapshot): SpeakingSess
       ...normalized.weeklyExam,
       questionIds: [],
       completedQuestionIds: [],
+      started: false,
+      promptShownWeekKey: undefined,
+    },
+  };
+}
+
+export function markWeeklyExamStarted(snapshot: SpeakingSessionSnapshot): SpeakingSessionSnapshot {
+  const normalized = withCurrentPeriods(snapshot);
+  return {
+    ...normalized,
+    weeklyExam: {
+      ...normalized.weeklyExam,
+      started: true,
+      promptShownWeekKey: normalized.weeklyExam.weekKey,
     },
   };
 }

@@ -192,8 +192,12 @@ export interface HomeworkTask {
   teacherName: string;
   groupId: string;
   groupTitle: string;
+  taskType?: "homework" | "speaking";
   title: string;
   description: string;
+  speakingTopic?: string;
+  speakingLevel?: string;
+  speakingQuestions?: string[];
   dueAt?: string;
   isActive: boolean;
   createdAt: string;
@@ -293,6 +297,8 @@ export interface SpeakingWeeklyExamProgress {
   weekKey: string;
   questionIds: string[];
   completedQuestionIds: string[];
+  started?: boolean;
+  promptShownWeekKey?: string;
 }
 
 export interface SpeakingSessionSnapshot {

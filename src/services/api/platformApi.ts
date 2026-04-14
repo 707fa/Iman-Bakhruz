@@ -457,14 +457,23 @@ function normalizeHomeworkTask(raw: unknown): HomeworkTask | null {
   const item = asRecord(raw);
   if (!item) return null;
   const mySubmission = normalizeHomeworkSubmission(item.mySubmission ?? item.my_submission);
+  const taskTypeRaw = str(item.taskType ?? item.task_type);
+  const taskType: HomeworkTask["taskType"] = taskTypeRaw === "speaking" ? "speaking" : "homework";
+  const speakingQuestions = readArray<unknown>(item.speakingQuestions ?? item.speaking_questions)
+    .map((entry) => str(entry))
+    .filter(Boolean);
   return {
     id: str(item.id),
     teacherId: str(item.teacherId ?? item.teacher_id),
     teacherName: str(item.teacherName ?? item.teacher_name),
     groupId: str(item.groupId ?? item.group_id),
     groupTitle: str(item.groupTitle ?? item.group_title),
+    taskType,
     title: str(item.title),
     description: str(item.description),
+    speakingTopic: str(item.speakingTopic ?? item.speaking_topic) || undefined,
+    speakingLevel: str(item.speakingLevel ?? item.speaking_level) || undefined,
+    speakingQuestions,
     dueAt: str(item.dueAt ?? item.due_at) || undefined,
     isActive: item.isActive !== undefined ? Boolean(item.isActive) : Boolean(item.is_active),
     createdAt: str(item.createdAt ?? item.created_at),
@@ -861,6 +870,51 @@ export const platformApi = {
     return task;
   },
 
+  async getTeacherSpeakingTasks(token: string, groupId?: string) {
+    const query = groupId ? `?group_id=${encodeURIComponent(groupId)}` : "";
+    const response = await apiRequest<unknown>(`/teacher/speaking/tasks${query}`, {
+      method: "GET",
+      token,
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.tasks ?? data)
+      .map(normalizeHomeworkTask)
+      .filter((item): item is HomeworkTask => item !== null);
+  },
+
+  async createTeacherSpeakingTask(
+    token: string,
+    payload: {
+      groupId: string;
+      title: string;
+      description?: string;
+      speakingTopic?: string;
+      speakingLevel?: string;
+      speakingQuestions: string[];
+      dueAt?: string;
+    },
+  ) {
+    const response = await apiRequest<unknown>("/teacher/speaking/tasks", {
+      method: "POST",
+      token,
+      body: {
+        group_id: Number(payload.groupId),
+        title: payload.title,
+        description: payload.description ?? "",
+        speaking_topic: payload.speakingTopic ?? payload.title,
+        speaking_level: payload.speakingLevel ?? "",
+        speaking_questions: payload.speakingQuestions,
+        due_at: payload.dueAt,
+      },
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    const task = normalizeHomeworkTask(data?.task ?? data);
+    if (!task) throw new Error("Invalid speaking task response");
+    return task;
+  },
+
   async getTeacherHomeworkSubmissions(token: string, taskId: string) {
     const response = await apiRequest<unknown>(`/teacher/homework/tasks/${taskId}/submissions`, {
       method: "GET",
@@ -899,6 +953,18 @@ export const platformApi = {
 
   async getStudentHomeworkTasks(token: string) {
     const response = await apiRequest<unknown>("/student/homework/tasks", {
+      method: "GET",
+      token,
+      timeoutMs: 30000,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.tasks ?? data)
+      .map(normalizeHomeworkTask)
+      .filter((item): item is HomeworkTask => item !== null);
+  },
+
+  async getStudentSpeakingTasks(token: string) {
+    const response = await apiRequest<unknown>("/student/speaking/tasks", {
       method: "GET",
       token,
       timeoutMs: 30000,

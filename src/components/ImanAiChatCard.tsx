@@ -36,6 +36,19 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function fileFromClipboardItem(item: DataTransferItem): File | null {
+  const blob = item.getAsFile();
+  if (!blob) return null;
+  const extension = blob.type.includes("png")
+    ? "png"
+    : blob.type.includes("webp")
+      ? "webp"
+      : blob.type.includes("jpeg") || blob.type.includes("jpg")
+        ? "jpg"
+        : "png";
+  return new File([blob], `clipboard-${Date.now()}.${extension}`, { type: blob.type || "image/png" });
+}
+
 function isAuthError(error: unknown): error is ApiError {
   return error instanceof ApiError && (error.status === 401 || error.status === 403);
 }
@@ -190,6 +203,37 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     if (!listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, loading, sending]);
+
+  async function applySelectedImage(file: File) {
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setImageFile(file);
+      setImagePreview(dataUrl);
+      setError(null);
+    } catch {
+      setError("Failed to read image.");
+    }
+  }
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items || items.length === 0) return;
+      const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
+      if (!imageItem) return;
+
+      const file = fileFromClipboardItem(imageItem);
+      if (!file) return;
+
+      event.preventDefault();
+      void applySelectedImage(file);
+    };
+
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("paste", onPaste);
+    };
+  }, []);
 
   const canSend = useMemo(() => {
     return Boolean((text || "").trim() || imageFile);
@@ -410,15 +454,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;
-                    void (async () => {
-                      try {
-                        const dataUrl = await fileToDataUrl(file);
-                        setImageFile(file);
-                        setImagePreview(dataUrl);
-                      } catch {
-                        setError("Failed to read image.");
-                      }
-                    })();
+                    void applySelectedImage(file);
                   }}
                 />
                 <Button asChild variant="secondary" type="button">
