@@ -1,422 +1,599 @@
-import { AlertCircle, ArrowRight, Loader2, Mic, RotateCcw, Square, Volume2, WandSparkles } from "lucide-react";
+import { Bell, Brain, CheckCircle2, CircleAlert, Clock3, Languages, Mic, RefreshCw, Sparkles, Volume2, Wand2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
-import { SkillScoreCard } from "../components/speaking/SkillScoreCard";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import {
-  getSpeakingQuestionsForLevel,
-  normalizeSpeakingLevelFromGroupTitle,
-} from "../data/speakingQuestions";
 import { useAppStore } from "../hooks/useAppStore";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useUi } from "../hooks/useUi";
+import { getSpeakingQuestionsForLevel } from "../data/speakingQuestions";
+import {
+  appendSpeakingAttempt,
+  chooseNextDailyQuestion,
+  ensureWeeklyQuestionSet,
+  getDailyRemainingCount,
+  getWeakMistakes,
+  getWeeklyCurrentQuestion,
+  getWeeklyRemainingCount,
+  markReminderShown,
+  readSpeakingSnapshot,
+  resetWeeklyExam,
+  writeSpeakingSnapshot,
+} from "../lib/speakingSession";
+import { normalizeStudentLevelFromGroupTitle, resolveAiFeedbackLanguage } from "../lib/studentLevel";
+import type { SpeakingAnalysisResult, SpeakingQuestion, SpeakingSessionSnapshot } from "../types";
 import { checkSpeakingAnswer, mapSpeakingApiErrorToMessage } from "../services/api/speakingApi";
-import type { SpeakingAnalysisResult, SpeakingAttemptHistoryItem } from "../types";
 
+type SpeakingMode = "daily" | "weekly_exam";
 type SpeakingStatus = "idle" | "listening" | "processing" | "success" | "error";
 
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const secs = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, "0");
-  return `${mins}:${secs}`;
+const DAILY_TARGET = 20;
+const WEEKLY_TARGET = 10;
+const MIN_WORDS = 4;
+const MIN_SECONDS = 3;
+
+function wordsCount(text: string): number {
+  return text
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean).length;
 }
 
-function formatDateTime(value: string, locale: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale === "uz" ? "uz-UZ" : locale === "en" ? "en-US" : "ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit",
-    day: "2-digit",
-    month: "short",
-  });
+function toClock(seconds: number): string {
+  const safe = Math.max(0, Math.floor(seconds));
+  const mm = String(Math.floor(safe / 60)).padStart(2, "0");
+  const ss = String(safe % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
 }
 
-function getLevelBadge(level: string): string {
-  if (level === "beginner") return "Beginner";
-  if (level === "elementary") return "Elementary";
-  if (level === "pre-intermediate") return "Pre-Intermediate";
-  if (level === "intermediate") return "Intermediate";
-  return level;
+function averageScore(items: number[]): number {
+  if (items.length === 0) return 0;
+  const total = items.reduce((acc, value) => acc + value, 0);
+  return Math.round(total / items.length);
 }
 
 export function StudentSpeakingPage() {
+  const { state, currentStudent } = useAppStore();
   const { t, locale } = useUi();
-  const { state } = useAppStore();
-  const currentStudent = state.session?.role === "student" ? state.students.find((student) => student.id === state.session?.userId) : null;
-  const currentGroup = currentStudent ? state.groups.find((group) => group.id === currentStudent.groupId) : null;
-  const studentLevel = normalizeSpeakingLevelFromGroupTitle(currentGroup?.title);
-  const questions = useMemo(() => getSpeakingQuestionsForLevel(studentLevel), [studentLevel]);
-  const sessionUserId = state.session?.userId ?? "guest";
-  const storageKey = `result-speaking-history-v1:${sessionUserId}`;
 
-  const [questionIndex, setQuestionIndex] = useState(0);
+  const userId = currentStudent?.id ?? "";
+  const currentGroup = currentStudent ? state.groups.find((item) => item.id === currentStudent.groupId) : null;
+  const level = normalizeStudentLevelFromGroupTitle(currentGroup?.title);
+  const language = resolveAiFeedbackLanguage(level, locale);
+  const levelQuestions = useMemo(() => getSpeakingQuestionsForLevel(level), [level]);
+
+  const [snapshot, setSnapshot] = useState<SpeakingSessionSnapshot>(() =>
+    userId ? readSpeakingSnapshot(userId) : readSpeakingSnapshot("guest"),
+  );
+  const [mode, setMode] = useState<SpeakingMode>("daily");
+  const [question, setQuestion] = useState<SpeakingQuestion | null>(null);
   const [status, setStatus] = useState<SpeakingStatus>("idle");
+  const [result, setResult] = useState<SpeakingAnalysisResult | null>(null);
+  const [manualTranscript, setManualTranscript] = useState("");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [transcriptDraft, setTranscriptDraft] = useState("");
-  const [analysis, setAnalysis] = useState<SpeakingAnalysisResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [attempts, setAttempts] = useState<SpeakingAttemptHistoryItem[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notificationEnabled, setNotificationEnabled] = useState<boolean>(
+    typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted",
+  );
 
-  const { supported, listening, transcript, interimTranscript, error: speechError, start, stop, reset } = useSpeechRecognition({
-    lang: "en-US",
-  });
-
-  const fallbackQuestion = getSpeakingQuestionsForLevel("beginner")[0]!;
-  const question = questions[questionIndex] ?? questions[0] ?? fallbackQuestion;
-  const canSpeakQuestion = typeof window !== "undefined" && "speechSynthesis" in window;
-  const finalTranscript = transcript.trim();
-  const liveTranscript = useMemo(() => `${finalTranscript} ${interimTranscript}`.trim(), [finalTranscript, interimTranscript]);
-  const hasTranscript = transcriptDraft.trim().length > 0;
-  const statusLabelMap: Record<SpeakingStatus, string> = {
-    idle: t("speaking.status.idle"),
-    listening: t("speaking.status.listening"),
-    processing: t("speaking.status.processing"),
-    success: t("speaking.status.success"),
-    error: t("speaking.status.error"),
-  };
+  const speech = useSpeechRecognition({ lang: "en-US" });
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem(storageKey);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as SpeakingAttemptHistoryItem[];
-      if (Array.isArray(parsed)) {
-        setAttempts(parsed.slice(0, 12));
+    const key = userId || "guest";
+    const current = readSpeakingSnapshot(key);
+    const withWeekly = ensureWeeklyQuestionSet(current, levelQuestions, WEEKLY_TARGET);
+    setSnapshot(withWeekly);
+    setResult(null);
+    setErrorMessage(null);
+  }, [userId, levelQuestions]);
+
+  useEffect(() => {
+    if (!userId) return;
+    writeSpeakingSnapshot(userId, snapshot);
+  }, [snapshot, userId]);
+
+  useEffect(() => {
+    const fallbackQuestion = levelQuestions[0] ?? null;
+    if (mode === "weekly_exam") {
+      const withWeekly = ensureWeeklyQuestionSet(snapshot, levelQuestions, WEEKLY_TARGET);
+      if (withWeekly !== snapshot) {
+        setSnapshot(withWeekly);
       }
-    } catch {
-      // ignore invalid cache
+      const weeklyQuestion = getWeeklyCurrentQuestion(levelQuestions, withWeekly);
+      setQuestion(weeklyQuestion ?? fallbackQuestion);
+      return;
     }
-  }, [storageKey]);
+
+    const nextQuestion = chooseNextDailyQuestion(levelQuestions, snapshot);
+    setQuestion(nextQuestion ?? fallbackQuestion);
+  }, [mode, snapshot, levelQuestions]);
+
+  useEffect(() => {
+    if (!speech.listening) return;
+    const timer = window.setInterval(() => {
+      setRecordingSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [speech.listening]);
+
+  useEffect(() => {
+    if (!speech.transcript) return;
+    setManualTranscript(speech.transcript);
+  }, [speech.transcript]);
+
+  useEffect(() => {
+    if (speech.listening) {
+      setStatus("listening");
+    } else if (status === "listening") {
+      setStatus("idle");
+    }
+  }, [speech.listening, status]);
+
+  useEffect(() => {
+    if (!speech.error) return;
+    setStatus("error");
+    if (speech.error.toLowerCase().includes("permission denied")) {
+      setErrorMessage(t("speaking.error.microphoneDenied"));
+      return;
+    }
+    setErrorMessage(speech.error);
+  }, [speech.error, t]);
+
+  const dailyRemaining = getDailyRemainingCount(snapshot, DAILY_TARGET);
+  const weeklyRemaining = getWeeklyRemainingCount(snapshot, WEEKLY_TARGET);
+  const latestAttempts = snapshot.attempts.slice(0, 6);
+  const recentAverage = averageScore(latestAttempts.map((item) => item.score));
+  const weakMistakes = getWeakMistakes(snapshot, level, 10);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(storageKey, JSON.stringify(attempts.slice(0, 12)));
-  }, [attempts, storageKey]);
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    if (snapshot.daily.reminderShownDateKey === snapshot.daily.dateKey) return;
+    if (dailyRemaining <= 0) return;
+    if (dailyRemaining > 7) return;
 
-  useEffect(() => {
-    if (!listening) return;
-    const id = window.setInterval(() => setRecordingSeconds((value) => value + 1), 1000);
-    return () => window.clearInterval(id);
-  }, [listening]);
-
-  useEffect(() => {
-    if (!liveTranscript) return;
-    if (listening || !transcriptDraft.trim()) {
-      setTranscriptDraft(liveTranscript);
+    try {
+      new Notification("Iman Speaking Reminder", {
+        body: `Today you still have ${dailyRemaining} of ${DAILY_TARGET} speaking tasks left.`,
+      });
+      setSnapshot((prev) => markReminderShown(prev));
+    } catch {
+      // Browser may block notifications in some contexts.
     }
-  }, [listening, liveTranscript, transcriptDraft]);
+  }, [dailyRemaining, snapshot.daily.dateKey, snapshot.daily.reminderShownDateKey]);
 
-  useEffect(() => {
-    if (!speechError) return;
-    const normalizedError = speechError.toLowerCase();
-    setStatus("error");
-    if (normalizedError.includes("permission") || normalizedError.includes("not-allowed")) {
-      setError(t("speaking.error.microphoneDenied"));
+  function askNotificationPermission() {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    void Notification.requestPermission().then((permission) => {
+      const granted = permission === "granted";
+      setNotificationEnabled(granted);
+      if (!granted) {
+        setErrorMessage("Notifications were not enabled. You can still use in-app reminder banner.");
+      }
+    });
+  }
+
+  function listenQuestion() {
+    if (!question) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setErrorMessage(t("speaking.listenUnavailable"));
       return;
     }
-    if (normalizedError.includes("not supported") || normalizedError.includes("unavailable") || normalizedError.includes("https")) {
-      setError(t("speaking.error.unavailable"));
-      return;
-    }
-    if (normalizedError.includes("no speech")) {
-      setError(t("speaking.error.emptyTranscript"));
-      return;
-    }
-    setError(speechError);
-  }, [speechError, t]);
-
-  useEffect(() => {
-    setQuestionIndex(0);
-  }, [studentLevel]);
-
-  function handleListenQuestion() {
-    if (!canSpeakQuestion || typeof window === "undefined") return;
     const utterance = new SpeechSynthesisUtterance(question.prompt);
     utterance.lang = "en-US";
-    utterance.rate = 0.92;
-    utterance.pitch = 1;
+    utterance.rate = 0.95;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   }
 
-  function resetAttemptState() {
+  function startRecording() {
+    setErrorMessage(null);
     setStatus("idle");
-    setError(null);
-    setAnalysis(null);
     setRecordingSeconds(0);
-    setTranscriptDraft("");
-    reset();
-  }
+    setResult(null);
+    speech.reset();
+    setManualTranscript("");
 
-  function handleStartRecording() {
-    setError(null);
-    setAnalysis(null);
-    setRecordingSeconds(0);
-    reset();
-    setTranscriptDraft("");
-    const ok = start();
-    if (ok) {
-      setStatus("listening");
-    } else {
+    if (!speech.supported) {
       setStatus("error");
-      if (!supported) {
-        setError(t("speaking.error.unavailable"));
-      }
+      setErrorMessage(t("speaking.error.unavailable"));
+      return;
     }
-  }
-
-  function handleStopRecording() {
-    stop();
-    setStatus("idle");
-  }
-
-  async function handleAnalyze() {
-    const text = transcriptDraft.trim();
-    if (!text) {
+    const started = speech.start();
+    if (!started) {
       setStatus("error");
-      setError(t("speaking.error.emptyTranscript"));
+      return;
+    }
+    setStatus("listening");
+  }
+
+  function stopRecording() {
+    speech.stop();
+  }
+
+  function resetAttempt(keepQuestion = true) {
+    speech.reset();
+    setStatus("idle");
+    setErrorMessage(null);
+    setResult(null);
+    setRecordingSeconds(0);
+    if (!keepQuestion) {
+      setQuestion(null);
+    }
+    setManualTranscript("");
+  }
+
+  function moveToNextQuestion() {
+    setErrorMessage(null);
+    setResult(null);
+    setRecordingSeconds(0);
+    speech.reset();
+    setManualTranscript("");
+
+    if (mode === "weekly_exam") {
+      const current = ensureWeeklyQuestionSet(snapshot, levelQuestions, WEEKLY_TARGET);
+      const nextWeeklyQuestion = getWeeklyCurrentQuestion(levelQuestions, current);
+      if (!nextWeeklyQuestion) {
+        setMode("daily");
+        return;
+      }
+      setQuestion(nextWeeklyQuestion);
+      return;
+    }
+
+    const nextDailyQuestion = chooseNextDailyQuestion(levelQuestions, snapshot);
+    setQuestion(nextDailyQuestion ?? levelQuestions[0] ?? null);
+  }
+
+  async function analyzeAnswer() {
+    if (!question) return;
+    if (status === "processing") return;
+
+    const transcript = manualTranscript.trim();
+    if (!transcript) {
+      setStatus("error");
+      setErrorMessage(t("speaking.error.emptyTranscript"));
+      return;
+    }
+
+    if (wordsCount(transcript) < MIN_WORDS) {
+      setStatus("error");
+      setErrorMessage(`Minimum ${MIN_WORDS} words required.`);
+      return;
+    }
+
+    if (recordingSeconds < MIN_SECONDS) {
+      setStatus("error");
+      setErrorMessage(`Record at least ${MIN_SECONDS} seconds to submit answer.`);
       return;
     }
 
     setStatus("processing");
-    setError(null);
+    setErrorMessage(null);
 
     try {
-      const result = await checkSpeakingAnswer({
+      const analysis = await checkSpeakingAnswer({
         question: question.prompt,
-        transcript: text,
-        level: studentLevel,
-        language: locale,
-        userId: state.session?.userId,
+        transcript,
+        level,
+        language,
+        groupTitle: currentGroup?.title,
+        groupTime: currentGroup?.time,
+        mode,
       });
-      setAnalysis(result);
+      setResult(analysis);
       setStatus("success");
 
-      setAttempts((prev) => [
-        {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          questionId: question.id,
-          question: question.prompt,
-          transcript: text,
-          score: result.score,
-          createdAt: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
-    } catch (apiError) {
+      setSnapshot((prev) =>
+        appendSpeakingAttempt(prev, {
+          question,
+          transcript,
+          durationSec: recordingSeconds,
+          mode,
+          analysis,
+        }),
+      );
+    } catch (error) {
       setStatus("error");
-      setError(mapSpeakingApiErrorToMessage(apiError));
+      setErrorMessage(mapSpeakingApiErrorToMessage(error));
     }
   }
 
-  function handleNextQuestion() {
-    const total = Math.max(questions.length, 1);
-    setQuestionIndex((prev) => (prev + 1) % total);
-    resetAttemptState();
-  }
+  const weeklyAttempts = snapshot.attempts.filter((item) => item.mode === "weekly_exam");
+  const weeklyAverage = averageScore(weeklyAttempts.slice(0, WEEKLY_TARGET).map((item) => item.score));
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={t("speaking.title")}
         subtitle={t("speaking.subtitle")}
-        action={<Badge variant="positive">{`${questionIndex + 1}/${questions.length}`}</Badge>}
+        action={
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            <Button variant={mode === "daily" ? "default" : "secondary"} size="sm" onClick={() => setMode("daily")}>
+              Daily 20
+            </Button>
+            <Button
+              variant={mode === "weekly_exam" ? "default" : "secondary"}
+              size="sm"
+              onClick={() => {
+                setMode("weekly_exam");
+                setSnapshot((prev) => ensureWeeklyQuestionSet(prev, levelQuestions, WEEKLY_TARGET));
+              }}
+            >
+              Weekly Exam
+            </Button>
+          </div>
+        }
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="soft">{t("speaking.question")}</Badge>
-                <Badge variant="positive">{getLevelBadge(question.level)}</Badge>
-                <Badge variant="negative">{question.topic}</Badge>
-              </div>
-              <CardTitle className="text-lg leading-relaxed sm:text-xl">{question.prompt}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button variant="secondary" onClick={handleListenQuestion}>
-                <Volume2 className="mr-2 h-4 w-4" />
-                {t("speaking.listenQuestion")}
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="grid gap-3 md:grid-cols-3">
+        <Card className="md:col-span-2">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="bg-burgundy-700 text-white">{t("speaking.question")}</Badge>
+              <Badge variant="positive">{level.toUpperCase()}</Badge>
+              <Badge variant="positive">{question?.topic || "-"}</Badge>
+            </div>
+            <p className="text-lg font-semibold text-charcoal dark:text-zinc-100">{question?.prompt}</p>
+            <Button variant="secondary" onClick={listenQuestion}>
+              <Volume2 className="mr-2 h-4 w-4" />
+              {t("speaking.listenQuestion")}
+            </Button>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader className="space-y-2">
-              <CardTitle className="inline-flex items-center gap-2">
-                <Mic className="h-5 w-5 text-burgundy-700 dark:text-white" />
-                {t("speaking.recording")}
-              </CardTitle>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={status === "error" ? "negative" : "soft"}>{statusLabelMap[status]}</Badge>
-                <Badge variant="negative">{`${t("speaking.timer")}: ${formatTime(recordingSeconds)}`}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {!canSpeakQuestion ? (
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                  {t("speaking.listenUnavailable")}
-                </div>
-              ) : null}
-
-              {!supported ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-700/40 dark:bg-amber-950/25 dark:text-amber-300">
-                  {t("speaking.unsupported")}
-                </div>
-              ) : null}
-
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Button onClick={handleStartRecording} disabled={status === "processing" || listening || !supported}>
-                  <Mic className="mr-2 h-4 w-4" />
-                  {t("speaking.startRecording")}
-                </Button>
-                <Button variant="secondary" onClick={handleStopRecording} disabled={!listening}>
-                  <Square className="mr-2 h-4 w-4" />
-                  {t("speaking.stopRecording")}
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("speaking.transcript")}</p>
-                <textarea
-                  value={transcriptDraft}
-                  onChange={(event) => setTranscriptDraft(event.target.value)}
-                  rows={5}
-                  className="w-full resize-y rounded-2xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal outline-none ring-burgundy-400 transition focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-                  placeholder={t("speaking.transcriptPlaceholder")}
-                />
-                {interimTranscript ? (
-                  <p className="text-xs text-charcoal/55 dark:text-zinc-500">
-                    {t("speaking.interim")}: {interimTranscript}
-                  </p>
-                ) : null}
-              </div>
-
-              {error ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950/25 dark:text-rose-300">
-                  <p className="inline-flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    {error}
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="grid gap-2 sm:grid-cols-3">
-                <Button onClick={() => void handleAnalyze()} disabled={status === "processing" || !hasTranscript}>
-                  {status === "processing" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}
-                  {t("speaking.analyze")}
-                </Button>
-                <Button variant="secondary" onClick={resetAttemptState} disabled={status === "processing"}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  {t("speaking.retry")}
-                </Button>
-                <Button variant="positive" onClick={handleNextQuestion} disabled={status === "processing"}>
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  {t("speaking.nextQuestion")}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("speaking.results")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {status === "processing" ? (
-                <div className="flex items-center gap-2 rounded-xl border border-burgundy-100 bg-burgundy-50 px-3 py-3 text-sm text-burgundy-700 dark:border-burgundy-900 dark:bg-burgundy-900/35 dark:text-burgundy-100">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {t("speaking.status.processing")}
-                </div>
-              ) : null}
-
-              {analysis ? (
-                <div className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <SkillScoreCard label={t("speaking.overall")} score={analysis.score} />
-                    <SkillScoreCard label={t("speaking.grammar")} score={analysis.grammarScore} />
-                    <SkillScoreCard label={t("speaking.fluency")} score={analysis.fluencyScore} />
-                    <SkillScoreCard label={t("speaking.vocabulary")} score={analysis.vocabularyScore} />
-                  </div>
-
-                  <div className="grid gap-3 lg:grid-cols-2">
-                    <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("speaking.feedback")}</p>
-                      <p className="mt-2 text-sm text-charcoal dark:text-zinc-100">{analysis.feedback || "-"}</p>
-                    </div>
-                    <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("speaking.levelEstimate")}</p>
-                      <p className="mt-2 text-sm font-semibold text-charcoal dark:text-zinc-100">{analysis.levelEstimate || "-"}</p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("speaking.corrected")}</p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-charcoal dark:text-zinc-100">{analysis.correctedAnswer || "-"}</p>
-                  </div>
-
-                  <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("speaking.modelAnswer")}</p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-charcoal dark:text-zinc-100">{analysis.modelAnswer || "-"}</p>
-                  </div>
-
-                  <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("speaking.mistakes")}</p>
-                    {analysis.mistakes.length === 0 ? (
-                      <p className="mt-2 text-sm text-charcoal/70 dark:text-zinc-300">{t("speaking.noMistakes")}</p>
-                    ) : (
-                      <div className="mt-2 space-y-2">
-                        {analysis.mistakes.map((mistake, index) => (
-                          <div key={`${mistake.original}-${index}`} className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
-                            <p className="text-xs text-rose-600 dark:text-rose-400">{mistake.original || "-"}</p>
-                            <p className="mt-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">{mistake.corrected || "-"}</p>
-                            <p className="mt-1 text-xs text-charcoal/70 dark:text-zinc-300">{mistake.reason || "-"}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : status !== "processing" ? (
-                <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.emptyResult")}</p>
-              ) : null}
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle>{t("speaking.history")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {attempts.length === 0 ? (
-              <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.historyEmpty")}</p>
+        <Card>
+          <CardContent className="space-y-2 p-4">
+            <h3 className="text-xl font-bold">{t("speaking.history")}</h3>
+            {latestAttempts.length === 0 ? (
+              <p className="text-sm text-charcoal/60 dark:text-zinc-400">{t("speaking.historyEmpty")}</p>
             ) : (
-              attempts.slice(0, 8).map((attempt) => (
-                <div key={attempt.id} className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="line-clamp-1 text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">
-                      {attempt.question}
-                    </p>
-                    <p className="text-sm font-bold text-burgundy-700 dark:text-white">{attempt.score}</p>
+              <div className="space-y-2">
+                {latestAttempts.slice(0, 4).map((item) => (
+                  <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-900">
+                    <p className="font-semibold text-charcoal dark:text-zinc-100">{item.topic || item.question}</p>
+                    <p className="text-charcoal/60 dark:text-zinc-400">Score: {item.score}</p>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-charcoal/75 dark:text-zinc-300">{attempt.transcript}</p>
-                  <p className="mt-1 text-[11px] text-charcoal/50 dark:text-zinc-500">{formatDateTime(attempt.createdAt, locale)}</p>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="inline-flex items-center gap-2">
+            <Mic className="h-5 w-5 text-burgundy-700 dark:text-white" />
+            {t("speaking.recording")}
+          </CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="positive">{status.toUpperCase()}</Badge>
+            <Badge variant="positive">{t("speaking.timer")}: {toClock(recordingSeconds)}</Badge>
+            {!notificationEnabled && typeof window !== "undefined" && "Notification" in window ? (
+              <Button size="sm" variant="secondary" onClick={askNotificationPermission}>
+                <Bell className="mr-2 h-3.5 w-3.5" />
+                Enable reminders
+              </Button>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!speech.supported ? (
+            <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
+              {t("speaking.unsupported")}
+            </p>
+          ) : null}
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button onClick={startRecording} disabled={status === "processing" || speech.listening}>
+              <Mic className="mr-2 h-4 w-4" />
+              {t("speaking.startRecording")}
+            </Button>
+            <Button variant="secondary" onClick={stopRecording} disabled={!speech.listening}>
+              <Clock3 className="mr-2 h-4 w-4" />
+              {t("speaking.stopRecording")}
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/65 dark:text-zinc-400">
+              {t("speaking.transcript")}
+            </p>
+            <textarea
+              value={manualTranscript}
+              onChange={(event) => setManualTranscript(event.target.value)}
+              rows={4}
+              className="w-full resize-y rounded-2xl border border-burgundy-100 bg-white p-3 text-sm text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
+              placeholder={t("speaking.transcriptPlaceholder")}
+            />
+          </div>
+
+          {speech.interimTranscript ? (
+            <p className="text-xs text-charcoal/65 dark:text-zinc-400">
+              {t("speaking.interim")}: {speech.interimTranscript}
+            </p>
+          ) : null}
+
+          {errorMessage ? (
+            <p className="rounded-xl border border-burgundy-300 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
+              <CircleAlert className="mr-2 inline h-4 w-4" />
+              {errorMessage}
+            </p>
+          ) : null}
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"}>
+              {status === "processing" ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+              {t("speaking.analyze")}
+            </Button>
+            <Button variant="secondary" onClick={() => resetAttempt(true)}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {t("speaking.retry")}
+            </Button>
+            <Button variant="secondary" onClick={moveToNextQuestion}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {t("speaking.nextQuestion")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-3 lg:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Today</p>
+            <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{dailyRemaining}</p>
+            <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Left of {DAILY_TARGET} questions</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly Exam</p>
+            <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{weeklyRemaining}</p>
+            <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Left of {WEEKLY_TARGET} questions</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Recent Avg</p>
+            <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{recentAverage}</p>
+            <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">From last attempts</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly Avg</p>
+            <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{weeklyAverage}</p>
+            <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Mini-exam result</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("speaking.results")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!result ? (
+            <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.emptyResult")}</p>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.overall")}</p>
+                  <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.score}</p>
+                </div>
+                <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.grammar")}</p>
+                  <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.grammarScore}</p>
+                </div>
+                <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.fluency")}</p>
+                  <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.fluencyScore}</p>
+                </div>
+                <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.vocabulary")}</p>
+                  <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.vocabularyScore}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="font-semibold text-charcoal dark:text-zinc-100">
+                  <Brain className="mr-2 inline h-4 w-4 text-burgundy-700 dark:text-white" />
+                  {t("speaking.feedback")}
+                </p>
+                <p className="text-sm text-charcoal/75 dark:text-zinc-300">{result.feedback || "-"}</p>
+                <p className="text-xs text-charcoal/60 dark:text-zinc-400">
+                  <Languages className="mr-1 inline h-3.5 w-3.5" />
+                  {t("speaking.levelEstimate")}: {result.levelEstimate || level}
+                </p>
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-2">
+                <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="font-semibold text-charcoal dark:text-zinc-100">{t("speaking.corrected")}</p>
+                  <p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{result.correctedAnswer || "-"}</p>
+                </div>
+                <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="font-semibold text-charcoal dark:text-zinc-100">{t("speaking.modelAnswer")}</p>
+                  <p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{result.modelAnswer || "-"}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="font-semibold text-charcoal dark:text-zinc-100">{t("speaking.mistakes")}</p>
+                {result.mistakes.length === 0 ? (
+                  <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.noMistakes")}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {result.mistakes.map((item, index) => (
+                      <div key={`${item.original}-${index}`} className="rounded-xl border border-burgundy-100 px-3 py-2 dark:border-zinc-700">
+                        <p className="text-xs text-charcoal/60 dark:text-zinc-400">Original: {item.original || "-"}</p>
+                        <p className="text-sm text-burgundy-700 dark:text-white">Fix: {item.corrected || "-"}</p>
+                        <p className="text-xs text-charcoal/70 dark:text-zinc-300">Why: {item.reason || "-"}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>My mistakes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {weakMistakes.length === 0 ? (
+            <p className="text-sm text-charcoal/65 dark:text-zinc-400">No saved mistakes yet. Do speaking checks to build your weak-topic bank.</p>
+          ) : (
+            <div className="space-y-2">
+              {weakMistakes.map((item) => (
+                <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <Badge variant="positive">{item.category}</Badge>
+                    <Badge variant="positive">{item.topic}</Badge>
+                    <span className="text-xs text-charcoal/60 dark:text-zinc-400">{new Date(item.createdAt).toLocaleString()}</span>
+                  </div>
+                  <p className="text-sm text-charcoal/80 dark:text-zinc-300">{item.reason}</p>
+                  {item.corrected ? <p className="text-sm font-semibold text-burgundy-700 dark:text-white">{item.corrected}</p> : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold text-burgundy-700 dark:text-white">
+            <CheckCircle2 className="h-4 w-4" />
+            Reminder: today left {dailyRemaining} of {DAILY_TARGET} speaking questions.
+          </p>
+          {mode === "weekly_exam" ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setSnapshot((prev) => resetWeeklyExam(prev));
+                  setMode("weekly_exam");
+                }}
+              >
+                Reset weekly exam
+              </Button>
+              <span className="text-xs text-charcoal/65 dark:text-zinc-400">
+                Weekly mode: {WEEKLY_TARGET} questions, final report by average score.
+              </span>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   );
 }

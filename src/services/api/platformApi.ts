@@ -729,7 +729,18 @@ export const platformApi = {
       .filter((item): item is AiChatMessage => item !== null);
   },
 
-  async sendAiMessage(token: string, payload: { text?: string; imageBase64?: string }) {
+  async sendAiMessage(
+    token: string,
+    payload: {
+      text?: string;
+      imageBase64?: string;
+      level?: string;
+      language?: string;
+      groupTitle?: string;
+      groupTime?: string;
+      systemContext?: string;
+    },
+  ) {
     const response = await apiRequest<unknown>("/chat/ai/messages", {
       method: "POST",
       token,

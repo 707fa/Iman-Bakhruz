@@ -1,4 +1,4 @@
-import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, MessageCircle, Mic, Trophy, UsersRound } from "lucide-react";
+import { BarChart3, CreditCard, Gamepad2, GraduationCap, LayoutDashboard, MessageCircle, Mic, Trophy, UsersRound } from "lucide-react";
 import { useMemo } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
@@ -43,6 +43,7 @@ export function AppLayout() {
       { label: t("tabs.group"), href: "/student/group", icon: UsersRound },
       { label: t("tabs.global"), href: "/student/top", icon: Trophy },
       { label: t("nav.speaking"), href: "/student/speaking", icon: Mic },
+      { label: t("nav.parent"), href: "/student/parent", icon: BarChart3 },
     ],
     teacher: [
       { label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true },
@@ -88,7 +89,7 @@ export function AppLayout() {
   const mobileQuickNav = useMemo<NavItem[]>(() => {
     if (session.role === "student") {
       const byHref = new Map<string, NavItem>([...navItems, ...chatItems].map((item) => [item.href, item]));
-      const preferredOrder = ["/student/group", "/student/top", "/student/speaking", "/student/chat", "/student/ai-chat"];
+      const preferredOrder = ["/student/group", "/student/top", "/student/speaking", "/student/parent", "/student/chat"];
       return preferredOrder.map((href) => byHref.get(href)).filter((item): item is NavItem => Boolean(item));
     }
 

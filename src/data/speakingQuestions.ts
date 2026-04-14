@@ -1,6 +1,7 @@
 import type { SpeakingQuestion } from "../types";
+import { normalizeStudentLevelFromGroupTitle, type StudentLevel } from "../lib/studentLevel";
 
-type SpeakingLevel = SpeakingQuestion["level"];
+type SpeakingLevel = StudentLevel;
 
 const BEGINNER_QUESTIONS: SpeakingQuestion[] = [
   { id: "b-01", level: "beginner", topic: "Introduce Yourself", prompt: "Please introduce yourself. Tell me your name, age, city, and why you are learning English." },
@@ -104,16 +105,7 @@ export const SPEAKING_QUESTIONS_BY_LEVEL: Record<SpeakingLevel, SpeakingQuestion
 export const SPEAKING_QUESTIONS: SpeakingQuestion[] = Object.values(SPEAKING_QUESTIONS_BY_LEVEL).flat();
 
 export function normalizeSpeakingLevelFromGroupTitle(groupTitle?: string): SpeakingLevel {
-  const normalized = String(groupTitle || "").trim().toLowerCase();
-  if (!normalized) return "beginner";
-
-  if (normalized.includes("beginner")) return "beginner";
-  if (normalized.includes("elementary")) return "elementary";
-  if (normalized.includes("pre") && normalized.includes("inter")) return "pre-intermediate";
-  if (normalized.includes("upper") && normalized.includes("inter")) return "intermediate";
-  if (normalized.includes("intermediate")) return "intermediate";
-
-  return "beginner";
+  return normalizeStudentLevelFromGroupTitle(groupTitle);
 }
 
 export function getSpeakingQuestionsForLevel(level: SpeakingLevel): SpeakingQuestion[] {

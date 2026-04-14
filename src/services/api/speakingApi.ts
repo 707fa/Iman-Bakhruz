@@ -9,6 +9,9 @@ interface SpeakingCheckPayload {
   transcript: string;
   level?: string;
   language?: string;
+  groupTitle?: string;
+  groupTime?: string;
+  mode?: "daily" | "weekly_exam";
   userId?: string;
 }
 
@@ -133,6 +136,9 @@ function buildPlatformAiSpeakingPrompt(payload: SpeakingCheckPayload): string {
     "",
     `Level hint: ${String(payload.level || "").trim() || "unknown"}`,
     `Language hint: ${String(payload.language || "").trim() || "en"}`,
+    `Group hint: ${String(payload.groupTitle || "").trim() || "unknown"}`,
+    `Time hint: ${String(payload.groupTime || "").trim() || "unknown"}`,
+    `Mode hint: ${String(payload.mode || "").trim() || "daily"}`,
     `Question: ${String(payload.question || "").trim()}`,
     `Student transcript: ${String(payload.transcript || "").trim()}`,
   ].join("\n");
@@ -145,7 +151,13 @@ async function checkViaPlatformAi(payload: SpeakingCheckPayload): Promise<Speaki
   }
 
   const prompt = buildPlatformAiSpeakingPrompt(payload);
-  const messages = await platformApi.sendAiMessage(token, { text: prompt });
+  const messages = await platformApi.sendAiMessage(token, {
+    text: prompt,
+    level: payload.level,
+    language: payload.language,
+    groupTitle: payload.groupTitle,
+    groupTime: payload.groupTime,
+  });
   const assistantText =
     [...messages].reverse().find((item) => item.role === "assistant" && item.text.trim())?.text.trim() ?? "";
 

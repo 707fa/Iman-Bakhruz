@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
 import { AI_GATEWAY_URL, API_BASE_URL, DATA_PROVIDER_MODE } from "../lib/env";
 import { useAppStore } from "../hooks/useAppStore";
+import { useUi } from "../hooks/useUi";
+import { buildImanChatContextPrompt, normalizeStudentLevelFromGroupTitle, resolveAiFeedbackLanguage } from "../lib/studentLevel";
 import { ApiError } from "../services/api/http";
 import { clearApiToken, getApiToken } from "../services/tokenStorage";
 import { platformApi } from "../services/api/platformApi";
@@ -109,7 +111,8 @@ function writeLocalMessages(storageKey: string, messages: AiChatMessage[]) {
 }
 
 export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) {
-  const { state } = useAppStore();
+  const { state, currentStudent } = useAppStore();
+  const { locale } = useUi();
   const token = getApiToken();
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
   const [text, setText] = useState("");
@@ -121,6 +124,15 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const sessionUserId = state.session?.userId;
+  const currentGroup = currentStudent ? state.groups.find((item) => item.id === currentStudent.groupId) : null;
+  const studentLevel = normalizeStudentLevelFromGroupTitle(currentGroup?.title);
+  const aiLanguage = resolveAiFeedbackLanguage(studentLevel, locale);
+  const systemContext = buildImanChatContextPrompt({
+    level: studentLevel,
+    locale,
+    groupTitle: currentGroup?.title,
+    groupTime: currentGroup?.time,
+  });
   const isApiMode = DATA_PROVIDER_MODE === "api";
   const useGatewayMode = Boolean(AI_GATEWAY_URL);
   const canUseApi = useGatewayMode || (isApiMode && Boolean(token));
@@ -193,6 +205,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     const trimmedText = text.trim();
     const selectedFile = imageFile;
     const selectedPreview = imagePreview;
+    const textWithContext = trimmedText
+      ? `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\n[/CONTEXT]\n\n${trimmedText}`
+      : "";
 
     try {
       if (useGatewayMode) {
@@ -211,7 +226,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
         try {
           const response = await aiGatewayCheckHomework({
-            text: trimmedText || undefined,
+            text: textWithContext || undefined,
             imageFile: selectedFile,
             userId: sessionUserId,
           });
@@ -239,6 +254,11 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               const updatedMessages = await platformApi.sendAiMessage(token, {
                 text: trimmedText || undefined,
                 imageBase64,
+                level: studentLevel,
+                language: aiLanguage,
+                groupTitle: currentGroup?.title,
+                groupTime: currentGroup?.time,
+                systemContext,
               });
               setMessages(updatedMessages);
               setError("Gateway unavailable. Switched to backend AI.");
@@ -268,6 +288,11 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       const updatedMessages = await platformApi.sendAiMessage(token!, {
         text: trimmedText || undefined,
         imageBase64,
+        level: studentLevel,
+        language: aiLanguage,
+        groupTitle: currentGroup?.title,
+        groupTime: currentGroup?.time,
+        systemContext,
       });
       setMessages(updatedMessages);
       setText("");

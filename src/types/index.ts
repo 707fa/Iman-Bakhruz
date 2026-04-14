@@ -257,7 +257,47 @@ export interface SpeakingAttemptHistoryItem {
   id: string;
   questionId: string;
   question: string;
+  topic?: string;
+  level?: SpeakingQuestion["level"];
   transcript: string;
   score: number;
+  grammarScore?: number;
+  fluencyScore?: number;
+  vocabularyScore?: number;
+  durationSec?: number;
+  mode?: "daily" | "weekly_exam";
   createdAt: string;
+}
+
+export type SpeakingMistakeCategory = "grammar" | "vocabulary" | "pronunciation";
+
+export interface SpeakingMistakeBankItem {
+  id: string;
+  questionId: string;
+  topic: string;
+  level: SpeakingQuestion["level"];
+  category: SpeakingMistakeCategory;
+  original: string;
+  corrected: string;
+  reason: string;
+  createdAt: string;
+}
+
+export interface SpeakingDailyProgress {
+  dateKey: string;
+  completedQuestionIds: string[];
+  reminderShownDateKey?: string;
+}
+
+export interface SpeakingWeeklyExamProgress {
+  weekKey: string;
+  questionIds: string[];
+  completedQuestionIds: string[];
+}
+
+export interface SpeakingSessionSnapshot {
+  attempts: SpeakingAttemptHistoryItem[];
+  mistakes: SpeakingMistakeBankItem[];
+  daily: SpeakingDailyProgress;
+  weeklyExam: SpeakingWeeklyExamProgress;
 }
