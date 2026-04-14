@@ -2,6 +2,7 @@ import { AI_GATEWAY_TIMEOUT_MS, AI_GATEWAY_URL, API_BASE_URL } from "../../lib/e
 import type { SpeakingAnalysisResult } from "../../types";
 import { getApiToken, getSessionUserId } from "../tokenStorage";
 import { ApiError } from "./http";
+import { platformApi } from "./platformApi";
 
 interface SpeakingCheckPayload {
   question: string;
@@ -33,6 +34,32 @@ function normalizeScore(value: unknown, fallback = 0): number {
   if (parsed < 0) return 0;
   if (parsed > 100) return 100;
   return Math.round(parsed);
+}
+
+function extractJsonCandidate(rawText: string): unknown {
+  const text = String(rawText || "").trim();
+  if (!text) return null;
+
+  const direct = parseJsonSafe(text);
+  if (direct && typeof direct === "object") {
+    return direct;
+  }
+
+  const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fencedMatch?.[1]) {
+    const parsed = parseJsonSafe(fencedMatch[1].trim());
+    if (parsed && typeof parsed === "object") return parsed;
+  }
+
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    const maybeJson = text.slice(firstBrace, lastBrace + 1);
+    const parsed = parseJsonSafe(maybeJson);
+    if (parsed && typeof parsed === "object") return parsed;
+  }
+
+  return null;
 }
 
 function normalizeAnalysis(payload: unknown): SpeakingAnalysisResult {
@@ -70,6 +97,70 @@ function normalizeAnalysis(payload: unknown): SpeakingAnalysisResult {
   };
 }
 
+function fallbackAnalysisFromText(rawText: string, transcript: string): SpeakingAnalysisResult {
+  const feedback = String(rawText || "").trim().slice(0, 1500);
+  return {
+    score: 0,
+    grammarScore: 0,
+    fluencyScore: 0,
+    vocabularyScore: 0,
+    transcript: transcript.trim(),
+    correctedAnswer: "",
+    mistakes: [],
+    feedback: feedback || "AI returned an empty answer. Please retry.",
+    modelAnswer: "",
+    levelEstimate: "",
+  };
+}
+
+function buildPlatformAiSpeakingPrompt(payload: SpeakingCheckPayload): string {
+  return [
+    "You are an English speaking evaluator for students.",
+    "Return STRICT JSON only (no markdown):",
+    "{",
+    '  "score": number,',
+    '  "grammarScore": number,',
+    '  "fluencyScore": number,',
+    '  "vocabularyScore": number,',
+    '  "transcript": "string",',
+    '  "correctedAnswer": "string",',
+    '  "mistakes": [{"original":"string","corrected":"string","reason":"string"}],',
+    '  "feedback": "string",',
+    '  "modelAnswer": "string",',
+    '  "levelEstimate": "string"',
+    "}",
+    "Use scores 0..100. Keep feedback practical and short.",
+    "",
+    `Level hint: ${String(payload.level || "").trim() || "unknown"}`,
+    `Language hint: ${String(payload.language || "").trim() || "en"}`,
+    `Question: ${String(payload.question || "").trim()}`,
+    `Student transcript: ${String(payload.transcript || "").trim()}`,
+  ].join("\n");
+}
+
+async function checkViaPlatformAi(payload: SpeakingCheckPayload): Promise<SpeakingAnalysisResult> {
+  const token = getApiToken();
+  if (!token) {
+    throw new ApiError(401, { message: "No API token. Re-login is required." }, "Speaking fallback requires auth");
+  }
+
+  const prompt = buildPlatformAiSpeakingPrompt(payload);
+  const messages = await platformApi.sendAiMessage(token, { text: prompt });
+  const assistantText =
+    [...messages].reverse().find((item) => item.role === "assistant" && item.text.trim())?.text.trim() ?? "";
+
+  if (!assistantText) {
+    throw new ApiError(502, { message: "AI returned empty response" }, "Speaking fallback empty response");
+  }
+
+  const extracted = extractJsonCandidate(assistantText);
+  if (extracted) {
+    return normalizeAnalysis(extracted);
+  }
+
+  return fallbackAnalysisFromText(assistantText, payload.transcript);
+}
+
 function extractErrorMessage(payload: unknown): string {
   const root = asRecord(payload);
   if (!root) return "";
@@ -93,10 +184,13 @@ export function mapSpeakingApiErrorToMessage(error: unknown): string {
     if (error.status === 408) return "Request timeout. Please try again.";
     if (error.status === 429) return "Too many requests. Wait a bit and retry.";
     if (error.status >= 500) return message || "AI server is temporarily unavailable. Try again in 1-2 minutes.";
-    if (error.status >= 400) return message || "Please check your text and try again.";
+    if (error.status >= 400) {
+      if (message && !/please check your text/i.test(message)) return message;
+      return "AI could not analyze this answer. Please retry.";
+    }
   }
   if (error instanceof TypeError) {
-    return "Network error. Check internet connection.";
+    return "Network error. Check internet or API connection.";
   }
   return "Unable to analyze speaking answer. Please retry.";
 }
@@ -161,7 +255,10 @@ export async function checkSpeakingAnswer(payload: SpeakingCheckPayload): Promis
       try {
         return await sendRequest(baseUrl, path, { ...payload, question, transcript });
       } catch (error) {
-        if (error instanceof ApiError && [0, 404, 408, 429, 500, 502, 503, 504].includes(error.status)) {
+        if (error instanceof ApiError) {
+          if ([401, 402, 403].includes(error.status)) {
+            throw error;
+          }
           lastError = error;
           continue;
         }
@@ -174,5 +271,16 @@ export async function checkSpeakingAnswer(payload: SpeakingCheckPayload): Promis
     }
   }
 
-  throw lastError ?? new Error("Speaking endpoint is unavailable");
+  try {
+    return await checkViaPlatformAi({
+      ...payload,
+      question,
+      transcript,
+    });
+  } catch (fallbackError) {
+    if (fallbackError instanceof ApiError && [401, 402, 403].includes(fallbackError.status)) {
+      throw fallbackError;
+    }
+    throw fallbackError ?? lastError ?? new Error("Speaking endpoint is unavailable");
+  }
 }

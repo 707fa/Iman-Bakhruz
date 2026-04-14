@@ -5,7 +5,10 @@ import { SkillScoreCard } from "../components/speaking/SkillScoreCard";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { SPEAKING_QUESTIONS } from "../data/speakingQuestions";
+import {
+  getSpeakingQuestionsForLevel,
+  normalizeSpeakingLevelFromGroupTitle,
+} from "../data/speakingQuestions";
 import { useAppStore } from "../hooks/useAppStore";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useUi } from "../hooks/useUi";
@@ -46,6 +49,10 @@ function getLevelBadge(level: string): string {
 export function StudentSpeakingPage() {
   const { t, locale } = useUi();
   const { state } = useAppStore();
+  const currentStudent = state.session?.role === "student" ? state.students.find((student) => student.id === state.session?.userId) : null;
+  const currentGroup = currentStudent ? state.groups.find((group) => group.id === currentStudent.groupId) : null;
+  const studentLevel = normalizeSpeakingLevelFromGroupTitle(currentGroup?.title);
+  const questions = useMemo(() => getSpeakingQuestionsForLevel(studentLevel), [studentLevel]);
   const sessionUserId = state.session?.userId ?? "guest";
   const storageKey = `result-speaking-history-v1:${sessionUserId}`;
 
@@ -61,7 +68,8 @@ export function StudentSpeakingPage() {
     lang: "en-US",
   });
 
-  const question = SPEAKING_QUESTIONS[questionIndex];
+  const fallbackQuestion = getSpeakingQuestionsForLevel("beginner")[0]!;
+  const question = questions[questionIndex] ?? questions[0] ?? fallbackQuestion;
   const canSpeakQuestion = typeof window !== "undefined" && "speechSynthesis" in window;
   const finalTranscript = transcript.trim();
   const liveTranscript = useMemo(() => `${finalTranscript} ${interimTranscript}`.trim(), [finalTranscript, interimTranscript]);
@@ -125,6 +133,10 @@ export function StudentSpeakingPage() {
     setError(speechError);
   }, [speechError, t]);
 
+  useEffect(() => {
+    setQuestionIndex(0);
+  }, [studentLevel]);
+
   function handleListenQuestion() {
     if (!canSpeakQuestion || typeof window === "undefined") return;
     const utterance = new SpeechSynthesisUtterance(question.prompt);
@@ -181,7 +193,7 @@ export function StudentSpeakingPage() {
       const result = await checkSpeakingAnswer({
         question: question.prompt,
         transcript: text,
-        level: question.level,
+        level: studentLevel,
         language: locale,
         userId: state.session?.userId,
       });
@@ -206,7 +218,8 @@ export function StudentSpeakingPage() {
   }
 
   function handleNextQuestion() {
-    setQuestionIndex((prev) => (prev + 1) % SPEAKING_QUESTIONS.length);
+    const total = Math.max(questions.length, 1);
+    setQuestionIndex((prev) => (prev + 1) % total);
     resetAttemptState();
   }
 
@@ -215,7 +228,7 @@ export function StudentSpeakingPage() {
       <PageHeader
         title={t("speaking.title")}
         subtitle={t("speaking.subtitle")}
-        action={<Badge variant="positive">{`${questionIndex + 1}/${SPEAKING_QUESTIONS.length}`}</Badge>}
+        action={<Badge variant="positive">{`${questionIndex + 1}/${questions.length}`}</Badge>}
       />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
