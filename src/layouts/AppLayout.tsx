@@ -59,13 +59,12 @@ export function AppLayout() {
     ],
     teacher: [
       { label: t("nav.friendly"), href: "/teacher/chat", icon: MessageCircle },
-      { label: t("nav.aiChat"), href: "/teacher/ai-chat", icon: MessageCircle },
     ],
   };
 
   const gamesNavMap: Record<"student" | "teacher", NavItem[]> = {
     student: [{ label: t("nav.games"), href: "/student/games", icon: Gamepad2 }],
-    teacher: [{ label: t("nav.games"), href: "/teacher/games", icon: Gamepad2 }],
+    teacher: [],
   };
 
   const isUnpaidStudent = session.role === "student" && !Boolean(currentStudentAccess?.hasFullAccess);

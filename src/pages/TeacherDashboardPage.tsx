@@ -1,4 +1,4 @@
-﻿import { BookOpenCheck, ClipboardList, Gamepad2, Trophy, Users2, Wrench } from "lucide-react";
+import { BookOpenCheck, ClipboardList, Gamepad2, Trophy, Users2, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TeacherSpotlightCard } from "../components/TeacherSpotlightCard";
@@ -96,18 +96,7 @@ export function TeacherDashboardPage() {
         </Card>
 
 
-        <Card className="h-full">
-          <CardContent className="p-4 sm:p-5">
-            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
-              <Gamepad2 className="h-4 w-4 text-burgundy-700 dark:text-white" />
-              Games Arena
-            </p>
-            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">Игровые тренировки: AI, группа, общий баттл.</p>
-            <Link to="/teacher/games" className="mt-4 block">
-              <Button variant="secondary" className="w-full justify-between">Open Games</Button>
-            </Link>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );

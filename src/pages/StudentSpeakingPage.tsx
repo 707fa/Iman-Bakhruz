@@ -521,15 +521,15 @@ export function StudentSpeakingPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2 rounded-3xl">
-          <CardContent className="space-y-3 p-5">
+          <CardContent className="space-y-4 p-4 sm:p-5">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="bg-burgundy-700 text-white">{t("speaking.question")}</Badge>
-                <Badge variant="positive">{mode === "weekly_exam" ? "WEEKLY EXAM" : "DAILY"}</Badge>
-                <Badge variant="positive">{question?.topic || "-"}</Badge>
+              <Badge variant="positive">{mode === "weekly_exam" ? "WEEKLY EXAM" : "DAILY"}</Badge>
+              <Badge variant="positive">{question?.topic || "-"}</Badge>
             </div>
-            <p className="text-lg font-semibold text-charcoal dark:text-zinc-100">{question?.prompt || "No question"}</p>
+            <p className="text-xl sm:text-2xl font-bold text-charcoal dark:text-zinc-100 leading-tight">{question?.prompt || "No question"}</p>
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="secondary" onClick={listenQuestion}>
+              <Button variant="secondary" onClick={listenQuestion} className="w-full sm:w-auto h-11">
                 <Volume2 className="mr-2 h-4 w-4" />
                 {t("speaking.listenQuestion")}
               </Button>
@@ -588,13 +588,13 @@ export function StudentSpeakingPage() {
             </p>
           ) : null}
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button onClick={startRecording} disabled={status === "processing" || speech.listening}>
-              <Mic className="mr-2 h-4 w-4" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button size="lg" onClick={startRecording} disabled={status === "processing" || speech.listening} className="h-14 text-base shadow-lg">
+              <Mic className="mr-2 h-5 w-5" />
               {t("speaking.startRecording")}
             </Button>
-            <Button variant="secondary" onClick={stopRecording} disabled={!speech.listening}>
-              <Clock3 className="mr-2 h-4 w-4" />
+            <Button size="lg" variant="secondary" onClick={stopRecording} disabled={!speech.listening} className="h-14 text-base">
+              <Clock3 className="mr-2 h-5 w-5" />
               {t("speaking.stopRecording")}
             </Button>
           </div>
@@ -625,16 +625,16 @@ export function StudentSpeakingPage() {
             </p>
           ) : null}
 
-          <div className="grid gap-2 sm:grid-cols-3">
-            <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"}>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"} className="h-12 w-full">
               {status === "processing" ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
               {t("speaking.analyze")}
             </Button>
-            <Button variant="secondary" onClick={resetAttempt}>
+            <Button variant="secondary" onClick={resetAttempt} className="h-12 w-full">
               <RefreshCw className="mr-2 h-4 w-4" />
               {t("speaking.retry")}
             </Button>
-            <Button variant="secondary" onClick={moveToNextQuestion}>
+            <Button variant="secondary" onClick={moveToNextQuestion} className="h-12 w-full">
               <Sparkles className="mr-2 h-4 w-4" />
               {t("speaking.nextQuestion")}
             </Button>
@@ -642,11 +642,11 @@ export function StudentSpeakingPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-3 lg:grid-cols-4">
-        <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Today</p><p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{dailyRemaining}</p><p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Left of {effectiveDailyTarget}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly Exam</p><p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{weeklyRemaining}</p><p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Left of {WEEKLY_TARGET}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Recent Avg</p><p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{recentAverage}</p><p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">From last attempts</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly Avg</p><p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{weeklyAverage}</p><p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Exam result</p></CardContent></Card>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Today</p><p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-burgundy-700 dark:text-white">{dailyRemaining}</p><p className="mt-1 text-[10px] sm:text-sm text-charcoal/60 dark:text-zinc-400">Left of {effectiveDailyTarget}</p></CardContent></Card>
+        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly Exam</p><p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-burgundy-700 dark:text-white">{weeklyRemaining}</p><p className="mt-1 text-[10px] sm:text-sm text-charcoal/60 dark:text-zinc-400">Left of {WEEKLY_TARGET}</p></CardContent></Card>
+        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Recent Avg</p><p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-burgundy-700 dark:text-white">{recentAverage}</p><p className="mt-1 text-[10px] sm:text-sm text-charcoal/60 dark:text-zinc-400">From last attempts</p></CardContent></Card>
+        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly Avg</p><p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-burgundy-700 dark:text-white">{weeklyAverage}</p><p className="mt-1 text-[10px] sm:text-sm text-charcoal/60 dark:text-zinc-400">Exam result</p></CardContent></Card>
       </div>
 
       {topicProgress.length > 0 ? (

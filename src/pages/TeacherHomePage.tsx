@@ -189,18 +189,6 @@ export function TeacherHomePage() {
                 {t("nav.teacherGroups")}
               </Button>
             </Link>
-            <Link to="/teacher/top">
-              <Button variant="secondary" className="w-full justify-between">
-                <Trophy className="mr-2 h-4 w-4" />
-                {t("nav.teacherTop")}
-              </Button>
-            </Link>
-            <Link to="/teacher/chat">
-              <Button variant="secondary" className="w-full justify-between">
-                <MessageCircle className="mr-2 h-4 w-4" />
-                {t("nav.friendly")}
-              </Button>
-            </Link>
           </div>
         </CardContent>
       </Card>
