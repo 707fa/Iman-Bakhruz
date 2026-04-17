@@ -1,4 +1,4 @@
-import { BookOpenCheck, ClipboardList, Gamepad2, Trophy, Users2, Wrench } from "lucide-react";
+import { BookOpenCheck, ClipboardList, Trophy, Users2, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TeacherSpotlightCard } from "../components/TeacherSpotlightCard";

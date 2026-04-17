@@ -175,6 +175,9 @@ function normalizePaymentTransaction(raw: unknown): PaymentTransaction | null {
   const statusRaw = str(item.status);
   const status: PaymentTransaction["status"] =
     statusRaw === "paid" || statusRaw === "failed" ? statusRaw : "pending";
+  const verdictRaw = str(item.manualVerdict ?? item.manual_verdict);
+  const manualVerdict: PaymentTransaction["manualVerdict"] =
+    verdictRaw === "likely_valid" || verdictRaw === "likely_fake" ? verdictRaw : "pending";
 
   return {
     id: str(item.id),
@@ -182,6 +185,15 @@ function normalizePaymentTransaction(raw: unknown): PaymentTransaction | null {
     amount: num(item.amount),
     status,
     checkoutUrl: str(item.checkoutUrl ?? item.checkout_url) || undefined,
+    receiptUrl: str(item.receiptUrl ?? item.receipt_url) || undefined,
+    manualVerdict,
+    manualVerdictReason: str(item.manualVerdictReason ?? item.manual_verdict_reason) || undefined,
+    manualDetectedAmount:
+      item.manualDetectedAmount !== undefined || item.manual_detected_amount !== undefined
+        ? num(item.manualDetectedAmount ?? item.manual_detected_amount)
+        : undefined,
+    manualReceiptUploadedAt: str(item.manualReceiptUploadedAt ?? item.manual_receipt_uploaded_at) || undefined,
+    reviewedAt: str(item.reviewedAt ?? item.reviewed_at) || undefined,
     createdAt: str(item.createdAt ?? item.created_at),
     paidAt: str(item.paidAt ?? item.paid_at) || undefined,
   };
@@ -544,6 +556,29 @@ export const platformApi = {
     return {
       transaction: normalizePaymentTransaction(data.transaction),
       subscription: normalizeSubscription(data.subscription),
+    };
+  },
+
+  async uploadManualReceipt(token: string, file: File, transactionId?: string) {
+    const formData = new FormData();
+    formData.append("receipt", file);
+    if (transactionId) {
+      formData.append("transaction_id", transactionId);
+    }
+    const response = await apiRequest<unknown>("/payments/manual-receipt", {
+      method: "POST",
+      token,
+      body: formData,
+      timeoutMs: 120000,
+    });
+    const data = getDataObject(response);
+    if (!data) {
+      throw new Error("Invalid manual receipt response");
+    }
+    return {
+      transaction: normalizePaymentTransaction(data.transaction),
+      subscription: normalizeSubscription(data.subscription),
+      telegramNotified: Boolean(data.telegramNotified ?? data.telegram_notified),
     };
   },
 

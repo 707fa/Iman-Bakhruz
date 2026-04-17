@@ -3,7 +3,7 @@ import { API_BASE_URL, API_REQUEST_TIMEOUT_MS } from "../../lib/env";
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   token?: string;
-  body?: unknown;
+  body?: unknown | FormData;
   signal?: AbortSignal;
   timeoutMs?: number;
 }
@@ -32,9 +32,12 @@ async function parseJsonSafe(response: Response): Promise<unknown> {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = {};
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`;
@@ -58,7 +61,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     response = await fetch(`${API_BASE_URL}${path}`, {
       method: options.method ?? "GET",
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body:
+        options.body === undefined
+          ? undefined
+          : isFormData
+            ? (options.body as FormData)
+            : JSON.stringify(options.body),
       signal: controller.signal,
     });
   } catch (error) {

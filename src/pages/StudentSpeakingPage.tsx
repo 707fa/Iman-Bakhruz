@@ -519,260 +519,276 @@ export function StudentSpeakingPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 rounded-3xl">
-          <CardContent className="space-y-4 p-4 sm:p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-burgundy-700 text-white">{t("speaking.question")}</Badge>
-              <Badge variant="positive">{mode === "weekly_exam" ? "WEEKLY EXAM" : "DAILY"}</Badge>
-              <Badge variant="positive">{question?.topic || "-"}</Badge>
-            </div>
-            <p className="text-xl sm:text-2xl font-bold text-charcoal dark:text-zinc-100 leading-tight">{question?.prompt || "No question"}</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="secondary" onClick={listenQuestion} className="w-full sm:w-auto h-11">
-                <Volume2 className="mr-2 h-4 w-4" />
-                {t("speaking.listenQuestion")}
-              </Button>
-              {teacherQuestions.length > 0 ? (
-                <Badge className="bg-white text-charcoal ring-1 ring-burgundy-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700">
-                  <BookOpenCheck className="mr-1 inline h-3.5 w-3.5" />
-                  Teacher topic mode
-                </Badge>
+      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 items-start">
+        {/* Main Content Column (Left on Desktop, Top on Mobile) */}
+        <div className="flex w-full flex-col gap-6 lg:col-span-7 xl:col-span-8">
+          
+          {/* Question Card */}
+          <Card className="rounded-3xl">
+            <CardContent className="space-y-4 p-4 sm:p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-burgundy-700 text-white">{t("speaking.question")}</Badge>
+                <Badge variant="positive">{mode === "weekly_exam" ? "WEEKLY EXAM" : "DAILY"}</Badge>
+                <Badge variant="positive">{question?.topic || "-"}</Badge>
+              </div>
+              <p className="text-xl sm:text-2xl font-bold text-charcoal dark:text-zinc-100 leading-tight">{question?.prompt || "No question"}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="secondary" onClick={listenQuestion} className="w-full sm:w-auto h-11">
+                  <Volume2 className="mr-2 h-4 w-4" />
+                  {t("speaking.listenQuestion")}
+                </Button>
+                {teacherQuestions.length > 0 ? (
+                  <Badge className="bg-white text-charcoal ring-1 ring-burgundy-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700">
+                    <BookOpenCheck className="mr-1 inline h-3.5 w-3.5" />
+                    Teacher topic mode
+                  </Badge>
+                ) : null}
+              </div>
+              {taskLoading ? <p className="text-xs text-charcoal/60 dark:text-zinc-400">Loading teacher speaking topics...</p> : null}
+              {taskError ? <p className="text-xs text-burgundy-700 dark:text-burgundy-200">{taskError}</p> : null}
+            </CardContent>
+          </Card>
+
+          {/* Recording Card */}
+          <Card className="rounded-3xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="inline-flex items-center gap-2">
+                <Mic className="h-5 w-5 text-burgundy-700 dark:text-white" />
+                {t("speaking.recording")}
+              </CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="positive">{status.toUpperCase()}</Badge>
+                <Badge variant="positive">{t("speaking.timer")}: {toClock(recordingSeconds)}</Badge>
+                {!notificationEnabled && typeof window !== "undefined" && "Notification" in window ? (
+                  <Button size="sm" variant="secondary" onClick={askNotificationPermission}>
+                    <Bell className="mr-2 h-3.5 w-3.5" />
+                    Enable reminders
+                  </Button>
+                ) : null}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!speech.supported ? (
+                <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
+                  {t("speaking.unsupported")}
+                </p>
               ) : null}
-            </div>
-            {taskLoading ? <p className="text-xs text-charcoal/60 dark:text-zinc-400">Loading teacher speaking topics...</p> : null}
-            {taskError ? <p className="text-xs text-burgundy-700 dark:text-burgundy-200">{taskError}</p> : null}
-          </CardContent>
-        </Card>
 
-        <Card className="rounded-3xl">
-          <CardContent className="space-y-2 p-5">
-            <h3 className="text-xl font-bold">{t("speaking.history")}</h3>
-            {latestAttempts.length === 0 ? (
-              <p className="text-sm text-charcoal/60 dark:text-zinc-400">{t("speaking.historyEmpty")}</p>
-            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button size="lg" onClick={startRecording} disabled={status === "processing" || speech.listening} className="h-14 text-base shadow-lg">
+                  <Mic className="mr-2 h-5 w-5" />
+                  {t("speaking.startRecording")}
+                </Button>
+                <Button size="lg" variant="secondary" onClick={stopRecording} disabled={!speech.listening} className="h-14 text-base">
+                  <Clock3 className="mr-2 h-5 w-5" />
+                  {t("speaking.stopRecording")}
+                </Button>
+              </div>
+
               <div className="space-y-2">
-                {latestAttempts.slice(0, 4).map((item) => (
-                  <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-900">
-                    <p className="font-semibold text-charcoal dark:text-zinc-100">{item.topic || item.question}</p>
-                    <p className="text-charcoal/60 dark:text-zinc-400">Score: {item.score}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/65 dark:text-zinc-400">
+                  {t("speaking.transcript")}
+                </p>
+                <textarea
+                  value={manualTranscript}
+                  onChange={(event) => setManualTranscript(event.target.value)}
+                  rows={4}
+                  className="w-full resize-y rounded-2xl border border-burgundy-100 bg-white p-3 text-sm text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
+                  placeholder={t("speaking.transcriptPlaceholder")}
+                />
+              </div>
+
+              {speech.interimTranscript ? (
+                <p className="text-xs text-charcoal/65 dark:text-zinc-400">
+                  {t("speaking.interim")}: {speech.interimTranscript}
+                </p>
+              ) : null}
+
+              {errorMessage ? (
+                <p className="rounded-xl border border-burgundy-300 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
+                  <CircleAlert className="mr-2 inline h-4 w-4" />
+                  {errorMessage}
+                </p>
+              ) : null}
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"} className="h-12 w-full">
+                  {status === "processing" ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                  {t("speaking.analyze")}
+                </Button>
+                <Button variant="secondary" onClick={resetAttempt} className="h-12 w-full">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {t("speaking.retry")}
+                </Button>
+                <Button variant="secondary" onClick={moveToNextQuestion} className="h-12 w-full">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {t("speaking.nextQuestion")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Results Card */}
+          <Card className="rounded-3xl">
+            <CardHeader><CardTitle>{t("speaking.results")}</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {!result ? (
+                <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.emptyResult")}</p>
+              ) : (
+                <>
+                  <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.overall")}</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.score}</p></div>
+                    <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.grammar")}</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.grammarScore}</p></div>
+                    <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.fluency")}</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.fluencyScore}</p></div>
+                    <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.vocabulary")}</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.vocabularyScore}</p></div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
 
-      <Card className="rounded-3xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="inline-flex items-center gap-2">
-            <Mic className="h-5 w-5 text-burgundy-700 dark:text-white" />
-            {t("speaking.recording")}
-          </CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="positive">{status.toUpperCase()}</Badge>
-            <Badge variant="positive">{t("speaking.timer")}: {toClock(recordingSeconds)}</Badge>
-            {!notificationEnabled && typeof window !== "undefined" && "Notification" in window ? (
-              <Button size="sm" variant="secondary" onClick={askNotificationPermission}>
-                <Bell className="mr-2 h-3.5 w-3.5" />
-                Enable reminders
-              </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {!speech.supported ? (
-            <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
-              {t("speaking.unsupported")}
-            </p>
-          ) : null}
+                  <div className="space-y-2 rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                    <p className="font-semibold text-charcoal dark:text-zinc-100"><Brain className="mr-2 inline h-4 w-4 text-burgundy-700 dark:text-white" />{t("speaking.feedback")}</p>
+                    <p className="text-sm text-charcoal/75 dark:text-zinc-300">{result.feedback || "-"}</p>
+                    <p className="text-xs text-charcoal/60 dark:text-zinc-400"><Languages className="mr-1 inline h-3.5 w-3.5" />{t("speaking.levelEstimate")}: {result.levelEstimate || level}</p>
+                  </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button size="lg" onClick={startRecording} disabled={status === "processing" || speech.listening} className="h-14 text-base shadow-lg">
-              <Mic className="mr-2 h-5 w-5" />
-              {t("speaking.startRecording")}
-            </Button>
-            <Button size="lg" variant="secondary" onClick={stopRecording} disabled={!speech.listening} className="h-14 text-base">
-              <Clock3 className="mr-2 h-5 w-5" />
-              {t("speaking.stopRecording")}
-            </Button>
-          </div>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"><p className="font-semibold text-charcoal dark:text-zinc-100">{t("speaking.corrected")}</p><p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{result.correctedAnswer || "-"}</p></div>
+                    <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"><p className="font-semibold text-charcoal dark:text-zinc-100">{t("speaking.modelAnswer")}</p><p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{result.modelAnswer || "-"}</p></div>
+                  </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/65 dark:text-zinc-400">
-              {t("speaking.transcript")}
-            </p>
-            <textarea
-              value={manualTranscript}
-              onChange={(event) => setManualTranscript(event.target.value)}
-              rows={4}
-              className="w-full resize-y rounded-2xl border border-burgundy-100 bg-white p-3 text-sm text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
-              placeholder={t("speaking.transcriptPlaceholder")}
-            />
-          </div>
-
-          {speech.interimTranscript ? (
-            <p className="text-xs text-charcoal/65 dark:text-zinc-400">
-              {t("speaking.interim")}: {speech.interimTranscript}
-            </p>
-          ) : null}
-
-          {errorMessage ? (
-            <p className="rounded-xl border border-burgundy-300 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
-              <CircleAlert className="mr-2 inline h-4 w-4" />
-              {errorMessage}
-            </p>
-          ) : null}
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"} className="h-12 w-full">
-              {status === "processing" ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-              {t("speaking.analyze")}
-            </Button>
-            <Button variant="secondary" onClick={resetAttempt} className="h-12 w-full">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              {t("speaking.retry")}
-            </Button>
-            <Button variant="secondary" onClick={moveToNextQuestion} className="h-12 w-full">
-              <Sparkles className="mr-2 h-4 w-4" />
-              {t("speaking.nextQuestion")}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Today</p><p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-burgundy-700 dark:text-white">{dailyRemaining}</p><p className="mt-1 text-[10px] sm:text-sm text-charcoal/60 dark:text-zinc-400">Left of {effectiveDailyTarget}</p></CardContent></Card>
-        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly Exam</p><p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-burgundy-700 dark:text-white">{weeklyRemaining}</p><p className="mt-1 text-[10px] sm:text-sm text-charcoal/60 dark:text-zinc-400">Left of {WEEKLY_TARGET}</p></CardContent></Card>
-        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Recent Avg</p><p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-burgundy-700 dark:text-white">{recentAverage}</p><p className="mt-1 text-[10px] sm:text-sm text-charcoal/60 dark:text-zinc-400">From last attempts</p></CardContent></Card>
-        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly Avg</p><p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-burgundy-700 dark:text-white">{weeklyAverage}</p><p className="mt-1 text-[10px] sm:text-sm text-charcoal/60 dark:text-zinc-400">Exam result</p></CardContent></Card>
-      </div>
-
-      {topicProgress.length > 0 ? (
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle>Topic Progress (Teacher Speaking)</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {topicProgress.map((item) => {
-              const toneClass =
-                item.status === "passed"
-                  ? "border-emerald-300 bg-emerald-50/70 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-200"
-                  : item.status === "in_progress"
-                    ? "border-amber-300 bg-amber-50/70 text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200"
-                    : "border-burgundy-200 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
-
-              const statusLabel =
-                item.status === "passed" ? "Passed" : item.status === "in_progress" ? "In Progress" : "Not Started";
-
-              return (
-                <div key={item.title} className={`rounded-2xl border p-3 ${toneClass}`}>
-                  <p className="text-sm font-semibold">{item.title}</p>
-                  <p className="mt-1 text-xs">Questions: {item.questions}</p>
-                  <p className="text-xs">Attempts: {item.attempts}</p>
-                  <p className="text-xs">Avg score: {item.avgScore}</p>
-                  <Badge className="mt-2 bg-black/10 text-current dark:bg-white/10">{statusLabel}</Badge>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card className="rounded-3xl">
-        <CardHeader><CardTitle>{t("speaking.results")}</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {!result ? (
-            <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.emptyResult")}</p>
-          ) : (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.overall")}</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.score}</p></div>
-                <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.grammar")}</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.grammarScore}</p></div>
-                <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.fluency")}</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.fluencyScore}</p></div>
-                <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.vocabulary")}</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{result.vocabularyScore}</p></div>
-              </div>
-
-              <div className="space-y-2 rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                <p className="font-semibold text-charcoal dark:text-zinc-100"><Brain className="mr-2 inline h-4 w-4 text-burgundy-700 dark:text-white" />{t("speaking.feedback")}</p>
-                <p className="text-sm text-charcoal/75 dark:text-zinc-300">{result.feedback || "-"}</p>
-                <p className="text-xs text-charcoal/60 dark:text-zinc-400"><Languages className="mr-1 inline h-3.5 w-3.5" />{t("speaking.levelEstimate")}: {result.levelEstimate || level}</p>
-              </div>
-
-              <div className="grid gap-3 lg:grid-cols-2">
-                <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"><p className="font-semibold text-charcoal dark:text-zinc-100">{t("speaking.corrected")}</p><p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{result.correctedAnswer || "-"}</p></div>
-                <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"><p className="font-semibold text-charcoal dark:text-zinc-100">{t("speaking.modelAnswer")}</p><p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{result.modelAnswer || "-"}</p></div>
-              </div>
-
-              <div className="space-y-2 rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                <p className="font-semibold text-charcoal dark:text-zinc-100">{t("speaking.mistakes")}</p>
-                {result.mistakes.length === 0 ? (
-                  <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.noMistakes")}</p>
-                ) : (
-                  <div className="space-y-2">
-                    {result.mistakes.map((item, index) => (
-                      <div key={`${item.original}-${index}`} className="rounded-xl border border-burgundy-100 px-3 py-2 dark:border-zinc-700">
-                        <p className="text-xs text-charcoal/60 dark:text-zinc-400">Original: {item.original || "-"}</p>
-                        <p className="text-sm text-burgundy-700 dark:text-white">Fix: {item.corrected || "-"}</p>
-                        <p className="text-xs text-charcoal/70 dark:text-zinc-300">Why: {item.reason || "-"}</p>
+                  <div className="space-y-2 rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                    <p className="font-semibold text-charcoal dark:text-zinc-100">{t("speaking.mistakes")}</p>
+                    {result.mistakes.length === 0 ? (
+                      <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.noMistakes")}</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {result.mistakes.map((item, index) => (
+                          <div key={`${item.original}-${index}`} className="rounded-xl border border-burgundy-100 px-3 py-2 dark:border-zinc-700">
+                            <p className="text-xs text-charcoal/60 dark:text-zinc-400">Original: {item.original || "-"}</p>
+                            <p className="text-sm text-burgundy-700 dark:text-white">Fix: {item.corrected || "-"}</p>
+                            <p className="text-xs text-charcoal/70 dark:text-zinc-300">Why: {item.reason || "-"}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
-      <Card className="rounded-3xl">
-        <CardHeader><CardTitle>My mistakes</CardTitle></CardHeader>
-        <CardContent>
-          {weakMistakes.length === 0 ? (
-            <p className="text-sm text-charcoal/65 dark:text-zinc-400">No saved mistakes yet. Do speaking checks to build your weak-topic bank.</p>
-          ) : (
-            <div className="space-y-2">
-              {weakMistakes.map((item) => (
-                <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <Badge variant="positive">{item.category}</Badge>
-                    <Badge variant="positive">{item.topic}</Badge>
-                    <span className="text-xs text-charcoal/60 dark:text-zinc-400">{new Date(item.createdAt).toLocaleString()}</span>
-                  </div>
-                  <p className="text-sm text-charcoal/80 dark:text-zinc-300">{item.reason}</p>
-                  {item.corrected ? <p className="text-sm font-semibold text-burgundy-700 dark:text-white">{item.corrected}</p> : null}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="rounded-3xl">
-        <CardContent className="p-4">
-          <p className="inline-flex items-center gap-2 text-sm font-semibold text-burgundy-700 dark:text-white">
-            <CheckCircle2 className="h-4 w-4" />
-            Reminder: today left {dailyRemaining} of {effectiveDailyTarget} speaking questions.
-          </p>
-          <p className="mt-2 text-xs text-charcoal/65 dark:text-zinc-400">
-            Weekly exam starts automatically on Saturday after finishing daily speaking.
-          </p>
-          {mode === "weekly_exam" ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setSnapshot((prev) => resetWeeklyExam(prev));
-                }}
-              >
-                Reset weekly exam
-              </Button>
-            </div>
+          {/* Topic Progress (If any) */}
+          {topicProgress.length > 0 ? (
+            <Card className="rounded-3xl">
+              <CardHeader>
+                <CardTitle>Topic Progress (Teacher Speaking)</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+                {topicProgress.map((item) => {
+                  const toneClass =
+                    item.status === "passed"
+                      ? "border-emerald-300 bg-emerald-50/70 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-200"
+                      : item.status === "in_progress"
+                        ? "border-amber-300 bg-amber-50/70 text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200"
+                        : "border-burgundy-200 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
+    
+                  const statusLabel =
+                    item.status === "passed" ? "Passed" : item.status === "in_progress" ? "In Progress" : "Not Started";
+    
+                  return (
+                    <div key={item.title} className={`rounded-2xl border p-3 ${toneClass}`}>
+                      <p className="text-sm font-semibold">{item.title}</p>
+                      <p className="mt-1 text-xs">Questions: {item.questions}</p>
+                      <p className="text-xs">Attempts: {item.attempts}</p>
+                      <p className="text-xs">Avg score: {item.avgScore}</p>
+                      <Badge className="mt-2 bg-black/10 text-current dark:bg-white/10">{statusLabel}</Badge>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
           ) : null}
-        </CardContent>
-      </Card>
+
+        </div>
+
+        {/* Sidebar Column (Right on Desktop, Below on Mobile) */}
+        <div className="flex w-full flex-col gap-6 lg:col-span-5 xl:col-span-4">
+          
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card><CardContent className="p-3"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Today</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{dailyRemaining}</p><p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Left of {effectiveDailyTarget}</p></CardContent></Card>
+            <Card><CardContent className="p-3"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{weeklyRemaining}</p><p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Left of {WEEKLY_TARGET}</p></CardContent></Card>
+            <Card><CardContent className="p-3"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Recent</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{recentAverage}</p><p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Average score</p></CardContent></Card>
+            <Card><CardContent className="p-3"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Exam</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{weeklyAverage}</p><p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Weekly result</p></CardContent></Card>
+          </div>
+
+          {/* History Card */}
+          <Card className="rounded-3xl">
+            <CardContent className="space-y-3 p-5">
+              <h3 className="text-lg font-bold">{t("speaking.history")}</h3>
+              {latestAttempts.length === 0 ? (
+                <p className="text-sm text-charcoal/60 dark:text-zinc-400">{t("speaking.historyEmpty")}</p>
+              ) : (
+                <div className="space-y-2">
+                  {latestAttempts.slice(0, 5).map((item) => (
+                    <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-900">
+                      <p className="font-semibold text-charcoal dark:text-zinc-100">{item.topic || item.question}</p>
+                      <p className="text-charcoal/60 dark:text-zinc-400">Score: {item.score}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Mistakes Card */}
+          <Card className="rounded-3xl">
+            <CardHeader className="pb-3"><CardTitle className="text-lg">My mistakes</CardTitle></CardHeader>
+            <CardContent>
+              {weakMistakes.length === 0 ? (
+                <p className="text-sm text-charcoal/65 dark:text-zinc-400">No saved mistakes yet. Do speaking checks to build your weak-topic bank.</p>
+              ) : (
+                <div className="space-y-2">
+                  {weakMistakes.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <Badge variant="positive">{item.topic || item.category}</Badge>
+                      </div>
+                      <p className="text-sm text-charcoal/80 dark:text-zinc-300">{item.reason}</p>
+                      {item.corrected ? <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-white">{item.corrected}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Reminders / Bottom settings */}
+          <Card className="rounded-3xl">
+            <CardContent className="p-4 sm:p-5">
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-burgundy-700 dark:text-white">
+                <CheckCircle2 className="h-4 w-4" />
+                Reminder
+              </p>
+              <p className="mt-2 text-xs text-charcoal/65 dark:text-zinc-400">
+                Weekly exam starts automatically on Saturday after finishing daily speaking.
+              </p>
+              {mode === "weekly_exam" ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => {
+                      setSnapshot((prev) => resetWeeklyExam(prev));
+                    }}
+                  >
+                    Reset weekly exam
+                  </Button>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {showExamPrompt ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4">

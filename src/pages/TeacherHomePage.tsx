@@ -1,4 +1,4 @@
-import { BookOpenCheck, Check, Clock3, MessageCircle, Phone, ShieldCheck, Sparkles, Trophy, Users2, X } from "lucide-react";
+import { BookOpenCheck, Check, Clock3, Phone, ShieldCheck, Sparkles, Users2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -219,6 +219,25 @@ export function TeacherHomePage() {
                   <p className="mt-1 text-xs text-charcoal/65 dark:text-zinc-400">
                     Заявка #{item.transaction.id} • {item.transaction.amount.toFixed(0)} UZS
                   </p>
+                  <p className="mt-1 text-xs text-charcoal/65 dark:text-zinc-400">
+                    AI:{" "}
+                    {item.transaction.manualVerdict === "likely_valid"
+                      ? "likely valid"
+                      : item.transaction.manualVerdict === "likely_fake"
+                        ? "likely fake"
+                        : "pending"}{" "}
+                    {item.transaction.manualVerdictReason ? `- ${item.transaction.manualVerdictReason}` : ""}
+                  </p>
+                  {item.transaction.receiptUrl ? (
+                    <a
+                      href={item.transaction.receiptUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex text-xs font-semibold text-burgundy-700 underline-offset-2 hover:underline dark:text-burgundy-300"
+                    >
+                      Открыть чек
+                    </a>
+                  ) : null}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button
                       size="sm"

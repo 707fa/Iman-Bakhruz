@@ -206,6 +206,7 @@ export interface HomeworkTask {
 
 export type PaymentProvider = "payme" | "click" | "manual";
 export type PaymentStatus = "pending" | "paid" | "failed";
+export type PaymentManualVerdict = "pending" | "likely_valid" | "likely_fake";
 
 export interface PaymentTransaction {
   id: string;
@@ -213,6 +214,12 @@ export interface PaymentTransaction {
   amount: number;
   status: PaymentStatus;
   checkoutUrl?: string;
+  receiptUrl?: string;
+  manualVerdict?: PaymentManualVerdict;
+  manualVerdictReason?: string;
+  manualDetectedAmount?: number;
+  manualReceiptUploadedAt?: string;
+  reviewedAt?: string;
   createdAt: string;
   paidAt?: string;
 }

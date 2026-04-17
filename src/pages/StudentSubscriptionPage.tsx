@@ -21,6 +21,8 @@ export function StudentSubscriptionPage() {
   const token = isApiMode ? getApiToken() : null;
 
   const [loading, setLoading] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [subState, setSubState] = useState<SubscriptionState | undefined>(state.session?.isPaid === undefined ? undefined : {
     isPaid: Boolean(state.session?.isPaid),
     paidUntil: state.session?.paidUntil,
@@ -119,6 +121,39 @@ export function StudentSubscriptionPage() {
     }
   }
 
+  async function handleUploadReceipt() {
+    if (!isApiMode || !token) {
+      showToast({ tone: "error", message: t("pay.providerUnavailable") });
+      return;
+    }
+    if (!receiptFile) {
+      showToast({ tone: "error", message: "Сначала выберите фото чека." });
+      return;
+    }
+
+    setUploadingReceipt(true);
+    try {
+      const response = await platformApi.uploadManualReceipt(token, receiptFile, lastTx?.id);
+      setSubState(response.subscription);
+      setLastTx(response.transaction ?? null);
+      setReceiptFile(null);
+      showToast({
+        tone: "success",
+        message: response.telegramNotified
+          ? "Чек отправлен. Учитель получит заявку в Telegram."
+          : "Чек загружен. Учитель проверит оплату.",
+      });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        showToast({ tone: "error", message: t("msg.reloginRequired") });
+        return;
+      }
+      showToast({ tone: "error", message: t("msg.serverUnavailable") });
+    } finally {
+      setUploadingReceipt(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -157,6 +192,45 @@ export function StudentSubscriptionPage() {
               {t("pay.requestAccess")}
             </Button>
           </div>
+
+          {!isPaid ? (
+            <div className="space-y-3 rounded-2xl border border-border p-3">
+              <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">Загрузить чек оплаты</p>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => setReceiptFile(event.target.files?.[0] ?? null)}
+                className="block w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void handleUploadReceipt()}
+                  disabled={uploadingReceipt || !receiptFile}
+                >
+                  {uploadingReceipt ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Отправить чек
+                </Button>
+                {lastTx?.receiptUrl ? (
+                  <a href={lastTx.receiptUrl} target="_blank" rel="noreferrer">
+                    <Button type="button" variant="ghost">Открыть последний чек</Button>
+                  </a>
+                ) : null}
+              </div>
+              {lastTx?.manualVerdict ? (
+                <p className="text-xs text-charcoal/70 dark:text-zinc-400">
+                  AI проверка:{" "}
+                  {lastTx.manualVerdict === "likely_valid"
+                    ? "Похоже на настоящий чек"
+                    : lastTx.manualVerdict === "likely_fake"
+                      ? "Похоже на фейк чек"
+                      : "Ожидает проверки"}{" "}
+                  {lastTx.manualVerdictReason ? `- ${lastTx.manualVerdictReason}` : ""}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap items-center gap-3">
             <Button type="button" variant="ghost" onClick={() => void handleRefreshStatus()} disabled={loading}>
