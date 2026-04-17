@@ -1,5 +1,5 @@
 const { analyzeHomework } = require("../services/aiCheckService");
-const { analyzeSpeaking } = require("../services/speakingService");
+const { analyzeSpeaking, generateSpeakingQuestions } = require("../services/speakingService");
 const { AppError } = require("../utils/errors");
 const { ok } = require("../utils/response");
 
@@ -91,9 +91,43 @@ async function speakingCheck(req, res, next) {
   }
 }
 
+async function speakingQuestions(req, res, next) {
+  try {
+    const level = normalizeText(req.body?.level);
+    const language = normalizeText(req.body?.language);
+    const lessonTopic = normalizeText(req.body?.lessonTopic);
+    const teacherQuestions = Array.isArray(req.body?.teacherQuestions) ? req.body.teacherQuestions : [];
+
+    if (!lessonTopic) {
+      throw new AppError("Lesson topic is required", {
+        statusCode: 400,
+        code: "SPEAKING_LESSON_TOPIC_REQUIRED",
+      });
+    }
+
+    const result = await generateSpeakingQuestions(
+      {
+        level,
+        language,
+        lessonTopic,
+        teacherQuestions,
+      },
+      {
+        requestId: req.requestId,
+        userKey: req.userIdentity?.key,
+      },
+    );
+
+    return ok(res, result);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   checkHomework,
   chat,
   homeworkCheck,
   speakingCheck,
+  speakingQuestions,
 };

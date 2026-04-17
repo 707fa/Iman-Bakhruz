@@ -1,7 +1,7 @@
-﻿import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
+import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
-import { AI_GATEWAY_URL, API_BASE_URL, DATA_PROVIDER_MODE } from "../lib/env";
+import { AI_GATEWAY_URL, DATA_PROVIDER_MODE } from "../lib/env";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
@@ -70,11 +70,11 @@ function mapBackendAiErrorToMessage(error: unknown): string {
     }
 
     if (error.status >= 500 || error.status === 408 || error.status === 0) {
-      return `AI service is temporarily unavailable. Check backend/API (${API_BASE_URL}).`;
+      return `AI service is temporarily unavailable. Please retry in 1-2 minutes.`;
     }
   }
 
-  return `Failed to get AI reply. Check backend/API (${API_BASE_URL}).`;
+  return "Failed to get AI reply. Please retry.";
 }
 
 function makeMessageId(prefix: "u" | "a"): string {
@@ -433,6 +433,20 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                   );
                 })
               )}
+              {sending ? (
+                <div className="flex justify-start">
+                  <div className="max-w-[90%] rounded-2xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100">
+                    <div className="mb-1 inline-flex items-center gap-1 text-xs text-charcoal/55 dark:text-zinc-400">
+                      <Bot className="h-3.5 w-3.5" />
+                      Iman AI
+                    </div>
+                    <div className="inline-flex items-center gap-2 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      AI is typing...
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {imagePreview ? (

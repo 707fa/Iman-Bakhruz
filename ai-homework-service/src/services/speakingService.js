@@ -146,6 +146,80 @@ function buildCacheKey(payload) {
   return buildCacheKeyFromText(env.redisPrefix, combined);
 }
 
+function normalizeTeacherQuestions(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => trimText(item))
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+function buildSpeakingQuestionsPrompt({ level, language, lessonTopic, teacherQuestions }) {
+  const teacherBlock = teacherQuestions.length
+    ? teacherQuestions.map((item, index) => `${index + 1}. ${item}`).join("\n")
+    : "No teacher-provided mandatory questions.";
+
+  return [
+    "You generate English speaking practice questions for students.",
+    "Return STRICT JSON only. No markdown fences. No extra text.",
+    "Output schema:",
+    "{",
+    '  "questions": [',
+    '    { "id": "q-1", "topic": "string", "prompt": "string" }',
+    "  ]",
+    "}",
+    "Rules:",
+    "- Generate exactly 20 questions.",
+    "- Match question difficulty to level hint.",
+    "- Focus on the lesson topic.",
+    "- Keep each prompt clear and classroom-ready.",
+    "- No duplicate prompts.",
+    "- If teacher questions are provided, include them first (rephrased only if needed for clarity).",
+    "",
+    `Level hint: ${trimText(level) || "unknown"}`,
+    `Preferred output language hint: ${trimText(language) || "en"}`,
+    `Lesson topic: ${trimText(lessonTopic) || "General English"}`,
+    "Teacher required questions:",
+    teacherBlock,
+  ].join("\n");
+}
+
+function normalizeGeneratedQuestions(raw, fallbackTopic) {
+  const root = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const list = Array.isArray(root.questions) ? root.questions : [];
+  const seen = new Set();
+  const normalized = [];
+
+  for (const item of list) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const prompt = trimText(item.prompt);
+    if (!prompt) continue;
+    const key = prompt.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    normalized.push({
+      id: trimText(item.id) || `q-${normalized.length + 1}`,
+      topic: trimText(item.topic) || fallbackTopic || "General",
+      prompt,
+    });
+    if (normalized.length >= 20) break;
+  }
+
+  return normalized;
+}
+
+function buildGenerationCacheKey(payload) {
+  const teacherQuestions = normalizeTeacherQuestions(payload.teacherQuestions);
+  const combined = [
+    "speaking_questions",
+    trimText(payload.level).toLowerCase(),
+    trimText(payload.language).toLowerCase(),
+    trimText(payload.lessonTopic).toLowerCase(),
+    teacherQuestions.join("|").toLowerCase(),
+  ].join("|");
+  return buildCacheKeyFromText(env.redisPrefix, combined);
+}
+
 async function analyzeSpeaking(payload, context) {
   const cacheKey = buildCacheKey(payload);
   const cached = await getCachedResult(cacheKey);
@@ -209,7 +283,118 @@ async function analyzeSpeaking(payload, context) {
   };
 }
 
+async function generateSpeakingQuestions(payload, context) {
+  const teacherQuestions = normalizeTeacherQuestions(payload.teacherQuestions);
+  const lessonTopic = trimText(payload.lessonTopic) || "General English";
+  const cacheKey = buildGenerationCacheKey({
+    level: payload.level,
+    language: payload.language,
+    lessonTopic,
+    teacherQuestions,
+  });
+
+  const cached = await getCachedResult(cacheKey);
+  if (cached && cached.data && typeof cached.data === "object" && Array.isArray(cached.data.questions)) {
+    logger.info("speaking.questions.cache.hit", {
+      requestId: context.requestId,
+      userKey: context.userKey,
+    });
+    return {
+      success: true,
+      provider: "cache",
+      cached: true,
+      data: { questions: cached.data.questions.slice(0, 20) },
+    };
+  }
+
+  logger.info("speaking.questions.cache.miss", {
+    requestId: context.requestId,
+    userKey: context.userKey,
+  });
+
+  const prompt = buildSpeakingQuestionsPrompt({
+    level: payload.level,
+    language: payload.language,
+    lessonTopic,
+    teacherQuestions,
+  });
+
+  const output = await enqueue(
+    () =>
+      analyzeWithFallback(
+        {
+          text: prompt,
+          imageBuffer: null,
+          mimeType: null,
+        },
+        context,
+      ),
+    {
+      requestId: context.requestId,
+      userKey: context.userKey,
+    },
+  );
+
+  const parsed = extractJsonCandidate(output.result);
+  const generated = normalizeGeneratedQuestions(parsed, lessonTopic);
+  const merged = [];
+  const seen = new Set();
+
+  for (const teacherPrompt of teacherQuestions) {
+    const key = teacherPrompt.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push({
+      id: `t-${merged.length + 1}`,
+      topic: lessonTopic,
+      prompt: teacherPrompt,
+    });
+  }
+
+  for (const item of generated) {
+    const key = item.prompt.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push({
+      id: item.id || `q-${merged.length + 1}`,
+      topic: item.topic || lessonTopic,
+      prompt: item.prompt,
+    });
+    if (merged.length >= 20) break;
+  }
+
+  while (merged.length < 20) {
+    const nextIndex = merged.length + 1;
+    merged.push({
+      id: `f-${nextIndex}`,
+      topic: lessonTopic,
+      prompt: `Speak for 30-45 seconds about "${lessonTopic}" and give practical examples. (${nextIndex})`,
+    });
+  }
+
+  const result = {
+    questions: merged.slice(0, 20),
+  };
+
+  await setCachedResult(
+    cacheKey,
+    {
+      data: result,
+      provider: output.provider,
+      createdAt: new Date().toISOString(),
+    },
+    env.cacheTtlSeconds,
+  );
+
+  return {
+    success: true,
+    provider: output.provider,
+    cached: false,
+    data: result,
+  };
+}
+
 module.exports = {
   analyzeSpeaking,
+  generateSpeakingQuestions,
 };
-

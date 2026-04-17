@@ -15,7 +15,22 @@ interface SpeakingCheckPayload {
   userId?: string;
 }
 
+interface SpeakingQuestionsPayload {
+  level?: string;
+  language?: string;
+  lessonTopic: string;
+  teacherQuestions?: string[];
+  userId?: string;
+}
+
+export interface GeneratedSpeakingQuestion {
+  id: string;
+  topic: string;
+  prompt: string;
+}
+
 const SPEAKING_ENDPOINT_PATHS = ["/api/ai/speaking/check", "/api/chat/ai/speaking/check", "/chat/ai/speaking/check"];
+const SPEAKING_QUESTIONS_ENDPOINT_PATHS = ["/api/ai/speaking/questions", "/api/chat/ai/speaking/questions", "/chat/ai/speaking/questions"];
 
 function parseJsonSafe(text: string): unknown {
   if (!text) return null;
@@ -188,6 +203,36 @@ function extractErrorMessage(payload: unknown): string {
   return "";
 }
 
+function normalizeQuestionsResponse(payload: unknown): GeneratedSpeakingQuestion[] {
+  const root = asRecord(payload);
+  const data = asRecord(root?.data) ?? root;
+  const list = Array.isArray(data?.questions) ? data.questions : [];
+  const normalized: GeneratedSpeakingQuestion[] = [];
+  const seen = new Set<string>();
+
+  for (const item of list) {
+    const rec = asRecord(item);
+    if (!rec) continue;
+    const prompt = String(rec.prompt ?? "").trim();
+    if (!prompt) continue;
+    const key = prompt.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    normalized.push({
+      id: String(rec.id ?? `q-${normalized.length + 1}`),
+      topic: String(rec.topic ?? "Lesson topic").trim() || "Lesson topic",
+      prompt,
+    });
+    if (normalized.length >= 20) break;
+  }
+
+  if (normalized.length === 0) {
+    throw new Error("Empty generated speaking questions");
+  }
+
+  return normalized;
+}
+
 export function mapSpeakingApiErrorToMessage(error: unknown): string {
   if (error instanceof ApiError) {
     const message = extractErrorMessage(error.payload);
@@ -295,4 +340,67 @@ export async function checkSpeakingAnswer(payload: SpeakingCheckPayload): Promis
     }
     throw fallbackError ?? lastError ?? new Error("Speaking endpoint is unavailable");
   }
+}
+
+export async function generateSpeakingQuestions(payload: SpeakingQuestionsPayload): Promise<GeneratedSpeakingQuestion[]> {
+  const lessonTopic = payload.lessonTopic.trim();
+  if (!lessonTopic) {
+    throw new Error("Lesson topic is required");
+  }
+
+  const candidateBases = Array.from(
+    new Set([AI_GATEWAY_URL, API_BASE_URL].map((value) => (value || "").trim().replace(/\/+$/, "")).filter(Boolean)),
+  );
+  const token = getApiToken();
+  const userId = payload.userId?.trim() || getSessionUserId() || "";
+  const bodyPayload: SpeakingQuestionsPayload = {
+    ...payload,
+    lessonTopic,
+    userId: userId || undefined,
+    teacherQuestions: Array.isArray(payload.teacherQuestions) ? payload.teacherQuestions.filter(Boolean).slice(0, 20) : [],
+  };
+
+  let lastError: unknown = null;
+
+  for (const baseUrl of candidateBases) {
+    for (const path of SPEAKING_QUESTIONS_ENDPOINT_PATHS) {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), AI_GATEWAY_TIMEOUT_MS);
+
+      try {
+        const response = await fetch(`${baseUrl}${path}`, {
+          method: "POST",
+          headers,
+          signal: controller.signal,
+          body: JSON.stringify(bodyPayload),
+        });
+
+        const rawText = await response.text();
+        const responsePayload = parseJsonSafe(rawText);
+
+        if (!response.ok) {
+          throw new ApiError(response.status, responsePayload, "Speaking questions request failed");
+        }
+
+        return normalizeQuestionsResponse(responsePayload);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          lastError = new ApiError(408, { message: "Request timeout" }, "Speaking questions timeout");
+          continue;
+        }
+        lastError = error;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
+  }
+
+  throw lastError ?? new Error("Speaking questions endpoint is unavailable");
 }
