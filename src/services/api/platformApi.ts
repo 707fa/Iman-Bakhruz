@@ -518,11 +518,20 @@ export const platformApi = {
       full_name: payload.fullName.trim(),
       phone: payload.phone,
       password: payload.password,
-      group_id: payload.groupId,
-      group: payload.groupTitle ?? "",
-      time: payload.time,
-      days_pattern: payload.daysPattern,
+      is_iman_student: payload.isImanStudent === false ? "false" : "true",
     };
+    if (payload.groupId) {
+      body.group_id = payload.groupId;
+    }
+    if (payload.groupTitle) {
+      body.group = payload.groupTitle;
+    }
+    if (payload.time) {
+      body.time = payload.time;
+    }
+    if (payload.daysPattern) {
+      body.days_pattern = payload.daysPattern;
+    }
     if (payload.confirmPassword) {
       body.password_confirm = payload.confirmPassword;
     }

@@ -497,7 +497,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
     );
     if (studentMatch) {
-      if (studentMatch.isActive === false || studentMatch.isImanStudent === false) {
+      if (studentMatch.isActive === false) {
         return { ok: false, messageKey: "msg.loginInvalid" };
       }
       setState((prev) => ({ ...withSeedData(prev), session: { role: "student", userId: studentMatch.id } }));
@@ -533,13 +533,16 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       return { ok: false, messageKey: "msg.registerPasswordShort" };
     }
 
-    const group = seeded.groups.find(
-      (item) =>
-        ((payload.groupId && item.id === payload.groupId) ||
-          (payload.groupTitle && item.title === payload.groupTitle && item.time === payload.time)) &&
-        item.daysPattern === payload.daysPattern,
-    );
-    if (!group) {
+    const isImanStudent = payload.isImanStudent !== false;
+    const group = isImanStudent
+      ? seeded.groups.find(
+          (item) =>
+            ((payload.groupId && item.id === payload.groupId) ||
+              (payload.groupTitle && item.title === payload.groupTitle && item.time === payload.time)) &&
+            item.daysPattern === payload.daysPattern,
+        )
+      : null;
+    if (isImanStudent && !group) {
       return { ok: false, messageKey: "msg.registerGroupInvalid" };
     }
 
@@ -548,25 +551,27 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       fullName,
       phone,
       password: payload.password,
-      groupId: group.id,
+      groupId: group?.id ?? "",
       points: 0,
       isActive: true,
-      isImanStudent: true,
+      isImanStudent,
     };
 
-    const ranking: RankingItem = {
-      studentId: student.id,
-      fullName: student.fullName,
-      groupId: student.groupId,
-      points: student.points,
-    };
+    const ranking: RankingItem | null = isImanStudent
+      ? {
+          studentId: student.id,
+          fullName: student.fullName,
+          groupId: student.groupId,
+          points: student.points,
+        }
+      : null;
 
     setState((prev) => {
       const base = withSeedData(prev);
       return {
         ...base,
         students: [...base.students, student],
-        rankings: [...base.rankings, ranking],
+        rankings: ranking ? [...base.rankings, ranking] : base.rankings,
         session: { role: "student", userId: student.id },
       };
     });
@@ -574,7 +579,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return {
       ok: true,
       messageKey: "msg.registerSuccess",
-      messageParams: { group: group.title, time: group.time },
+      messageParams: { group: group?.title ?? "-", time: group?.time ?? "-" },
     };
   }
 
@@ -785,11 +790,14 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             fullName: normalizedPayload.fullName.trim(),
             phone: normalizedPayload.phone,
             password: normalizedPayload.password,
-            groupId: normalizedPayload.groupId,
+            groupId: normalizedPayload.groupId ?? existingStudent?.groupId ?? "",
             points: existingStudent?.points ?? 0,
             avatarUrl: existingStudent?.avatarUrl,
             isActive: existingStudent?.isActive ?? true,
-            isImanStudent: existingStudent?.isImanStudent ?? true,
+            isImanStudent:
+              normalizedPayload.isImanStudent !== undefined
+                ? normalizedPayload.isImanStudent
+                : existingStudent?.isImanStudent ?? true,
           };
 
           const students = existingStudent
@@ -820,8 +828,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
           ok: true,
           messageKey: "msg.registerSuccess",
           messageParams: {
-            group: normalizedPayload.groupTitle ?? normalizedPayload.groupId,
-            time: normalizedPayload.time,
+            group: normalizedPayload.groupTitle ?? normalizedPayload.groupId ?? "-",
+            time: normalizedPayload.time ?? "-",
           },
         };
       } catch (error) {

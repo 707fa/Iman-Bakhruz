@@ -92,10 +92,11 @@ export interface RegisterPayload {
   phone: string;
   password: string;
   confirmPassword?: string;
-  groupId: string;
+  groupId?: string;
   groupTitle?: string;
-  time: string;
-  daysPattern: GroupDaysPattern;
+  time?: string;
+  daysPattern?: GroupDaysPattern;
+  isImanStudent?: boolean;
 }
 
 export interface ActionResult {

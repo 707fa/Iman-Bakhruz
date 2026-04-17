@@ -14,9 +14,9 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
     <Button
       type="button"
       size={compact ? "sm" : "default"}
-      variant="secondary"
+      variant="ghost"
       onClick={toggleTheme}
-      className="gap-2 text-white"
+      className="gap-2 border border-burgundy-200 bg-white/90 text-charcoal hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-100 dark:hover:bg-zinc-800"
       aria-label={t("ui.theme")}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

@@ -1,6 +1,5 @@
-﻿import { Camera, Phone, Users } from "lucide-react";
+import { Camera, Phone, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
-import { ProfileCustomizationCard } from "../components/ProfileCustomizationCard";
 import { UserAvatar } from "../components/UserAvatar";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -70,10 +69,7 @@ export function TeacherProfilePage() {
           </label>
         </CardContent>
       </Card>
-
-      <ProfileCustomizationCard userId={currentTeacher.id} />
     </div>
   );
 }
-
 

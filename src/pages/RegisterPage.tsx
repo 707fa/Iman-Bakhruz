@@ -27,6 +27,9 @@ export function RegisterPage() {
   const [phone, setPhone] = useState(() => formatUzPhoneInput(""));
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isImanStudent, setIsImanStudent] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const allowedGroupIds = useMemo(() => new Set(scheduleGroups.map((group) => group.id)), []);
   const registrationGroups = useMemo(() => {
     const filtered = state.groups.filter((group) => allowedGroupIds.has(group.id));
@@ -59,7 +62,6 @@ export function RegisterPage() {
   );
 
   const [time, setTime] = useState(availableTimes[0] ?? "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (dayPatterns.length === 0) return;
@@ -96,16 +98,18 @@ export function RegisterPage() {
       return;
     }
 
-    if (!selectedGroupTitle || !time) {
+    if (isImanStudent && (!selectedGroupTitle || !time)) {
       showToast({ message: t("msg.registerNoSlots"), tone: "error" });
       return;
     }
 
-    const targetGroup = registrationGroups.find(
-      (group) => group.title === selectedGroupTitle && group.time === time && group.daysPattern === daysPattern,
-    );
+    const targetGroup = isImanStudent
+      ? registrationGroups.find(
+          (group) => group.title === selectedGroupTitle && group.time === time && group.daysPattern === daysPattern,
+        ) ?? null
+      : null;
 
-    if (!targetGroup) {
+    if (isImanStudent && !targetGroup) {
       showToast({ message: t("msg.registerGroupInvalid"), tone: "error" });
       return;
     }
@@ -117,10 +121,11 @@ export function RegisterPage() {
         phone,
         password,
         confirmPassword,
-        groupId: targetGroup.id,
-        groupTitle: targetGroup.title,
-        time: targetGroup.time,
-        daysPattern,
+        groupId: targetGroup?.id,
+        groupTitle: targetGroup?.title,
+        time: targetGroup?.time,
+        daysPattern: targetGroup?.daysPattern,
+        isImanStudent,
       });
 
       showToast({
@@ -159,6 +164,7 @@ export function RegisterPage() {
             {t("promo.top5WeeklyFree")}
           </p>
         </CardHeader>
+
         <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
           <form onSubmit={handleSubmit} className="grid gap-3.5 sm:grid-cols-2 sm:gap-4">
             <div className="space-y-2 sm:col-span-2">
@@ -221,72 +227,93 @@ export function RegisterPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>{t("auth.days")}</Label>
-              <Select
-                value={daysPattern}
-                disabled={isSubmitting}
-                onValueChange={(value) => {
-                  const nextPattern = value as GroupDaysPattern;
-                  setDaysPattern(nextPattern);
-                  const firstGroup = registrationGroups.find((group) => group.daysPattern === nextPattern);
-                  setSelectedGroupTitle(firstGroup?.title ?? "");
-                  setTime(firstGroup?.time ?? "");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("auth.selectDays")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {dayPatterns.map((pattern) => (
-                    <SelectItem key={pattern} value={pattern}>
-                      {t(`days.${pattern}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t("auth.group")}</Label>
-              <Select
-                value={selectedGroupTitle}
-                disabled={isSubmitting}
-                onValueChange={(value) => {
-                  setSelectedGroupTitle(value);
-                  const firstTime =
-                    registrationGroups.find((group) => group.daysPattern === daysPattern && group.title === value)?.time ?? "";
-                  setTime(firstTime);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("auth.selectGroup")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {groupTitles.map((groupTitle) => (
-                    <SelectItem key={groupTitle} value={groupTitle}>
-                      {groupTitle}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="space-y-2 sm:col-span-2">
-              <Label>{t("auth.time")}</Label>
-              <Select value={time} onValueChange={setTime} disabled={isSubmitting}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("auth.selectTime")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTimes.map((itemTime) => (
-                    <SelectItem key={itemTime} value={itemTime}>
-                      {itemTime}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-charcoal dark:text-zinc-200">
+                <input
+                  type="checkbox"
+                  checked={isImanStudent}
+                  onChange={(event) => setIsImanStudent(event.target.checked)}
+                  className="h-4 w-4 rounded border-burgundy-300 text-burgundy-700 focus:ring-burgundy-400"
+                />
+                {t("auth.centerStudentToggle")}
+              </label>
+              {!isImanStudent ? (
+                <p className="text-xs text-charcoal/65 dark:text-zinc-400">
+                  {t("auth.guestAccountHint")}
+                </p>
+              ) : null}
             </div>
+
+            {isImanStudent ? (
+              <>
+                <div className="space-y-2">
+                  <Label>{t("auth.days")}</Label>
+                  <Select
+                    value={daysPattern}
+                    disabled={isSubmitting}
+                    onValueChange={(value) => {
+                      const nextPattern = value as GroupDaysPattern;
+                      setDaysPattern(nextPattern);
+                      const firstGroup = registrationGroups.find((group) => group.daysPattern === nextPattern);
+                      setSelectedGroupTitle(firstGroup?.title ?? "");
+                      setTime(firstGroup?.time ?? "");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("auth.selectDays")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dayPatterns.map((pattern) => (
+                        <SelectItem key={pattern} value={pattern}>
+                          {t(`days.${pattern}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t("auth.group")}</Label>
+                  <Select
+                    value={selectedGroupTitle}
+                    disabled={isSubmitting}
+                    onValueChange={(value) => {
+                      setSelectedGroupTitle(value);
+                      const firstTime =
+                        registrationGroups.find((group) => group.daysPattern === daysPattern && group.title === value)?.time ?? "";
+                      setTime(firstTime);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("auth.selectGroup")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {groupTitles.map((groupTitle) => (
+                        <SelectItem key={groupTitle} value={groupTitle}>
+                          {groupTitle}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>{t("auth.time")}</Label>
+                  <Select value={time} onValueChange={setTime} disabled={isSubmitting}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("auth.selectTime")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTimes.map((itemTime) => (
+                        <SelectItem key={itemTime} value={itemTime}>
+                          {itemTime}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            ) : null}
 
             <Button type="submit" className="sm:col-span-2" disabled={isSubmitting}>
               <UserPlus className="mr-2 h-4 w-4" />

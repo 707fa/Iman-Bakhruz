@@ -24,7 +24,7 @@ export function LanguageSwitcher({ compact = false, mode = "full" }: LanguageSwi
         type="button"
         onClick={() => setLocale(nextLocale)}
         className={cn(
-          "inline-flex h-9 min-w-12 items-center justify-center rounded-xl border border-burgundy-200 bg-white/90 px-3 text-xs font-semibold shadow-sm transition hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-200 dark:hover:bg-zinc-800",
+          "inline-flex h-9 min-w-12 items-center justify-center rounded-xl border border-burgundy-200 bg-white/90 px-3 text-xs font-semibold text-charcoal shadow-sm transition hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-200 dark:hover:bg-zinc-800",
           compact && "h-8 min-w-10 px-2.5",
         )}
         aria-label={`${t("ui.language")}: ${labels[locale]}`}
@@ -51,7 +51,7 @@ export function LanguageSwitcher({ compact = false, mode = "full" }: LanguageSwi
             "rounded-lg px-2 py-1.5 text-xs font-semibold transition sm:px-2.5 sm:py-1",
             item === locale
               ? "bg-burgundy-700 text-white"
-              : "text-charcoal/70 hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-300 dark:hover:bg-zinc-800",
+              : "text-charcoal hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white",
           )}
         >
           {labels[item]}

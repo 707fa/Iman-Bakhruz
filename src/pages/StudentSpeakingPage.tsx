@@ -4,7 +4,6 @@ import {
   Brain,
   CalendarDays,
   CheckCircle2,
-  CircleAlert,
   Clock3,
   Languages,
   Mic,
@@ -21,6 +20,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
+import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 import { getSpeakingQuestionsForLevel } from "../data/speakingQuestions";
 import {
@@ -123,6 +123,7 @@ function chooseTeacherDailyQuestion(
 export function StudentSpeakingPage() {
   const { state, currentStudent } = useAppStore();
   const { t, locale } = useUi();
+  const { showToast } = useToast();
 
   const token = getApiToken();
   const userId = currentStudent?.id ?? "";
@@ -147,7 +148,7 @@ export function StudentSpeakingPage() {
   const [result, setResult] = useState<SpeakingAnalysisResult | null>(null);
   const [manualTranscript, setManualTranscript] = useState("");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [, setErrorMessage] = useState<string | null>(null);
   const [showExamPrompt, setShowExamPrompt] = useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState<boolean>(
     typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted",
@@ -254,13 +255,15 @@ export function StudentSpeakingPage() {
 
   useEffect(() => {
     if (!speech.error) return;
-    setStatus("error");
+    setStatus("idle");
     if (speech.error.toLowerCase().includes("permission denied")) {
       setErrorMessage(t("speaking.error.microphoneDenied"));
+      showToast({ message: t("speaking.error.microphoneDenied"), tone: "error" });
       return;
     }
     setErrorMessage(speech.error);
-  }, [speech.error, t]);
+    showToast({ message: speech.error, tone: "error" });
+  }, [showToast, speech.error, t]);
 
   useEffect(() => {
     if (!examUnlocked || weeklyRemaining <= 0) {
@@ -277,47 +280,16 @@ export function StudentSpeakingPage() {
   }, [examUnlocked, weeklyRemaining, snapshot.weeklyExam.started]);
 
   const latestAttempts = snapshot.attempts.slice(0, 6);
+  const statusLabel = t(`speaking.status.${status}`);
   const recentAverage = averageScore(latestAttempts.map((item) => item.score));
-  const weakMistakes = getWeakMistakes(snapshot, level, 10);
+  const weakMistakes = getWeakMistakes(snapshot, level, 5);
   const weeklyAttempts = snapshot.attempts.filter((item) => item.mode === "weekly_exam");
   const weeklyAverage = averageScore(weeklyAttempts.slice(0, WEEKLY_TARGET).map((item) => item.score));
   const topicProgress = useMemo(() => {
-    const topicMap = new Map<string, { title: string; questions: number; attempts: number; avgScore: number }>();
-    teacherSpeakingTasks.forEach((task) => {
-      const topic = (task.speakingTopic || task.title || "").trim();
-      if (!topic) return;
-      const questionsCount = (task.speakingQuestions ?? []).length || 1;
-      const existing = topicMap.get(topic);
-      topicMap.set(topic, {
-        title: topic,
-        questions: (existing?.questions ?? 0) + questionsCount,
-        attempts: existing?.attempts ?? 0,
-        avgScore: existing?.avgScore ?? 0,
-      });
-    });
-
-    const byTopicAttempts = new Map<string, { count: number; scoreSum: number }>();
-    snapshot.attempts.forEach((item) => {
-      const topic = String(item.topic || "").trim();
-      if (!topic || !topicMap.has(topic)) return;
-      const current = byTopicAttempts.get(topic) ?? { count: 0, scoreSum: 0 };
-      byTopicAttempts.set(topic, {
-        count: current.count + 1,
-        scoreSum: current.scoreSum + Number(item.score || 0),
-      });
-    });
-
-    return [...topicMap.values()].map((topic) => {
-      const stats = byTopicAttempts.get(topic.title);
-      const attempts = stats?.count ?? 0;
-      const avgScore = attempts > 0 ? Math.round((stats?.scoreSum ?? 0) / attempts) : 0;
-      const status = attempts === 0 ? "not_started" : avgScore >= 70 ? "passed" : "in_progress";
-      return {
-        ...topic,
-        attempts,
-        avgScore,
-        status,
-      };
+    return teacherSpeakingTasks.map((task) => {
+      const topic = (task.speakingTopic || task.title || "").trim() || "Topic";
+      const attempts = snapshot.attempts.filter((item) => String(item.topic || "").trim() === topic).length;
+      return { topic, attempts };
     });
   }, [teacherSpeakingTasks, snapshot.attempts]);
 
@@ -345,6 +317,7 @@ export function StudentSpeakingPage() {
       setNotificationEnabled(granted);
       if (!granted) {
         setErrorMessage("Notifications were not enabled. You can still use in-app reminders.");
+        showToast({ message: "Notifications were not enabled. You can still use in-app reminders.", tone: "info" });
       }
     });
   }
@@ -353,6 +326,7 @@ export function StudentSpeakingPage() {
     if (!question) return;
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       setErrorMessage(t("speaking.listenUnavailable"));
+      showToast({ message: t("speaking.listenUnavailable"), tone: "error" });
       return;
     }
     const utterance = new SpeechSynthesisUtterance(question.prompt);
@@ -371,8 +345,9 @@ export function StudentSpeakingPage() {
     setManualTranscript("");
 
     if (!speech.supported) {
-      setStatus("error");
+      setStatus("idle");
       setErrorMessage(t("speaking.error.unavailable"));
+      showToast({ message: t("speaking.error.unavailable"), tone: "error" });
       return;
     }
 
@@ -432,20 +407,26 @@ export function StudentSpeakingPage() {
 
     const transcript = manualTranscript.trim();
     if (!transcript) {
-      setStatus("error");
-      setErrorMessage(t("speaking.error.emptyTranscript"));
+      setStatus("idle");
+      const message = t("speaking.error.emptyTranscript");
+      setErrorMessage(message);
+      showToast({ message, tone: "error" });
       return;
     }
 
     if (wordsCount(transcript) < MIN_WORDS) {
-      setStatus("error");
-      setErrorMessage(`Minimum ${MIN_WORDS} words required.`);
+      setStatus("idle");
+      const message = `Minimum ${MIN_WORDS} words required.`;
+      setErrorMessage(message);
+      showToast({ message, tone: "error" });
       return;
     }
 
     if (recordingSeconds < MIN_SECONDS) {
-      setStatus("error");
-      setErrorMessage(`Record at least ${MIN_SECONDS} seconds to submit answer.`);
+      setStatus("idle");
+      const message = `Record at least ${MIN_SECONDS} seconds to submit answer.`;
+      setErrorMessage(message);
+      showToast({ message, tone: "error" });
       return;
     }
 
@@ -476,8 +457,10 @@ export function StudentSpeakingPage() {
         }),
       );
     } catch (error) {
-      setStatus("error");
-      setErrorMessage(mapSpeakingApiErrorToMessage(error));
+      setStatus("idle");
+      const message = mapSpeakingApiErrorToMessage(error);
+      setErrorMessage(message);
+      showToast({ message, tone: "error" });
     }
   }
 
@@ -557,7 +540,7 @@ export function StudentSpeakingPage() {
                 {t("speaking.recording")}
               </CardTitle>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="positive">{status.toUpperCase()}</Badge>
+                <Badge variant="positive">{statusLabel}</Badge>
                 <Badge variant="positive">{t("speaking.timer")}: {toClock(recordingSeconds)}</Badge>
                 {!notificationEnabled && typeof window !== "undefined" && "Notification" in window ? (
                   <Button size="sm" variant="secondary" onClick={askNotificationPermission}>
@@ -601,13 +584,6 @@ export function StudentSpeakingPage() {
               {speech.interimTranscript ? (
                 <p className="text-xs text-charcoal/65 dark:text-zinc-400">
                   {t("speaking.interim")}: {speech.interimTranscript}
-                </p>
-              ) : null}
-
-              {errorMessage ? (
-                <p className="rounded-xl border border-burgundy-300 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
-                  <CircleAlert className="mr-2 inline h-4 w-4" />
-                  {errorMessage}
                 </p>
               ) : null}
 
@@ -675,50 +651,34 @@ export function StudentSpeakingPage() {
             </CardContent>
           </Card>
 
-          {/* Topic Progress (If any) */}
-          {topicProgress.length > 0 ? (
-            <Card className="rounded-3xl">
-              <CardHeader>
-                <CardTitle>Topic Progress (Teacher Speaking)</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
-                {topicProgress.map((item) => {
-                  const toneClass =
-                    item.status === "passed"
-                      ? "border-emerald-300 bg-emerald-50/70 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-200"
-                      : item.status === "in_progress"
-                        ? "border-amber-300 bg-amber-50/70 text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200"
-                        : "border-burgundy-200 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
-    
-                  const statusLabel =
-                    item.status === "passed" ? "Passed" : item.status === "in_progress" ? "In Progress" : "Not Started";
-    
-                  return (
-                    <div key={item.title} className={`rounded-2xl border p-3 ${toneClass}`}>
-                      <p className="text-sm font-semibold">{item.title}</p>
-                      <p className="mt-1 text-xs">Questions: {item.questions}</p>
-                      <p className="text-xs">Attempts: {item.attempts}</p>
-                      <p className="text-xs">Avg score: {item.avgScore}</p>
-                      <Badge className="mt-2 bg-black/10 text-current dark:bg-white/10">{statusLabel}</Badge>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          ) : null}
-
         </div>
 
         {/* Sidebar Column (Right on Desktop, Below on Mobile) */}
         <div className="flex w-full flex-col gap-6 lg:col-span-5 xl:col-span-4">
-          
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <Card><CardContent className="p-3"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Today</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{dailyRemaining}</p><p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Left of {effectiveDailyTarget}</p></CardContent></Card>
-            <Card><CardContent className="p-3"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{weeklyRemaining}</p><p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Left of {WEEKLY_TARGET}</p></CardContent></Card>
-            <Card><CardContent className="p-3"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Recent</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{recentAverage}</p><p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Average score</p></CardContent></Card>
-            <Card><CardContent className="p-3"><p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Exam</p><p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{weeklyAverage}</p><p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Weekly result</p></CardContent></Card>
-          </div>
+          <Card className="rounded-3xl">
+            <CardContent className="grid grid-cols-2 gap-3 p-4">
+              <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Today</p>
+                <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{dailyRemaining}</p>
+                <p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Left of {effectiveDailyTarget}</p>
+              </div>
+              <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Weekly</p>
+                <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{weeklyRemaining}</p>
+                <p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Left of {WEEKLY_TARGET}</p>
+              </div>
+              <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Recent</p>
+                <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{recentAverage}</p>
+                <p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Average score</p>
+              </div>
+              <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">Exam</p>
+                <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{weeklyAverage}</p>
+                <p className="mt-1 text-[10px] text-charcoal/60 dark:text-zinc-400">Weekly result</p>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* History Card */}
           <Card className="rounded-3xl">
@@ -739,27 +699,24 @@ export function StudentSpeakingPage() {
             </CardContent>
           </Card>
 
-          {/* Mistakes Card */}
-          <Card className="rounded-3xl">
-            <CardHeader className="pb-3"><CardTitle className="text-lg">My mistakes</CardTitle></CardHeader>
-            <CardContent>
-              {weakMistakes.length === 0 ? (
-                <p className="text-sm text-charcoal/65 dark:text-zinc-400">No saved mistakes yet. Do speaking checks to build your weak-topic bank.</p>
-              ) : (
-                <div className="space-y-2">
-                  {weakMistakes.map((item) => (
-                    <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
-                      <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <Badge variant="positive">{item.topic || item.category}</Badge>
-                      </div>
-                      <p className="text-sm text-charcoal/80 dark:text-zinc-300">{item.reason}</p>
-                      {item.corrected ? <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-white">{item.corrected}</p> : null}
+          {weakMistakes.length > 0 ? (
+            <Card className="rounded-3xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">My mistakes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {weakMistakes.map((item) => (
+                  <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <Badge variant="positive">{item.topic || item.category}</Badge>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <p className="text-sm text-charcoal/80 dark:text-zinc-300">{item.reason}</p>
+                    {item.corrected ? <p className="mt-1 text-sm font-semibold text-burgundy-700 dark:text-white">{item.corrected}</p> : null}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
 
           {/* Reminders / Bottom settings */}
           <Card className="rounded-3xl">
@@ -771,6 +728,11 @@ export function StudentSpeakingPage() {
               <p className="mt-2 text-xs text-charcoal/65 dark:text-zinc-400">
                 Weekly exam starts automatically on Saturday after finishing daily speaking.
               </p>
+              {topicProgress.length > 0 ? (
+                <p className="mt-2 text-xs text-charcoal/65 dark:text-zinc-400">
+                  Teacher topics loaded: {topicProgress.length}
+                </p>
+              ) : null}
               {mode === "weekly_exam" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button

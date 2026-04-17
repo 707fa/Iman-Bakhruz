@@ -16,13 +16,6 @@ export const groups: Group[] = [
 
 export const teachers: Teacher[] = [
   {
-    id: "t_1",
-    fullName: "Dilnoza Karimova",
-    phone: "+998901111111",
-    password: "teacher123",
-    groupIds: ["g_101", "g_102", "g_103", "g_201", "g_202"],
-  },
-  {
     id: "t_2",
     fullName: "Фаррух Ахроров",
     phone: "+998978778177",
@@ -31,7 +24,7 @@ export const teachers: Teacher[] = [
   },
   {
     id: "t_3",
-    fullName: "Bekhruz Iman",
+    fullName: "Iman|Bekhruz",
     phone: "+998909788255",
     password: "909788255@@",
     groupIds: ["g_101", "g_102", "g_103", "g_104", "g_105", "g_106", "g_201", "g_202", "g_203", "g_204", "g_205"],

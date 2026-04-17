@@ -1,8 +1,9 @@
-import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
+﻿import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
 import { AI_GATEWAY_URL, API_BASE_URL, DATA_PROVIDER_MODE } from "../lib/env";
 import { useAppStore } from "../hooks/useAppStore";
+import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 import { buildImanChatContextPrompt, normalizeStudentLevelFromGroupTitle, resolveAiFeedbackLanguage } from "../lib/studentLevel";
 import { ApiError } from "../services/api/http";
@@ -133,8 +134,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [statusHint, setStatusHint] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const { showToast } = useToast();
 
   const sessionUserId = state.session?.userId;
   const currentGroup = currentStudent ? state.groups.find((item) => item.id === currentStudent.groupId) : null;
@@ -159,7 +161,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
     if (useGatewayMode) {
       setMessages(readLocalMessages(localStorageKey));
-      setError(null);
+      setStatusHint(null);
       setLoading(false);
       return;
     }
@@ -169,7 +171,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     let disposed = false;
     const load = async () => {
       setLoading(true);
-      setError(null);
+      setStatusHint(null);
       try {
         const history = await platformApi.getAiMessages(token);
         if (!disposed) setMessages(history);
@@ -180,7 +182,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             window.location.assign("/login");
             return;
           }
-          setError(mapBackendAiErrorToMessage(error));
+          showToast({ message: mapBackendAiErrorToMessage(error), tone: "error" });
           setMessages([]);
         }
       } finally {
@@ -209,9 +211,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       const dataUrl = await fileToDataUrl(file);
       setImageFile(file);
       setImagePreview(dataUrl);
-      setError(null);
+      setStatusHint("Photo added. Click Send.");
+      showToast({ message: "Photo added.", tone: "success", durationMs: 1800 });
     } catch {
-      setError("Failed to read image.");
+      showToast({ message: "Failed to read the image.", tone: "error" });
     }
   }
 
@@ -244,7 +247,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     if (!useGatewayMode && !token) return;
 
     setSending(true);
-    setError(null);
+    setStatusHint(null);
 
     const trimmedText = text.trim();
     const selectedFile = imageFile;
@@ -289,6 +292,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             createdAt: new Date().toISOString(),
           };
           setMessages((prev) => [...prev, assistantMessage]);
+          setStatusHint(null);
           return;
         } catch (gatewayError) {
           // Soft fallback: if gateway is unreachable, try existing backend AI route.
@@ -305,7 +309,8 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 systemContext,
               });
               setMessages(updatedMessages);
-              setError("Gateway unavailable. Switched to backend AI.");
+              setStatusHint("Gateway unavailable. Switched to backend AI.");
+              showToast({ message: "Gateway unavailable. Backup AI mode enabled.", tone: "info" });
               return;
             } catch (fallbackError) {
               if (isAuthError(fallbackError)) {
@@ -313,17 +318,17 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 window.location.assign("/login");
                 return;
               }
-              setError(mapBackendAiErrorToMessage(fallbackError));
+              showToast({ message: mapBackendAiErrorToMessage(fallbackError), tone: "error" });
               return;
             }
           }
 
           if (isApiMode && !token) {
-            setError("Gateway unavailable. Re-login in API mode to use backend AI.");
+            showToast({ message: "Please log in again: backend token is required for AI.", tone: "error" });
             return;
           }
 
-          setError(mapAiGatewayErrorToMessage(gatewayError));
+          showToast({ message: mapAiGatewayErrorToMessage(gatewayError), tone: "error" });
           return;
         }
       }
@@ -342,13 +347,17 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       setText("");
       setImageFile(null);
       setImagePreview(null);
+      setStatusHint(null);
     } catch (error) {
       if (isAuthError(error)) {
         clearApiToken();
         window.location.assign("/login");
         return;
       }
-      setError(useGatewayMode ? mapAiGatewayErrorToMessage(error) : mapBackendAiErrorToMessage(error));
+      showToast({
+        message: useGatewayMode ? mapAiGatewayErrorToMessage(error) : mapBackendAiErrorToMessage(error),
+        tone: "error",
+      });
     } finally {
       setSending(false);
     }
@@ -365,13 +374,18 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       <CardContent className="space-y-3">
         {!canUseApi ? (
           <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            AI chat is temporarily unavailable. Please log in again.
+            AI chat requires API login or configured gateway URL.
           </p>
         ) : (
           <>
             {useGatewayMode ? (
               <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300">
                 Gateway mode: queue + cache + fallback active
+              </p>
+            ) : null}
+            {statusHint ? (
+              <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs font-semibold text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-burgundy-100">
+                {statusHint}
               </p>
             ) : null}
 
@@ -421,12 +435,6 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               )}
             </div>
 
-            {error ? (
-              <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
-                {error}
-              </p>
-            ) : null}
-
             {imagePreview ? (
               <div className="rounded-2xl border border-burgundy-100 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-950">
                 <img src={imagePreview} alt="Selected homework" className="max-h-48 rounded-xl object-contain" />
@@ -438,6 +446,16 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 placeholder="Write question or homework comment..."
+                onPaste={(event) => {
+                  const items = event.clipboardData?.items;
+                  if (!items || items.length === 0) return;
+                  const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
+                  if (!imageItem) return;
+                  const file = fileFromClipboardItem(imageItem);
+                  if (!file) return;
+                  event.preventDefault();
+                  void applySelectedImage(file);
+                }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();

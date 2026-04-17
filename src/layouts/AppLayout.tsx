@@ -88,7 +88,7 @@ export function AppLayout() {
   const mobileQuickNav = useMemo<NavItem[]>(() => {
     if (session.role === "student") {
       const byHref = new Map<string, NavItem>([...navItems, ...chatItems].map((item) => [item.href, item]));
-      const preferredOrder = ["/student/group", "/student/top", "/student/speaking", "/student/parent", "/student/chat"];
+      const preferredOrder = ["/student", "/student/group", "/student/top", "/student/speaking", "/student/ai-chat", "/student/chat"];
       return preferredOrder.map((href) => byHref.get(href)).filter((item): item is NavItem => Boolean(item));
     }
 
@@ -238,7 +238,7 @@ export function AppLayout() {
                 key={`mobile-bottom-${item.href}`}
                 to={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-semibold transition",
+                  "flex flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[10px] font-semibold transition",
                   active ? "bg-burgundy-700 text-white" : "text-charcoal/70 dark:text-zinc-300",
                 )}
               >
