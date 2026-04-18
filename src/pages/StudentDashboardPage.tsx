@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, Clock3, Mic, Trophy, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, Gamepad2, Mic, Trophy, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TeacherSpotlightCard } from "../components/TeacherSpotlightCard";
@@ -75,8 +75,8 @@ export function StudentDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="h-full">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="interactive-lift h-full">
           <CardContent className="p-5">
             <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("tabs.group")}</p>
             <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("student.groupSubtitle")}</p>
@@ -89,7 +89,7 @@ export function StudentDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="h-full">
+        <Card className="interactive-lift h-full">
           <CardContent className="p-5">
             <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("tabs.global")}</p>
             <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("student.globalSubtitle")}</p>
@@ -102,7 +102,7 @@ export function StudentDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="h-full">
+        <Card className="interactive-lift h-full">
           <CardContent className="p-5">
             <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
               <Mic className="h-4 w-4 text-burgundy-700 dark:text-white" />
@@ -112,6 +112,23 @@ export function StudentDashboardPage() {
             <Link to="/student/speaking" className="mt-4 block">
               <Button variant="secondary" className="w-full justify-between">
                 {t("speaking.openPractice")}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="interactive-lift h-full overflow-hidden border-burgundy-200">
+          <CardContent className="relative p-5">
+            <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-burgundy-100 blur-2xl dark:bg-burgundy-900/40" />
+            <p className="relative inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
+              <Gamepad2 className="h-4 w-4 text-burgundy-700 dark:text-white" />
+              {t("nav.games")}
+            </p>
+            <p className="relative mt-1 text-sm text-charcoal/65 dark:text-zinc-400">Ketka, speed, memory and emoji practice in one arena.</p>
+            <Link to="/student/games" className="relative mt-4 block">
+              <Button className="w-full justify-between">
+                Open games
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

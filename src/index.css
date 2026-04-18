@@ -2,8 +2,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Segoe UI", Roboto, Arial, sans-serif;
-  --font-display: "Segoe UI", Roboto, Arial, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Space Grotesk", "Plus Jakarta Sans", "Segoe UI", sans-serif;
 
   --color-burgundy-50: #faedf1;
   --color-burgundy-100: #f2d7df;
@@ -38,6 +38,11 @@
 
   body {
     @apply bg-white font-sans text-charcoal antialiased dark:bg-black dark:text-zinc-100;
+    background-image:
+      radial-gradient(circle at 8% 10%, rgba(128, 0, 32, 0.055), transparent 30%),
+      radial-gradient(circle at 90% 0%, rgba(128, 0, 32, 0.035), transparent 32%),
+      linear-gradient(180deg, rgba(250, 237, 241, 0.42), transparent 340px);
+    background-attachment: fixed;
   }
 
   input,
@@ -53,6 +58,10 @@
 
   ::selection {
     @apply bg-burgundy-700 text-white;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-burgundy-400 ring-offset-2 ring-offset-white dark:ring-offset-black;
   }
 }
 
@@ -74,6 +83,21 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: rgba(128, 0, 32, 0.45);
     border-radius: 9999px;
+  }
+
+  .surface-grid {
+    background-image:
+      linear-gradient(rgba(128, 0, 32, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(128, 0, 32, 0.055) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+
+  .glass-panel {
+    @apply border border-white/50 bg-white/80 shadow-lift backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/72;
+  }
+
+  .interactive-lift {
+    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-lift active:translate-y-0;
   }
 }
 

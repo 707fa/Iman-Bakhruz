@@ -1,4 +1,4 @@
-import { BookOpenCheck, Clock3, Phone, ShieldCheck, Sparkles, Users2 } from "lucide-react";
+import { BookOpenCheck, Clock3, MessageCircle, Phone, ShieldCheck, Sparkles, Trophy, Users2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TeacherSpotlightCard } from "../components/TeacherSpotlightCard";
@@ -29,9 +29,10 @@ export function TeacherHomePage() {
       />
 
       <Card className="overflow-hidden border-burgundy-200/80 shadow-lift">
-        <CardContent className="grid gap-4 p-4 sm:grid-cols-[auto_1fr] sm:items-center sm:p-5">
+        <CardContent className="surface-grid relative grid gap-4 p-4 sm:grid-cols-[auto_1fr] sm:items-center sm:p-5">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-burgundy-100 blur-3xl dark:bg-burgundy-900/30" />
           <UserAvatar fullName={currentTeacher.fullName} avatarUrl={currentTeacher.avatarUrl} size="lg" />
-          <div className="min-w-0">
+          <div className="relative min-w-0">
             <p className="truncate text-xl font-bold text-charcoal dark:text-white">{currentTeacher.fullName}</p>
             <p className="mt-1 inline-flex items-center gap-2 text-sm text-charcoal/70 dark:text-zinc-300">
               <Phone className="h-4 w-4 text-charcoal dark:text-white" />
@@ -43,7 +44,7 @@ export function TeacherHomePage() {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
+        <Card className="interactive-lift">
           <CardContent className="p-4 sm:p-5">
             <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">
               <BookOpenCheck className="h-4 w-4 text-charcoal dark:text-white" />
@@ -52,7 +53,7 @@ export function TeacherHomePage() {
             <p className="mt-2 text-3xl font-bold text-charcoal dark:text-white">{groups.length}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="interactive-lift">
           <CardContent className="p-4 sm:p-5">
             <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">
               <Users2 className="h-4 w-4 text-charcoal dark:text-white" />
@@ -61,7 +62,7 @@ export function TeacherHomePage() {
             <p className="mt-2 text-3xl font-bold text-charcoal dark:text-white">{studentsCount}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="interactive-lift">
           <CardContent className="p-4 sm:p-5">
             <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">
               <ShieldCheck className="h-4 w-4 text-charcoal dark:text-white" />
@@ -109,10 +110,26 @@ export function TeacherHomePage() {
             <Sparkles className="h-4 w-4 text-charcoal dark:text-white" />
             {t("teacher.quickActions")}
           </p>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Link to="/teacher/groups">
               <Button variant="secondary" className="w-full justify-between">
                 {t("nav.teacherGroups")}
+              </Button>
+            </Link>
+            <Link to="/teacher/top">
+              <Button variant="secondary" className="w-full justify-between">
+                <span className="inline-flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  {t("nav.teacherTop")}
+                </span>
+              </Button>
+            </Link>
+            <Link to="/teacher/chat">
+              <Button className="w-full justify-between">
+                <span className="inline-flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  {t("nav.friendly")}
+                </span>
               </Button>
             </Link>
           </div>

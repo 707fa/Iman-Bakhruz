@@ -1,5 +1,6 @@
 import { BarChart3, CalendarCheck2, ClipboardCheck, Mic2, UserRound } from "lucide-react";
 import { useMemo } from "react";
+import type { ReactNode } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
@@ -31,8 +32,7 @@ export function ParentDashboardPage() {
 
   const speakingGrowth = useMemo(() => {
     if (!snapshot) return 0;
-    const now = new Date();
-    const currentWeekStart = getWeekStart(now);
+    const currentWeekStart = getWeekStart(new Date());
     const prevWeekStart = currentWeekStart - 7 * 24 * 60 * 60 * 1000;
 
     const currentWeekScores = snapshot.attempts
@@ -64,7 +64,7 @@ export function ParentDashboardPage() {
       />
 
       <Card className="overflow-hidden border-burgundy-200/80 shadow-lift">
-        <CardContent className="grid gap-4 bg-gradient-to-r from-burgundy-900 via-burgundy-800 to-burgundy-700 px-4 py-5 text-white sm:grid-cols-3 sm:px-5 sm:py-6">
+        <CardContent className="surface-grid grid gap-4 bg-gradient-to-r from-burgundy-900 via-burgundy-800 to-burgundy-700 px-4 py-5 text-white sm:grid-cols-3 sm:px-5 sm:py-6">
           <div>
             <p className="text-xs uppercase tracking-[0.12em] text-white/75">Ребёнок</p>
             <p className="mt-2 inline-flex items-center gap-2 text-xl font-semibold">
@@ -84,44 +84,9 @@ export function ParentDashboardPage() {
       </Card>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="inline-flex items-center gap-2 text-lg">
-              <CalendarCheck2 className="h-5 w-5 text-burgundy-700 dark:text-white" />
-              Attendance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-burgundy-700 dark:text-white">{currentParentStudent.progress?.attendance ?? 0}%</p>
-            <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">На основе отметок преподавателя.</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="inline-flex items-center gap-2 text-lg">
-              <ClipboardCheck className="h-5 w-5 text-burgundy-700 dark:text-white" />
-              Homework
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-burgundy-700 dark:text-white">{currentParentStudent.progress?.homework ?? 0}%</p>
-            <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Показывает регулярность выполнения заданий.</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="inline-flex items-center gap-2 text-lg">
-              <Mic2 className="h-5 w-5 text-burgundy-700 dark:text-white" />
-              Speaking Avg
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-burgundy-700 dark:text-white">{speakingAverage}</p>
-            <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Средний speaking score по последним попыткам.</p>
-          </CardContent>
-        </Card>
+        <ProgressMetric icon={<CalendarCheck2 className="h-5 w-5 text-burgundy-700 dark:text-white" />} title="Attendance" value={`${currentParentStudent.progress?.attendance ?? 0}%`} description="На основе отметок преподавателя." />
+        <ProgressMetric icon={<ClipboardCheck className="h-5 w-5 text-burgundy-700 dark:text-white" />} title="Homework" value={`${currentParentStudent.progress?.homework ?? 0}%`} description="Показывает регулярность выполнения заданий." />
+        <ProgressMetric icon={<Mic2 className="h-5 w-5 text-burgundy-700 dark:text-white" />} title="Speaking Avg" value={speakingAverage} description="Средний speaking score по последним попыткам." />
       </div>
 
       <Card>
@@ -140,5 +105,22 @@ export function ParentDashboardPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ProgressMetric({ icon, title, value, description }: { icon: ReactNode; title: string; value: string | number; description: string }) {
+  return (
+    <Card className="interactive-lift">
+      <CardHeader className="pb-2">
+        <CardTitle className="inline-flex items-center gap-2 text-lg">
+          {icon}
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-3xl font-bold text-burgundy-700 dark:text-white">{value}</p>
+        <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">{description}</p>
+      </CardContent>
+    </Card>
   );
 }
