@@ -3,6 +3,8 @@ const app = require("./app");
 const { env, validateEnv } = require("./config/env");
 const { redis } = require("./config/redis");
 const { logger } = require("./utils/logger");
+const { Server } = require("socket.io");
+const { registerKetkaSocketHandlers } = require("./sockets/ketkaSocket");
 
 async function bootstrap() {
   validateEnv();
@@ -17,6 +19,14 @@ async function bootstrap() {
   }
 
   const server = http.createServer(app);
+  const io = new Server(server, {
+    cors: {
+      origin: env.corsAllowedOrigins,
+      methods: ["GET", "POST"],
+    },
+  });
+
+  registerKetkaSocketHandlers(io);
 
   server.listen(env.port, () => {
     logger.info("server.started", {
@@ -49,4 +59,3 @@ bootstrap().catch((error) => {
   });
   process.exit(1);
 });
-

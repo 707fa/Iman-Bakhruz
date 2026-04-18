@@ -22,6 +22,7 @@ import {
 import { Card, type LearningCard } from "./Card";
 import { GameBoard, type AnswerCheckResult, type CardGamePlayer } from "./GameBoard";
 import { useAppStore } from "../hooks/useAppStore";
+import { useSocket } from "../hooks/useSocket";
 import { Button } from "./ui/button";
 
 type ArenaTab = "homework" | "lobby" | "ketka" | "speed" | "memory" | "emoji";
@@ -35,6 +36,25 @@ interface LocalPlayer extends CardGamePlayer {
 interface GameInvite {
   studentId: string;
   status: InviteStatus;
+  inviteId?: string;
+  fromStudentId?: string;
+  fromStudentName?: string;
+}
+
+interface KetkaOnlineStudent {
+  studentId: string;
+  fullName: string;
+  groupId: string;
+}
+
+interface KetkaInvitePayload {
+  inviteId: string;
+  fromStudentId: string;
+  fromStudentName: string;
+  toStudentId: string;
+  toStudentName: string;
+  groupId: string;
+  accepted?: boolean;
 }
 
 const STORAGE_KEY = "ketka-homework-deck-v2";
@@ -150,10 +170,14 @@ function findNextPlayerIndex(players: LocalPlayer[], currentIndex: number): numb
 
 export function MultiplayerKetka() {
   const { state, currentStudent, awardGamePoints } = useAppStore();
+  const socket = useSocket();
   const [tab, setTab] = useState<ArenaTab>("homework");
   const [deck, setDeck] = useState<LearningCard[]>(() => readDeck());
   const [form, setForm] = useState({ word: "", translation: "", hintText: "", hintEmoji: "" });
   const [invites, setInvites] = useState<GameInvite[]>([]);
+  const [incomingInvites, setIncomingInvites] = useState<GameInvite[]>([]);
+  const [onlineStudentIds, setOnlineStudentIds] = useState<Set<string>>(new Set());
+  const [socketNotice, setSocketNotice] = useState("");
   const [players, setPlayers] = useState<LocalPlayer[]>([]);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [winnerName, setWinnerName] = useState("");
@@ -168,18 +192,82 @@ export function MultiplayerKetka() {
     saveDeck(deck);
   }, [deck]);
 
+  useEffect(() => {
+    if (!socket || !currentStudent?.id || !currentStudent.groupId) {
+      setOnlineStudentIds(new Set());
+      return;
+    }
+
+    socket.emit("KETKA_REGISTER_STUDENT", {
+      studentId: currentStudent.id,
+      fullName: currentStudent.fullName,
+      groupId: currentStudent.groupId,
+    });
+
+    const handleOnlineStudents = (payload: { groupId: string; students: KetkaOnlineStudent[] }) => {
+      if (payload.groupId !== currentStudent.groupId) return;
+      setOnlineStudentIds(new Set(payload.students.map((student) => student.studentId)));
+    };
+
+    const handleInviteReceived = (payload: KetkaInvitePayload) => {
+      if (payload.groupId !== currentStudent.groupId || payload.toStudentId !== currentStudent.id) return;
+      setIncomingInvites((current) => [
+        {
+          studentId: payload.fromStudentId,
+          fromStudentId: payload.fromStudentId,
+          fromStudentName: payload.fromStudentName,
+          inviteId: payload.inviteId,
+          status: "pending",
+        },
+        ...current.filter((invite) => invite.inviteId !== payload.inviteId),
+      ]);
+      setTab("lobby");
+      setSocketNotice(`${payload.fromStudentName} sent you a Ketka invite.`);
+    };
+
+    const handleInviteAccepted = (payload: KetkaInvitePayload) => {
+      if (payload.fromStudentId === currentStudent.id) {
+        setInvites((current) =>
+          current.map((invite) => (invite.inviteId === payload.inviteId || invite.studentId === payload.toStudentId ? { ...invite, status: "accepted" } : invite)),
+        );
+        setSocketNotice(`${payload.toStudentName} accepted your Ketka invite.`);
+      }
+    };
+
+    const handleInviteDeclined = (payload: KetkaInvitePayload) => {
+      if (payload.fromStudentId === currentStudent.id) {
+        setInvites((current) =>
+          current.map((invite) => (invite.inviteId === payload.inviteId || invite.studentId === payload.toStudentId ? { ...invite, status: "declined" } : invite)),
+        );
+        setSocketNotice(`${payload.toStudentName} declined your Ketka invite.`);
+      }
+    };
+
+    socket.on("KETKA_ONLINE_STUDENTS", handleOnlineStudents);
+    socket.on("KETKA_INVITE_RECEIVED", handleInviteReceived);
+    socket.on("KETKA_INVITE_ACCEPTED", handleInviteAccepted);
+    socket.on("KETKA_INVITE_DECLINED", handleInviteDeclined);
+
+    return () => {
+      socket.off("KETKA_ONLINE_STUDENTS", handleOnlineStudents);
+      socket.off("KETKA_INVITE_RECEIVED", handleInviteReceived);
+      socket.off("KETKA_INVITE_ACCEPTED", handleInviteAccepted);
+      socket.off("KETKA_INVITE_DECLINED", handleInviteDeclined);
+    };
+  }, [socket, currentStudent?.id, currentStudent?.groupId, currentStudent?.fullName]);
+
   const classmates = useMemo(() => {
     const myGroupId = currentStudent?.groupId;
     const sameGroup = state.students
       .filter((student) => student.id !== currentStudent?.id && (!myGroupId || student.groupId === myGroupId))
-      .map((student) => ({ ...student, isConnected: isStudentOnline(student.id) }));
+      .map((student) => ({ ...student, isConnected: socket ? onlineStudentIds.has(student.id) : isStudentOnline(student.id) }));
     const fallback = [
       { id: "demo-aisha", fullName: "Aisha Demo", groupId: myGroupId ?? "", isConnected: true },
       { id: "demo-umar", fullName: "Umar Demo", groupId: myGroupId ?? "", isConnected: true },
       { id: "demo-madina", fullName: "Madina Demo", groupId: myGroupId ?? "", isConnected: false },
     ];
     return sameGroup.length ? sameGroup : fallback;
-  }, [currentStudent, state.students]);
+  }, [currentStudent, onlineStudentIds, socket, state.students]);
 
   const onlineClassmates = classmates.filter((student) => student.isConnected);
   const offlineCount = classmates.length - onlineClassmates.length;
@@ -222,6 +310,30 @@ export function MultiplayerKetka() {
     const student = onlineClassmates.find((item) => item.id === studentId);
     if (!student || acceptedInvites.length >= 3) return;
 
+    if (socket) {
+      socket.emit("KETKA_SEND_INVITE", { toStudentId: studentId }, (reply: { ok: boolean; error?: string; invite?: KetkaInvitePayload }) => {
+        if (!reply.ok || !reply.invite) {
+          setSocketNotice(reply.error ?? "Could not send invite.");
+          return;
+        }
+
+        setInvites((current) => {
+          const existing = current.find((invite) => invite.studentId === studentId);
+          const nextInvite: GameInvite = {
+            studentId,
+            inviteId: reply.invite?.inviteId,
+            status: "pending",
+          };
+          if (existing) {
+            return current.map((invite) => (invite.studentId === studentId ? nextInvite : invite));
+          }
+          return [...current, nextInvite];
+        });
+        setSocketNotice(`Invite sent to ${student.fullName}.`);
+      });
+      return;
+    }
+
     setInvites((current) => {
       const existing = current.find((invite) => invite.studentId === studentId);
       if (existing) {
@@ -233,6 +345,20 @@ export function MultiplayerKetka() {
 
   function answerInvite(studentId: string, status: "accepted" | "declined") {
     setInvites((current) => current.map((invite) => (invite.studentId === studentId ? { ...invite, status } : invite)));
+  }
+
+  function respondIncomingInvite(invite: GameInvite, accepted: boolean) {
+    if (!invite.inviteId || !socket) return;
+
+    socket.emit("KETKA_RESPOND_INVITE", { inviteId: invite.inviteId, accepted }, (reply: { ok: boolean; error?: string }) => {
+      if (!reply.ok) {
+        setSocketNotice(reply.error ?? "Could not respond to invite.");
+        return;
+      }
+
+      setIncomingInvites((current) => current.filter((item) => item.inviteId !== invite.inviteId));
+      setSocketNotice(accepted ? `You accepted ${invite.fromStudentName}'s invite.` : `You declined ${invite.fromStudentName}'s invite.`);
+    });
   }
 
   function startKetka() {
@@ -408,6 +534,49 @@ export function MultiplayerKetka() {
 
       {tab === "lobby" ? (
         <Panel title="Онлайн лобби и приглашения" subtitle="Играть можно только с теми, кто сейчас онлайн. Сначала отправь запрос, потом ученик принимает или отказывает.">
+          {socketNotice ? (
+            <div className="mb-4 rounded-3xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-900 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-100">
+              {socketNotice}
+            </div>
+          ) : null}
+
+          {incomingInvites.length > 0 ? (
+            <div className="mb-4 grid gap-3">
+              {incomingInvites.map((invite) => (
+                <div key={invite.inviteId ?? invite.studentId} className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/25">
+                  <p className="flex items-center text-sm font-black text-emerald-900 dark:text-emerald-100">
+                    <BellRing className="mr-2 h-4 w-4" />
+                    {invite.fromStudentName ?? "Student"} wants to play Ketka with you.
+                  </p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => respondIncomingInvite(invite, true)}
+                      className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-white"
+                    >
+                      <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => respondIncomingInvite(invite, false)}
+                      className="inline-flex items-center justify-center rounded-2xl bg-red-600 px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-white"
+                    >
+                      <XCircle className="mr-1.5 h-4 w-4" />
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {!socket ? (
+            <div className="mb-4 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-100">
+              Socket is not connected yet. Real online invites will work when the backend is available.
+            </div>
+          ) : null}
+
           <div className="mb-4 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
             {offlineCount > 0
               ? `${offlineCount} ученик(ов) сейчас offline, поэтому кнопка игры с ними не показывается как доступная.`
@@ -440,6 +609,7 @@ export function MultiplayerKetka() {
                         <BellRing className="mr-2 h-4 w-4" />
                         Уведомление пришло ученику
                       </p>
+                      {!socket ? (
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <button
                           type="button"
@@ -458,6 +628,9 @@ export function MultiplayerKetka() {
                           Decline
                         </button>
                       </div>
+                      ) : (
+                        <p className="mt-2 text-xs font-bold text-cyan-800 dark:text-cyan-100">Waiting for accept or decline on the other device.</p>
+                      )}
                     </div>
                   ) : (
                     <Button type="button" onClick={() => sendInvite(student.id)} variant="secondary" className="mt-4 w-full">

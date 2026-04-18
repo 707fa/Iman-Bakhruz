@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { API_BASE_URL } from "../lib/env";
 
 let socket: Socket | null = null;
 
@@ -8,7 +9,7 @@ export function useSocket(): Socket | null {
 
   useEffect(() => {
     if (!socket) {
-      socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
+      socket = io(API_BASE_URL || "http://localhost:3000", {
         transports: ["websocket", "polling"],
         reconnection: true,
         reconnectionDelay: 1000,
@@ -31,8 +32,16 @@ export function useSocket(): Socket | null {
       });
     }
 
+    setIsConnected(socket.connected);
+
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+
     return () => {
-      // Don't disconnect on unmount; keep socket alive for reconnection
+      socket?.off("connect", handleConnect);
+      socket?.off("disconnect", handleDisconnect);
     };
   }, []);
 
