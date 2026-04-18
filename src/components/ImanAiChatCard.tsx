@@ -135,7 +135,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [statusHint, setStatusHint] = useState<string | null>(null);
+  const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const typingTimersRef = useRef<number[]>([]);
   const { showToast } = useToast();
 
   const sessionUserId = state.session?.userId;
@@ -204,7 +206,45 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   useEffect(() => {
     if (!listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [messages, loading, sending]);
+  }, [messages, loading, sending, typingMessageId]);
+
+  useEffect(() => {
+    return () => {
+      typingTimersRef.current.forEach((timerId) => window.clearInterval(timerId));
+      typingTimersRef.current = [];
+    };
+  }, []);
+
+  function updateMessageText(messageId: string, nextText: string) {
+    setMessages((prev) => prev.map((message) => (message.id === messageId ? { ...message, text: nextText } : message)));
+  }
+
+  function typeAssistantReply(messageId: string, fullText: string): Promise<void> {
+    const safeText = fullText.trim() || "I could not generate a reply. Please try again.";
+    const chunkSize = Math.max(2, Math.ceil(safeText.length / 100));
+    updateMessageText(messageId, "");
+    setTypingMessageId(messageId);
+
+    return new Promise((resolve) => {
+      let index = 0;
+      const timerId = window.setInterval(() => {
+        index = Math.min(safeText.length, index + chunkSize);
+        updateMessageText(messageId, safeText.slice(0, index));
+        if (index >= safeText.length) {
+          window.clearInterval(timerId);
+          typingTimersRef.current = typingTimersRef.current.filter((item) => item !== timerId);
+          setTypingMessageId((current) => (current === messageId ? null : current));
+          resolve();
+        }
+      }, 18);
+
+      typingTimersRef.current.push(timerId);
+    });
+  }
+
+  function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): string {
+    return [...messagesList].reverse().find((message) => message.role === "assistant" && message.text.trim())?.text ?? fallback;
+  }
 
   async function applySelectedImage(file: File) {
     try {
@@ -256,21 +296,28 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       ? `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\n[/CONTEXT]\n\n${trimmedText}`
       : "";
 
+    const userMessage: AiChatMessage = {
+      id: makeMessageId("u"),
+      role: "user",
+      text: trimmedText || "Homework photo",
+      imageUrl: selectedPreview || undefined,
+      createdAt: new Date().toISOString(),
+    };
+    const assistantMessage: AiChatMessage = {
+      id: makeMessageId("a"),
+      role: "assistant",
+      text: "",
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
+    setTypingMessageId(assistantMessage.id);
+    setText("");
+    setImageFile(null);
+    setImagePreview(null);
+
     try {
       if (useGatewayMode) {
-        const userMessage: AiChatMessage = {
-          id: makeMessageId("u"),
-          role: "user",
-          text: trimmedText || "Homework photo",
-          imageUrl: selectedPreview || undefined,
-          createdAt: new Date().toISOString(),
-        };
-
-        setMessages((prev) => [...prev, userMessage]);
-        setText("");
-        setImageFile(null);
-        setImagePreview(null);
-
         try {
           const response = await aiGatewayCheckHomework({
             text: textWithContext || undefined,
@@ -285,13 +332,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 ? "\n\n[cache]"
                 : "";
 
-          const assistantMessage: AiChatMessage = {
-            id: makeMessageId("a"),
-            role: "assistant",
-            text: `${response.result}${providerTail}`,
-            createdAt: new Date().toISOString(),
-          };
-          setMessages((prev) => [...prev, assistantMessage]);
+          await typeAssistantReply(assistantMessage.id, `${response.result}${providerTail}`);
           setStatusHint(null);
           return;
         } catch (gatewayError) {
@@ -308,7 +349,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 groupTime: currentGroup?.time,
                 systemContext,
               });
-              setMessages(updatedMessages);
+              await typeAssistantReply(assistantMessage.id, extractAssistantReply(updatedMessages));
               setStatusHint("Gateway unavailable. Switched to backend AI.");
               showToast({ message: "Gateway unavailable. Backup AI mode enabled.", tone: "info" });
               return;
@@ -318,17 +359,23 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 window.location.assign("/login");
                 return;
               }
-              showToast({ message: mapBackendAiErrorToMessage(fallbackError), tone: "error" });
+              const message = mapBackendAiErrorToMessage(fallbackError);
+              updateMessageText(assistantMessage.id, message);
+              showToast({ message, tone: "error" });
               return;
             }
           }
 
           if (isApiMode && !token) {
-            showToast({ message: "Please log in again: backend token is required for AI.", tone: "error" });
+            const message = "Please log in again: backend token is required for AI.";
+            updateMessageText(assistantMessage.id, message);
+            showToast({ message, tone: "error" });
             return;
           }
 
-          showToast({ message: mapAiGatewayErrorToMessage(gatewayError), tone: "error" });
+          const message = mapAiGatewayErrorToMessage(gatewayError);
+          updateMessageText(assistantMessage.id, message);
+          showToast({ message, tone: "error" });
           return;
         }
       }
@@ -343,10 +390,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         groupTime: currentGroup?.time,
         systemContext,
       });
-      setMessages(updatedMessages);
-      setText("");
-      setImageFile(null);
-      setImagePreview(null);
+      await typeAssistantReply(assistantMessage.id, extractAssistantReply(updatedMessages));
       setStatusHint(null);
     } catch (error) {
       if (isAuthError(error)) {
@@ -354,12 +398,12 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         window.location.assign("/login");
         return;
       }
-      showToast({
-        message: useGatewayMode ? mapAiGatewayErrorToMessage(error) : mapBackendAiErrorToMessage(error),
-        tone: "error",
-      });
+      const message = useGatewayMode ? mapAiGatewayErrorToMessage(error) : mapBackendAiErrorToMessage(error);
+      updateMessageText(assistantMessage.id, message);
+      showToast({ message, tone: "error" });
     } finally {
       setSending(false);
+      setTypingMessageId((current) => (current === assistantMessage.id ? null : current));
     }
   }
 
@@ -419,7 +463,17 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                           {mine ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
                           {mine ? "You" : "Iman AI"}
                         </div>
-                        {message.text ? <p className="whitespace-pre-wrap break-words">{message.text}</p> : null}
+                        {message.text ? (
+                          <p className="whitespace-pre-wrap break-words">
+                            {message.text}
+                            {typingMessageId === message.id ? <span className="ml-0.5 inline-block animate-pulse">|</span> : null}
+                          </p>
+                        ) : message.role === "assistant" && typingMessageId === message.id ? (
+                          <div className="inline-flex items-center gap-2 text-sm">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Думаю, сейчас отвечу...
+                          </div>
+                        ) : null}
                         {message.imageUrl ? (
                           <a href={message.imageUrl} target="_blank" rel="noreferrer" className="mt-2 block">
                             <img src={message.imageUrl} alt="Homework" className="max-h-52 rounded-xl border border-white/20 object-contain" />
@@ -433,7 +487,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                   );
                 })
               )}
-              {sending ? (
+              {sending && !typingMessageId ? (
                 <div className="flex justify-start">
                   <div className="max-w-[90%] rounded-2xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100">
                     <div className="mb-1 inline-flex items-center gap-1 text-xs text-charcoal/55 dark:text-zinc-400">
