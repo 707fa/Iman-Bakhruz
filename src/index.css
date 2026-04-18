@@ -76,3 +76,7 @@
     border-radius: 9999px;
   }
 }
+
+/* Для анимированных кетка-карточек */
+.perspective { perspective: 1200px; }
+.rotate-y-180 { transform: rotateY(180deg); }

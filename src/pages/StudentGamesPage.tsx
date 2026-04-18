@@ -1,9 +1,16 @@
-import { KetkaFlashcardsGame } from "../components/KetkaFlashcardsGame";
+import { useState } from "react";
+import { AnimatedKetkaGame } from "../components/AnimatedKetkaGame";
+import { MultiplayerKetka } from "../components/MultiplayerKetka";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
-import { Card, CardContent } from "../components/ui/card";
 
 export function StudentGamesPage() {
+  const [gameMode, setGameMode] = useState<"single" | "multiplayer">("single");
+
+  if (gameMode === "multiplayer") {
+    return <MultiplayerKetka />;
+  }
+
   return (
     <div className="space-y-7">
       <PageHeader
@@ -12,13 +19,22 @@ export function StudentGamesPage() {
         action={<Badge variant="soft">Student</Badge>}
       />
 
-      <KetkaFlashcardsGame />
+      <div className="flex gap-4 justify-center mb-6">
+        <button
+          onClick={() => setGameMode("single")}
+          className="px-6 py-2 bg-burgundy-700 text-white rounded-lg font-semibold hover:bg-burgundy-800"
+        >
+          Single Player
+        </button>
+        <button
+          onClick={() => setGameMode("multiplayer")}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+        >
+          Multiplayer (Online)
+        </button>
+      </div>
 
-      <Card>
-        <CardContent className="p-4 text-sm text-charcoal/70 dark:text-zinc-300">
-          Multiplayer room mode can be enabled after backend room API is connected.
-        </CardContent>
-      </Card>
+      <AnimatedKetkaGame />
     </div>
   );
 }
