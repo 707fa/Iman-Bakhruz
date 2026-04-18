@@ -10,6 +10,8 @@ import type {
   AppState,
   AuthSession,
   LoginPayload,
+  Parent,
+  ParentRegisterPayload,
   RankingItem,
   RegisterPayload,
   ScoreAction,
@@ -19,7 +21,7 @@ import type {
   SubscriptionState,
 } from "../types";
 
-const STORAGE_KEY = "result-dashboard-v6";
+const STORAGE_KEY = "result-dashboard-v7";
 const TOP5_GRANTS_KEY = "result-top5-grants-v1";
 const TOP5_GRANT_DAYS = 30;
 const TOP5_LIMIT = 5;
@@ -33,7 +35,19 @@ function toArrayOrFallback<T>(value: unknown, fallback: T[]): T[] {
 function isAuthSession(value: unknown): value is AuthSession {
   if (!value || typeof value !== "object") return false;
   const maybe = value as { role?: unknown; userId?: unknown };
-  return (maybe.role === "student" || maybe.role === "teacher") && typeof maybe.userId === "string";
+  return (maybe.role === "student" || maybe.role === "teacher" || maybe.role === "parent") && typeof maybe.userId === "string";
+}
+
+function makeParentInviteCode(studentId: string): string {
+  return `PARENT-${studentId.replace(/[^a-z0-9]/gi, "").toUpperCase()}`;
+}
+
+function ensureStudentInviteCode(student: Student): Student {
+  if (student.parentInviteCode?.trim()) return student;
+  return {
+    ...student,
+    parentInviteCode: makeParentInviteCode(student.id),
+  };
 }
 
 function toIsoAfterDays(days: number): string {
@@ -192,8 +206,9 @@ function mergeById<T extends { id: string }>(current: T[], seed: T[]): T[] {
 function withSeedData(state: AppState): AppState {
   const merged: AppState = {
     ...state,
-    students: mergeById(state.students, initialState.students),
+    students: mergeById(state.students, initialState.students).map(ensureStudentInviteCode),
     teachers: mergeById(state.teachers, initialState.teachers),
+    parents: mergeById(state.parents, initialState.parents),
     groups: mergeById(state.groups, initialState.groups),
     ratingLogs: mergeById(state.ratingLogs, initialState.ratingLogs),
     rankings: state.rankings,
@@ -225,11 +240,12 @@ function mergeForAuth<T extends { id: string; phone: string; password: string }>
   return [...map.values()];
 }
 
-function getAuthCollections(state: AppState): Pick<AppState, "students" | "teachers"> {
+function getAuthCollections(state: AppState): Pick<AppState, "students" | "teachers" | "parents"> {
   const seeded = withSeedData(state);
   return {
     students: mergeForAuth(initialState.students, seeded.students),
     teachers: mergeForAuth(initialState.teachers, seeded.teachers),
+    parents: mergeForAuth(initialState.parents, seeded.parents),
   };
 }
 
@@ -241,8 +257,9 @@ function readState(): AppState {
   try {
     const parsed = JSON.parse(raw) as Partial<AppState>;
     const normalized: AppState = {
-      students: toArrayOrFallback(parsed.students, initialState.students),
+      students: toArrayOrFallback(parsed.students, initialState.students).map(ensureStudentInviteCode),
       teachers: toArrayOrFallback(parsed.teachers, initialState.teachers),
+      parents: toArrayOrFallback(parsed.parents, initialState.parents),
       groups: toArrayOrFallback(parsed.groups, initialState.groups),
       rankings: toArrayOrFallback(parsed.rankings, initialState.rankings),
       ratingLogs: toArrayOrFallback(parsed.ratingLogs, initialState.ratingLogs),
@@ -261,7 +278,7 @@ function saveState(state: AppState) {
 
 function buildSessionFromAuth(auth: AuthResponse): AuthSession {
   const session: AuthSession = {
-    role: auth.role === "teacher" ? "teacher" : "student",
+    role: auth.role === "teacher" ? "teacher" : auth.role === "parent" ? "parent" : "student",
     userId: String(auth.userId),
   };
 
@@ -294,6 +311,10 @@ function resolveSessionFromRemote(auth: AuthResponse, remote: RemoteStatePayload
     return { role: "teacher", userId };
   }
 
+  if (remote.parents.some((parent) => String(parent.id) === userId)) {
+    return { role: "parent", userId };
+  }
+
   return { role: "student", userId };
 }
 
@@ -323,6 +344,10 @@ function resolveSessionFromToken(token: string, remote: RemoteStatePayload): Aut
   const userId = String(rawUserId);
   if (remote.teachers.some((teacher) => String(teacher.id) === userId)) {
     return { role: "teacher", userId };
+  }
+
+  if (remote.parents.some((parent) => String(parent.id) === userId)) {
+    return { role: "parent", userId };
   }
 
   if (remote.students.some((student) => String(student.id) === userId)) {
@@ -373,10 +398,13 @@ interface StoreValue {
   currentStudent: Student | null;
   currentStudentAccess: StudentAccessState | null;
   currentTeacher: Teacher | null;
+  currentParent: Parent | null;
+  currentParentStudent: Student | null;
   getStudentAccess: (studentId: string) => StudentAccessState;
   isApiMode: boolean;
   login: (payload: LoginPayload) => Promise<ActionResult>;
   registerStudent: (payload: RegisterPayload) => Promise<ActionResult>;
+  registerParent: (payload: ParentRegisterPayload) => Promise<ActionResult>;
   logout: () => void;
   updateAvatar: (fileUrl: string) => Promise<void>;
   applyScore: (studentId: string, groupId: string, action: ScoreAction) => Promise<ActionResult>;
@@ -467,6 +495,19 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return state.teachers.find((teacher) => teacher.id === session.userId) ?? null;
   }, [state.session, state.teachers]);
 
+  const currentParent = useMemo(() => {
+    const session = state.session;
+    if (!session || session.role !== "parent") return null;
+    return state.parents.find((parent) => parent.id === session.userId) ?? null;
+  }, [state.parents, state.session]);
+
+  const currentParentStudent = useMemo(() => {
+    if (!currentParent) return null;
+    const targetStudentId = currentParent.childStudentIds[0];
+    if (!targetStudentId) return null;
+    return state.students.find((student) => student.id === targetStudentId) ?? null;
+  }, [currentParent, state.students]);
+
   const getStudentAccess = useCallback(
     (studentId: string): StudentAccessState => resolveStudentAccessState(state, studentId, state.session, top5Grants),
     [state, top5Grants],
@@ -491,6 +532,14 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     if (teacherMatch) {
       setState((prev) => ({ ...withSeedData(prev), session: { role: "teacher", userId: teacherMatch.id } }));
       return { ok: true, messageKey: "msg.loginTeacher" };
+    }
+
+    const parentMatch = authCollections.parents.find(
+      (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
+    );
+    if (parentMatch) {
+      setState((prev) => ({ ...withSeedData(prev), session: { role: "parent", userId: parentMatch.id } }));
+      return { ok: true, messageKey: "msg.loginParent" };
     }
 
     const studentMatch = authCollections.students.find(
@@ -523,7 +572,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
     const phoneUsed =
       authCollections.students.some((student) => toPhone(student.phone) === phone) ||
-      authCollections.teachers.some((teacher) => toPhone(teacher.phone) === phone);
+      authCollections.teachers.some((teacher) => toPhone(teacher.phone) === phone) ||
+      authCollections.parents.some((parent) => toPhone(parent.phone) === phone);
 
     if (phoneUsed) {
       return { ok: false, messageKey: "msg.registerPhoneUsed" };
@@ -546,12 +596,14 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       return { ok: false, messageKey: "msg.registerGroupInvalid" };
     }
 
+    const studentId = makeId("s");
     const student: Student = {
-      id: makeId("s"),
+      id: studentId,
       fullName,
       phone,
       password: payload.password,
       groupId: group?.id ?? "",
+      parentInviteCode: makeParentInviteCode(studentId),
       points: 0,
       isActive: true,
       isImanStudent,
@@ -583,6 +635,63 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     };
   }
 
+  function registerParentMock(payload: ParentRegisterPayload): ActionResult {
+    const seeded = withSeedData(state);
+    const authCollections = getAuthCollections(seeded);
+    const fullName = payload.fullName.trim();
+    const phone = toPhone(payload.phone);
+    const inviteCode = payload.parentInviteCode.trim().toUpperCase();
+
+    if (!phone) {
+      return { ok: false, messageKey: "msg.phoneInvalid" };
+    }
+
+    if (fullName.length < 3) {
+      return { ok: false, messageKey: "msg.registerInvalidName" };
+    }
+
+    const phoneUsed =
+      authCollections.students.some((student) => toPhone(student.phone) === phone) ||
+      authCollections.teachers.some((teacher) => toPhone(teacher.phone) === phone) ||
+      authCollections.parents.some((parent) => toPhone(parent.phone) === phone);
+
+    if (phoneUsed) {
+      return { ok: false, messageKey: "msg.registerPhoneUsed" };
+    }
+
+    if (payload.password.length < 6) {
+      return { ok: false, messageKey: "msg.registerPasswordShort" };
+    }
+
+    const child = seeded.students.find((student) => (student.parentInviteCode ?? "").trim().toUpperCase() === inviteCode);
+    if (!child) {
+      return { ok: false, messageKey: "msg.parentInviteInvalid" };
+    }
+
+    const parent: Parent = {
+      id: makeId("p"),
+      fullName,
+      phone,
+      password: payload.password,
+      childStudentIds: [child.id],
+    };
+
+    setState((prev) => {
+      const base = withSeedData(prev);
+      return {
+        ...base,
+        parents: [...base.parents, parent],
+        session: { role: "parent", userId: parent.id },
+      };
+    });
+
+    return {
+      ok: true,
+      messageKey: "msg.parentRegisterSuccess",
+      messageParams: { child: child.fullName },
+    };
+  }
+
   function updateAvatarMock(fileUrl: string) {
     if (!state.session) return;
 
@@ -594,6 +703,16 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         ),
         rankings: prev.rankings.map((rank) =>
           rank.studentId === prev.session?.userId ? { ...rank, avatarUrl: fileUrl } : rank,
+        ),
+      }));
+      return;
+    }
+
+    if (state.session.role === "parent") {
+      setState((prev) => ({
+        ...prev,
+        parents: prev.parents.map((parent) =>
+          parent.id === prev.session?.userId ? { ...parent, avatarUrl: fileUrl } : parent,
         ),
       }));
       return;
@@ -708,6 +827,17 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       return { ok: false, messageKey: "msg.phoneInvalid" };
     }
 
+    const authCollections = getAuthCollections(state);
+    const parentMatch = authCollections.parents.find(
+      (item) =>
+        toPhone(item.phone) === normalizedPayload.phone &&
+        item.password.trim().toLowerCase() === normalizedPayload.password.toLowerCase(),
+    );
+    if (parentMatch) {
+      setState((prev) => ({ ...withSeedData(prev), session: { role: "parent", userId: parentMatch.id } }));
+      return { ok: true, messageKey: "msg.loginParent" };
+    }
+
     if (DATA_PROVIDER_MODE === "api") {
       try {
         const auth = await platformApi.login(normalizedPayload);
@@ -791,6 +921,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             phone: normalizedPayload.phone,
             password: normalizedPayload.password,
             groupId: normalizedPayload.groupId ?? existingStudent?.groupId ?? "",
+            parentInviteCode: existingStudent?.parentInviteCode ?? makeParentInviteCode(nextSession.userId),
             points: existingStudent?.points ?? 0,
             avatarUrl: existingStudent?.avatarUrl,
             isActive: existingStudent?.isActive ?? true,
@@ -890,6 +1021,10 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     }
 
     return registerStudentMock(payload);
+  }
+
+  async function registerParent(payload: ParentRegisterPayload): Promise<ActionResult> {
+    return registerParentMock(payload);
   }
 
   function logout() {
@@ -1022,10 +1157,13 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       currentStudent,
       currentStudentAccess,
       currentTeacher,
+      currentParent,
+      currentParentStudent,
       getStudentAccess,
       isApiMode: DATA_PROVIDER_MODE === "api",
       login,
       registerStudent,
+      registerParent,
       logout,
       updateAvatar,
       applyScore,
@@ -1033,7 +1171,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       renameGroup,
       refreshState,
     }),
-    [state, currentStudent, currentStudentAccess, currentTeacher, getStudentAccess],
+    [state, currentStudent, currentStudentAccess, currentTeacher, currentParent, currentParentStudent, getStudentAccess],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

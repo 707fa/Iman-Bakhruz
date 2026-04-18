@@ -43,8 +43,10 @@ const teacherSlides = [
   },
 ];
 
-function roleHome(role: "student" | "teacher"): string {
-  return role === "teacher" ? "/teacher" : "/student";
+function roleHome(role: "student" | "teacher" | "parent"): string {
+  if (role === "teacher") return "/teacher";
+  if (role === "parent") return "/parent";
+  return "/student";
 }
 
 export function HomePage() {
@@ -294,4 +296,3 @@ export function HomePage() {
     </div>
   );
 }
-

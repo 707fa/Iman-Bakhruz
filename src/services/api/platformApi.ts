@@ -17,6 +17,7 @@ import type {
   Student,
   PaymentProvider,
   PaymentTransaction,
+  Parent,
   SupportTicket,
   SupportTicketStatus,
   Teacher,
@@ -34,6 +35,7 @@ export interface AuthResponse {
 export interface RemoteStatePayload {
   students: Student[];
   teachers: Teacher[];
+  parents: Parent[];
   groups: Group[];
   rankings: RankingItem[];
   ratingLogs: RatingLog[];
@@ -101,7 +103,9 @@ function num(value: unknown, fallback = 0): number {
 }
 
 function normalizeRole(value: unknown): UserRole {
-  return value === "teacher" ? "teacher" : "student";
+  if (value === "teacher") return "teacher";
+  if (value === "parent") return "parent";
+  return "student";
 }
 
 function normalizeStatus(value: unknown): ProgressSnapshot["status"] {
@@ -233,6 +237,22 @@ function normalizeTeacher(raw: unknown): Teacher | null {
   };
 }
 
+function normalizeParent(raw: unknown): Parent | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const childStudentIds = readArray<unknown>(item.childStudentIds ?? item.child_student_ids)
+    .map((entry) => str(entry))
+    .filter(Boolean);
+  return {
+    id: str(item.id),
+    fullName: str(item.fullName ?? item.full_name),
+    phone: str(item.phone),
+    password: str(item.password),
+    childStudentIds,
+    avatarUrl: str(item.avatarUrl ?? item.avatar) || undefined,
+  };
+}
+
 function normalizeGroup(raw: unknown): Group | null {
   const item = asRecord(raw);
   if (!item) return null;
@@ -304,6 +324,7 @@ function normalizeStatePayload(payload: unknown): RemoteStatePayload {
     return {
       students: [],
       teachers: [],
+      parents: [],
       groups: [],
       rankings: [],
       ratingLogs: [],
@@ -313,6 +334,7 @@ function normalizeStatePayload(payload: unknown): RemoteStatePayload {
   return {
     students: readArray<unknown>(data.students).map(normalizeStudent).filter((item): item is Student => item !== null),
     teachers: readArray<unknown>(data.teachers).map(normalizeTeacher).filter((item): item is Teacher => item !== null),
+    parents: readArray<unknown>(data.parents).map(normalizeParent).filter((item): item is Parent => item !== null),
     groups: readArray<unknown>(data.groups).map(normalizeGroup).filter((item): item is Group => item !== null),
     rankings: readArray<unknown>(data.rankings).map(normalizeRanking).filter((item): item is RankingItem => item !== null),
     ratingLogs: readArray<unknown>(data.ratingLogs).map(normalizeRatingLog).filter((item): item is RatingLog => item !== null),
@@ -497,6 +519,7 @@ export function toAppStatePayload(state: RemoteStatePayload, session: AppState["
   return {
     students: state.students,
     teachers: state.teachers,
+    parents: state.parents,
     groups: state.groups,
     rankings: state.rankings,
     ratingLogs: state.ratingLogs,

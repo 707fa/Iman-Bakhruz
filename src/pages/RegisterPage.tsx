@@ -327,6 +327,12 @@ export function RegisterPage() {
               {t("auth.loginButton")}
             </Link>
           </p>
+          <p className="mt-2 text-center text-sm text-charcoal/65 dark:text-zinc-400">
+            Для родителей:{" "}
+            <Link to="/register/parent" className="font-semibold text-charcoal hover:text-black dark:text-white dark:hover:text-zinc-200">
+              отдельная регистрация
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>

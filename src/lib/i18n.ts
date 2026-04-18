@@ -225,6 +225,7 @@ const RU: Dictionary = {
 
   "msg.loginStudent": "Вход выполнен как ученик.",
   "msg.loginTeacher": "Вход выполнен как учитель.",
+  "msg.loginParent": "Вход выполнен как родитель.",
   "msg.loginInvalid": "Неверный номер или пароль.",
   "msg.phoneInvalid": "Введите номер в формате +998 XX-XXX-XX-XX.",
   "msg.registerInvalidName": "Введите корректное имя.",
@@ -235,6 +236,8 @@ const RU: Dictionary = {
   "msg.registerInvalidData": "Проверьте введенные данные и попробуйте снова.",
   "msg.registerNoSlots": "Для выбранных дней и времени нет группы.",
   "msg.registerSuccess": "Регистрация завершена. Группа: {{group}}, время: {{time}}",
+  "msg.parentInviteInvalid": "Неверный код привязки ребенка.",
+  "msg.parentRegisterSuccess": "Родительский кабинет создан. Ребенок: {{child}}",
   "msg.scoreOnlyTeacher": "Только учитель может выставлять оценки.",
   "msg.scoreNoAccess": "У вас нет доступа к этой группе.",
   "msg.scoreStudentNotFound": "Ученик не найден в выбранной группе.",
@@ -899,6 +902,7 @@ const EN: Dictionary = {
 
   "msg.loginStudent": "Logged in as student.",
   "msg.loginTeacher": "Logged in as teacher.",
+  "msg.loginParent": "Logged in as parent.",
   "msg.loginInvalid": "Invalid phone or password.",
   "msg.phoneInvalid": "Enter phone in +998 XX-XXX-XX-XX format.",
   "msg.registerInvalidName": "Please enter a valid name.",
@@ -909,6 +913,8 @@ const EN: Dictionary = {
   "msg.registerInvalidData": "Check the entered data and try again.",
   "msg.registerNoSlots": "No group found for selected days and time.",
   "msg.registerSuccess": "Registration completed. Group: {{group}}, time: {{time}}",
+  "msg.parentInviteInvalid": "Invalid child invite code.",
+  "msg.parentRegisterSuccess": "Parent account created. Child: {{child}}",
   "msg.scoreOnlyTeacher": "Only a teacher can set scores.",
   "msg.scoreNoAccess": "You do not have access to this group.",
   "msg.scoreStudentNotFound": "Student not found in this group.",
@@ -1035,6 +1041,5 @@ export function translate(locale: Locale, key: string, params?: TranslateParams)
     template,
   );
 }
-
 
 

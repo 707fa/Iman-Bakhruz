@@ -1,4 +1,4 @@
-export type UserRole = "student" | "teacher";
+export type UserRole = "student" | "teacher" | "parent";
 export type GroupDaysPattern = "mwf" | "tts";
 export type StatusBadge = "red" | "yellow" | "green";
 
@@ -28,6 +28,7 @@ export interface Student {
   phone: string;
   password: string;
   groupId: string;
+  parentInviteCode?: string;
   avatarUrl?: string;
   points: number;
   isActive?: boolean;
@@ -44,6 +45,15 @@ export interface Teacher {
   phone: string;
   password: string;
   groupIds: string[];
+  avatarUrl?: string;
+}
+
+export interface Parent {
+  id: string;
+  fullName: string;
+  phone: string;
+  password: string;
+  childStudentIds: string[];
   avatarUrl?: string;
 }
 
@@ -76,6 +86,7 @@ export interface AuthSession {
 export interface AppState {
   students: Student[];
   teachers: Teacher[];
+  parents: Parent[];
   groups: Group[];
   rankings: RankingItem[];
   ratingLogs: RatingLog[];
@@ -97,6 +108,14 @@ export interface RegisterPayload {
   time?: string;
   daysPattern?: GroupDaysPattern;
   isImanStudent?: boolean;
+}
+
+export interface ParentRegisterPayload {
+  fullName: string;
+  phone: string;
+  password: string;
+  confirmPassword?: string;
+  parentInviteCode: string;
 }
 
 export interface ActionResult {

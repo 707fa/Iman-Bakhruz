@@ -1,4 +1,4 @@
-﻿import type { AppState, Group, RankingItem, Student, Teacher } from "../types";
+import type { AppState, Group, Parent, RankingItem, Student, Teacher } from "../types";
 
 export const groups: Group[] = [
   { id: "g_101", title: "Pre-Intermediate Intensive", time: "09:00", daysPattern: "mwf", teacherId: "t_3" },
@@ -38,9 +38,20 @@ export const students: Student[] = [
     phone: "+998978778177",
     password: "Alex2024m",
     groupId: "g_104",
+    parentInviteCode: "PARENT-S1",
     points: 0,
     isPaid: true,
     paidUntil: "2035-01-01T00:00:00+05:00",
+  },
+];
+
+export const parents: Parent[] = [
+  {
+    id: "p_1",
+    fullName: "Родитель Фарруха",
+    phone: "+998901112233",
+    password: "Parent2024",
+    childStudentIds: ["s_1"],
   },
 ];
 
@@ -55,6 +66,7 @@ export const rankings: RankingItem[] = students.map((student) => ({
 export const initialState: AppState = {
   students,
   teachers,
+  parents,
   groups,
   rankings,
   ratingLogs: [],

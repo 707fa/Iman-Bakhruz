@@ -8,6 +8,7 @@ const HomePage = lazy(() => import("../pages/HomePage").then((module) => ({ defa
 const HomeCenterPage = lazy(() => import("../pages/HomeCenterPage").then((module) => ({ default: module.HomeCenterPage })));
 const LoginPage = lazy(() => import("../pages/LoginPage").then((module) => ({ default: module.LoginPage })));
 const RegisterPage = lazy(() => import("../pages/RegisterPage").then((module) => ({ default: module.RegisterPage })));
+const ParentRegisterPage = lazy(() => import("../pages/ParentRegisterPage").then((module) => ({ default: module.ParentRegisterPage })));
 const PublicTopPage = lazy(() => import("../pages/PublicTopPage").then((module) => ({ default: module.PublicTopPage })));
 const StudentDashboardPage = lazy(() =>
   import("../pages/StudentDashboardPage").then((module) => ({ default: module.StudentDashboardPage })),
@@ -41,6 +42,8 @@ const TeacherStudentProfilePage = lazy(() =>
   import("../pages/TeacherStudentProfilePage").then((module) => ({ default: module.TeacherStudentProfilePage })),
 );
 const TeacherToolsPage = lazy(() => import("../pages/TeacherToolsPage").then((module) => ({ default: module.TeacherToolsPage })));
+const ParentDashboardPage = lazy(() => import("../pages/ParentDashboardPage").then((module) => ({ default: module.ParentDashboardPage })));
+const ParentProfilePage = lazy(() => import("../pages/ParentProfilePage").then((module) => ({ default: module.ParentProfilePage })));
 
 const FriendlyChatPage = lazy(() => import("../pages/FriendlyChatPage").then((module) => ({ default: module.FriendlyChatPage })));
 const ImanAiChatPage = lazy(() => import("../pages/ImanAiChatPage").then((module) => ({ default: module.ImanAiChatPage })));
@@ -55,6 +58,10 @@ function RootRedirect() {
 
   if (session.role === "teacher") {
     return <Navigate to="/teacher" replace />;
+  }
+
+  if (session.role === "parent") {
+    return <Navigate to="/parent" replace />;
   }
 
   return <Navigate to="/student" replace />;
@@ -78,6 +85,7 @@ export function AppRouter() {
         <Route element={<PublicOnlyGuard />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register/parent" element={<ParentRegisterPage />} />
         </Route>
 
         <Route element={<AuthGuard role="student" />}>
@@ -108,6 +116,13 @@ export function AppRouter() {
             <Route path="/teacher/group/:id" element={<TeacherGroupPage />} />
             <Route path="/teacher/student/:id" element={<TeacherStudentProfilePage />} />
             <Route path="/teacher/profile" element={<TeacherProfilePage />} />
+          </Route>
+        </Route>
+
+        <Route element={<AuthGuard role="parent" />}>
+          <Route element={<AppLayout />}>
+            <Route path="/parent" element={<ParentDashboardPage />} />
+            <Route path="/parent/profile" element={<ParentProfilePage />} />
           </Route>
         </Route>
 

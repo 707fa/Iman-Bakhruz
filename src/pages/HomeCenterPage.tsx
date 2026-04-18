@@ -14,8 +14,10 @@ const TELEGRAM_URL = "https://t.me/iman_bekhruz";
 const INSTAGRAM_URL = "https://instagram.com/iman.bekhruz";
 const DEFAULT_PHONE = "+998 90 978-82-55";
 
-function roleHome(role: "student" | "teacher"): string {
-  return role === "teacher" ? "/teacher" : "/student";
+function roleHome(role: "student" | "teacher" | "parent"): string {
+  if (role === "teacher") return "/teacher";
+  if (role === "parent") return "/parent";
+  return "/student";
 }
 
 export function HomeCenterPage() {

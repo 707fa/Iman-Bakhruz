@@ -4,6 +4,7 @@ import type { UserRole } from "../types";
 
 function roleHome(role: UserRole): string {
   if (role === "teacher") return "/teacher";
+  if (role === "parent") return "/parent";
   return "/student";
 }
 
