@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: result-ai-gateway
+    runtime: node
+    rootDir: ai-homework-service
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health

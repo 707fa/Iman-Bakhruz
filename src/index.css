@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Segoe UI", Roboto, Arial, sans-serif;
+
+  --color-burgundy-50: #faedf1;
+  --color-burgundy-100: #f2d7df;
+  --color-burgundy-200: #e4b2c2;
+  --color-burgundy-300: #d488a3;
+  --color-burgundy-400: #bc5e82;
+  --color-burgundy-500: #a23a64;
+  --color-burgundy-600: #8e1f48;
+  --color-burgundy-700: #800020;
+  --color-burgundy-800: #600018;
+  --color-burgundy-900: #3f0010;
+
+  --color-charcoal: #131316;
+
+  --shadow-soft: 0 16px 34px -24px rgba(71, 9, 24, 0.45);
+  --shadow-lift: 0 34px 70px -30px rgba(71, 9, 24, 0.55);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white font-sans text-charcoal antialiased dark:bg-black dark:text-zinc-100;
+  }
+
+  input,
+  button,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  * {
+    @apply border-burgundy-100/70 dark:border-zinc-700;
+  }
+
+  ::selection {
+    @apply bg-burgundy-700 text-white;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(128, 0, 32, 0.45) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(128, 0, 32, 0.45);
+    border-radius: 9999px;
+  }
+}
