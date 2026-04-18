@@ -18,9 +18,6 @@ const StudentTopPage = lazy(() => import("../pages/StudentTopPage").then((module
 const StudentSpeakingPage = lazy(() =>
   import("../pages/StudentSpeakingPage").then((module) => ({ default: module.StudentSpeakingPage })),
 );
-const StudentParentViewPage = lazy(() =>
-  import("../pages/StudentParentViewPage").then((module) => ({ default: module.StudentParentViewPage })),
-);
 const StudentProfilePage = lazy(() => import("../pages/StudentProfilePage").then((module) => ({ default: module.StudentProfilePage })));
 const StudentSubscriptionPage = lazy(() =>
   import("../pages/StudentSubscriptionPage").then((module) => ({ default: module.StudentSubscriptionPage })),
@@ -28,12 +25,8 @@ const StudentSubscriptionPage = lazy(() =>
 const StudentPublicProfilePage = lazy(() =>
   import("../pages/StudentPublicProfilePage").then((module) => ({ default: module.StudentPublicProfilePage })),
 );
-const StudentToolsPage = lazy(() => import("../pages/StudentToolsPage").then((module) => ({ default: module.StudentToolsPage })));
 const StudentGamesPage = lazy(() => import("../pages/StudentGamesPage").then((module) => ({ default: module.StudentGamesPage })));
 const TeacherHomePage = lazy(() => import("../pages/TeacherHomePage").then((module) => ({ default: module.TeacherHomePage })));
-const TeacherDashboardPage = lazy(() =>
-  import("../pages/TeacherDashboardPage").then((module) => ({ default: module.TeacherDashboardPage })),
-);
 const TeacherGroupsPage = lazy(() => import("../pages/TeacherGroupsPage").then((module) => ({ default: module.TeacherGroupsPage })));
 const TeacherTopPage = lazy(() => import("../pages/TeacherTopPage").then((module) => ({ default: module.TeacherTopPage })));
 const TeacherGroupPage = lazy(() => import("../pages/TeacherGroupPage").then((module) => ({ default: module.TeacherGroupPage })));
@@ -41,7 +34,6 @@ const TeacherProfilePage = lazy(() => import("../pages/TeacherProfilePage").then
 const TeacherStudentProfilePage = lazy(() =>
   import("../pages/TeacherStudentProfilePage").then((module) => ({ default: module.TeacherStudentProfilePage })),
 );
-const TeacherToolsPage = lazy(() => import("../pages/TeacherToolsPage").then((module) => ({ default: module.TeacherToolsPage })));
 const ParentDashboardPage = lazy(() => import("../pages/ParentDashboardPage").then((module) => ({ default: module.ParentDashboardPage })));
 const ParentProfilePage = lazy(() => import("../pages/ParentProfilePage").then((module) => ({ default: module.ParentProfilePage })));
 
@@ -95,9 +87,9 @@ export function AppRouter() {
             <Route path="/student/games" element={<StudentGamesPage />} />
             <Route path="/student/top" element={<StudentTopPage />} />
             <Route path="/student/speaking" element={<StudentSpeakingPage />} />
-            <Route path="/student/parent" element={<StudentParentViewPage />} />
+            <Route path="/student/parent" element={<Navigate to="/student" replace />} />
             <Route path="/student/subscription" element={<StudentSubscriptionPage />} />
-            <Route path="/student/tools" element={<StudentToolsPage />} />
+            <Route path="/student/tools" element={<Navigate to="/student" replace />} />
             <Route path="/student/chat" element={<FriendlyChatPage />} />
             <Route path="/student/ai-chat" element={<ImanAiChatPage />} />
             <Route path="/student/profile/:id" element={<StudentPublicProfilePage />} />
@@ -108,10 +100,10 @@ export function AppRouter() {
         <Route element={<AuthGuard role="teacher" />}>
           <Route element={<AppLayout />}>
             <Route path="/teacher" element={<TeacherHomePage />} />
-            <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
+            <Route path="/teacher/dashboard" element={<Navigate to="/teacher" replace />} />
             <Route path="/teacher/groups" element={<TeacherGroupsPage />} />
             <Route path="/teacher/top" element={<TeacherTopPage />} />
-            <Route path="/teacher/tools" element={<TeacherToolsPage />} />
+            <Route path="/teacher/tools" element={<Navigate to="/teacher" replace />} />
             <Route path="/teacher/chat" element={<FriendlyChatPage />} />
             <Route path="/teacher/group/:id" element={<TeacherGroupPage />} />
             <Route path="/teacher/student/:id" element={<TeacherStudentProfilePage />} />

@@ -1,4 +1,4 @@
-import { BarChart3, CreditCard, Gamepad2, GraduationCap, LayoutDashboard, MessageCircle, Mic, Trophy, UsersRound } from "lucide-react";
+import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, MessageCircle, Mic, Trophy, UsersRound } from "lucide-react";
 import { useMemo } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
@@ -43,7 +43,6 @@ export function AppLayout() {
       { label: t("tabs.group"), href: "/student/group", icon: UsersRound },
       { label: t("tabs.global"), href: "/student/top", icon: Trophy },
       { label: t("nav.speaking"), href: "/student/speaking", icon: Mic },
-      { label: t("nav.parent"), href: "/student/parent", icon: BarChart3 },
     ],
     teacher: [
       { label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true },
@@ -93,7 +92,7 @@ export function AppLayout() {
   const mobileQuickNav = useMemo<NavItem[]>(() => {
     if (session.role === "student") {
       const byHref = new Map<string, NavItem>([...navItems, ...chatItems].map((item) => [item.href, item]));
-      const preferredOrder = ["/student", "/student/group", "/student/top", "/student/speaking", "/student/ai-chat", "/student/chat"];
+      const preferredOrder = ["/student", "/student/group", "/student/top", "/student/speaking", "/student/games", "/student/ai-chat"];
       return preferredOrder.map((href) => byHref.get(href)).filter((item): item is NavItem => Boolean(item));
     }
 
@@ -226,10 +225,12 @@ export function AppLayout() {
 
           <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[calc(5.25rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-6">
             <div className="mx-auto w-full max-w-[1320px]">
-              <div className="mb-4 inline-flex w-full flex-wrap items-center gap-2 rounded-2xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
-                <Trophy className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                <span>{t("promo.top5WeeklyFree")}</span>
-              </div>
+              {session.role === "student" ? (
+                <div className="mb-4 inline-flex w-full flex-wrap items-center gap-2 rounded-2xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
+                  <Trophy className="h-4 w-4 text-burgundy-700 dark:text-white" />
+                  <span>{t("promo.top5WeeklyFree")}</span>
+                </div>
+              ) : null}
               <Outlet />
             </div>
           </div>
