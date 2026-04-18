@@ -1,19 +1,54 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bot, Brain, CopyPlus, Gamepad2, Plus, Sparkles, Trash2, UsersRound, Zap } from "lucide-react";
+import {
+  BellRing,
+  Bot,
+  Brain,
+  CheckCircle2,
+  CopyPlus,
+  Gamepad2,
+  Plus,
+  Send,
+  Sparkles,
+  Trash2,
+  Trophy,
+  UsersRound,
+  Wifi,
+  WifiOff,
+  XCircle,
+  Zap,
+} from "lucide-react";
 import { Card, type LearningCard } from "./Card";
-import { GameBoard, type CardGamePlayer } from "./GameBoard";
+import { GameBoard, type AnswerCheckResult, type CardGamePlayer } from "./GameBoard";
 import { useAppStore } from "../hooks/useAppStore";
 import { Button } from "./ui/button";
 
 type ArenaTab = "homework" | "lobby" | "ketka" | "speed" | "memory" | "emoji";
+type InviteStatus = "pending" | "accepted" | "declined";
 
 interface LocalPlayer extends CardGamePlayer {
   isHuman?: boolean;
+  groupId?: string;
+}
+
+interface GameInvite {
+  studentId: string;
+  status: InviteStatus;
+}
+
+interface KetkaProgress {
+  gamesPlayed: number;
+  wins: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  bonusPoints: number;
+  lastResult?: string;
 }
 
 const STORAGE_KEY = "ketka-homework-deck-v2";
+const PROGRESS_KEY = "ketka-progress-v1";
+
 const fallbackDeck: LearningCard[] = [
   { id: "seed-car", word: "car", translation: "машина", hintText: "fast transport", hintEmoji: "🚗" },
   { id: "seed-honest", word: "honest", translation: "честный", hintText: "does not lie", hintEmoji: "🤝" },
@@ -46,6 +81,32 @@ function saveDeck(cards: LearningCard[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
 }
 
+function readProgress(): KetkaProgress {
+  if (typeof window === "undefined") {
+    return { gamesPlayed: 0, wins: 0, correctAnswers: 0, wrongAnswers: 0, bonusPoints: 0 };
+  }
+  const raw = window.localStorage.getItem(PROGRESS_KEY);
+  if (!raw) return { gamesPlayed: 0, wins: 0, correctAnswers: 0, wrongAnswers: 0, bonusPoints: 0 };
+  try {
+    const parsed = JSON.parse(raw) as KetkaProgress;
+    return {
+      gamesPlayed: parsed.gamesPlayed ?? 0,
+      wins: parsed.wins ?? 0,
+      correctAnswers: parsed.correctAnswers ?? 0,
+      wrongAnswers: parsed.wrongAnswers ?? 0,
+      bonusPoints: parsed.bonusPoints ?? 0,
+      lastResult: parsed.lastResult,
+    };
+  } catch {
+    return { gamesPlayed: 0, wins: 0, correctAnswers: 0, wrongAnswers: 0, bonusPoints: 0 };
+  }
+}
+
+function saveProgress(progress: KetkaProgress) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+}
+
 function shuffle<T>(items: T[]): T[] {
   return [...items].sort(() => Math.random() - 0.5);
 }
@@ -54,23 +115,88 @@ function makeId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function normalizeText(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replaceAll("ё", "е")
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
+function levenshtein(a: string, b: string): number {
+  const rows = Array.from({ length: a.length + 1 }, (_, row) => [row, ...Array(b.length).fill(0)]);
+  for (let column = 1; column <= b.length; column += 1) rows[0][column] = column;
+
+  for (let row = 1; row <= a.length; row += 1) {
+    for (let column = 1; column <= b.length; column += 1) {
+      const cost = a[row - 1] === b[column - 1] ? 0 : 1;
+      rows[row][column] = Math.min(
+        rows[row - 1][column] + 1,
+        rows[row][column - 1] + 1,
+        rows[row - 1][column - 1] + cost,
+      );
+    }
+  }
+
+  return rows[a.length][b.length];
+}
+
+function aiCheckTranslation(answerText: string, expectedTranslation: string): AnswerCheckResult {
+  const answer = normalizeText(answerText);
+  const expected = normalizeText(expectedTranslation);
+  const distance = levenshtein(answer, expected);
+  const maxAllowedDistance = expected.length <= 4 ? 1 : 2;
+  const isCorrect = answer.length > 0 && (answer === expected || distance <= maxAllowedDistance);
+
+  return {
+    isCorrect,
+    answerText: answerText.trim(),
+    distance,
+    message: isCorrect
+      ? distance === 0
+        ? "AI принял ответ как точный."
+        : `AI принял: похоже на правильный перевод, опечаток примерно ${distance}.`
+      : `AI не принял: ответ слишком далеко от перевода. Ошибок примерно ${distance}.`,
+  };
+}
+
+function isStudentOnline(studentId: string): boolean {
+  if (studentId === "demo-madina") return false;
+  return true;
+}
+
 function cloneDeckForOpponent(deck: LearningCard[], name: string): LearningCard[] {
   const safeDeck = deck.length ? deck : fallbackDeck;
-  return shuffle(safeDeck).slice(0, Math.min(8, Math.max(3, safeDeck.length))).map((card, index) => ({
-    ...card,
-    id: `${name}-${index}-${card.id}`,
-  }));
+  return shuffle(safeDeck)
+    .slice(0, Math.min(8, Math.max(3, safeDeck.length)))
+    .map((card, index) => ({
+      ...card,
+      id: `${name}-${index}-${card.id}`,
+    }));
+}
+
+function findNextPlayerIndex(players: LocalPlayer[], currentIndex: number): number {
+  if (players.length === 0) return 0;
+  for (let offset = 1; offset <= players.length; offset += 1) {
+    const nextIndex = (currentIndex + offset) % players.length;
+    if ((players[nextIndex]?.cards.length ?? 0) > 0) return nextIndex;
+  }
+  return currentIndex;
 }
 
 export function MultiplayerKetka() {
-  const { state, currentStudent } = useAppStore();
+  const { state, currentStudent, awardGamePoints } = useAppStore();
   const [tab, setTab] = useState<ArenaTab>("homework");
   const [deck, setDeck] = useState<LearningCard[]>(() => readDeck());
+  const [progress, setProgress] = useState<KetkaProgress>(() => readProgress());
   const [form, setForm] = useState({ word: "", translation: "", hintText: "", hintEmoji: "" });
-  const [selectedOpponentIds, setSelectedOpponentIds] = useState<string[]>([]);
+  const [invites, setInvites] = useState<GameInvite[]>([]);
   const [players, setPlayers] = useState<LocalPlayer[]>([]);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [winnerName, setWinnerName] = useState("");
+  const [winnerId, setWinnerId] = useState("");
+  const [tablePile, setTablePile] = useState<LearningCard[]>([]);
+  const [lastAnswer, setLastAnswer] = useState<AnswerCheckResult | null>(null);
   const [memoryOpened, setMemoryOpened] = useState<string[]>([]);
   const [speedIndex, setSpeedIndex] = useState(0);
   const [speedScore, setSpeedScore] = useState(0);
@@ -79,21 +205,35 @@ export function MultiplayerKetka() {
     saveDeck(deck);
   }, [deck]);
 
+  useEffect(() => {
+    saveProgress(progress);
+  }, [progress]);
+
   const classmates = useMemo(() => {
     const myGroupId = currentStudent?.groupId;
-    const sameGroup = state.students.filter((student) => student.id !== currentStudent?.id && (!myGroupId || student.groupId === myGroupId));
+    const sameGroup = state.students
+      .filter((student) => student.id !== currentStudent?.id && (!myGroupId || student.groupId === myGroupId))
+      .map((student) => ({ ...student, isConnected: isStudentOnline(student.id) }));
     const fallback = [
-      { id: "demo-aisha", fullName: "Aisha Demo", groupId: myGroupId ?? "" },
-      { id: "demo-umar", fullName: "Umar Demo", groupId: myGroupId ?? "" },
-      { id: "demo-madina", fullName: "Madina Demo", groupId: myGroupId ?? "" },
+      { id: "demo-aisha", fullName: "Aisha Demo", groupId: myGroupId ?? "", isConnected: true },
+      { id: "demo-umar", fullName: "Umar Demo", groupId: myGroupId ?? "", isConnected: true },
+      { id: "demo-madina", fullName: "Madina Demo", groupId: myGroupId ?? "", isConnected: false },
     ];
     return sameGroup.length ? sameGroup : fallback;
   }, [currentStudent, state.students]);
 
+  const onlineClassmates = classmates.filter((student) => student.isConnected);
+  const offlineCount = classmates.length - onlineClassmates.length;
+  const acceptedInvites = invites.filter((invite) => invite.status === "accepted");
   const currentPlayer = players[currentPlayerIndex];
-  const answerer = players.find((player) => player.playerId !== currentPlayer?.playerId);
+  const currentAnswererIndex = players.length > 1 ? findNextPlayerIndex(players, currentPlayerIndex) : -1;
+  const answerer = currentAnswererIndex >= 0 && currentAnswererIndex !== currentPlayerIndex ? players[currentAnswererIndex] : null;
   const activeCard = currentPlayer?.cards[0] ?? null;
-  const canStart = selectedOpponentIds.length >= 1 && selectedOpponentIds.length <= 3 && deck.length > 0;
+  const canStart = acceptedInvites.length >= 1 && acceptedInvites.length <= 3 && deck.length > 0;
+
+  function updateProgress(mutator: (current: KetkaProgress) => KetkaProgress) {
+    setProgress((current) => mutator(current));
+  }
 
   function addCard() {
     if (!form.word.trim() || !form.translation.trim()) return;
@@ -123,12 +263,21 @@ export function MultiplayerKetka() {
     ]);
   }
 
-  function toggleOpponent(studentId: string) {
-    setSelectedOpponentIds((current) => {
-      if (current.includes(studentId)) return current.filter((id) => id !== studentId);
-      if (current.length >= 3) return current;
-      return [...current, studentId];
+  function sendInvite(studentId: string) {
+    const student = onlineClassmates.find((item) => item.id === studentId);
+    if (!student || acceptedInvites.length >= 3) return;
+
+    setInvites((current) => {
+      const existing = current.find((invite) => invite.studentId === studentId);
+      if (existing) {
+        return current.map((invite) => (invite.studentId === studentId ? { ...invite, status: "pending" } : invite));
+      }
+      return [...current, { studentId, status: "pending" }];
     });
+  }
+
+  function answerInvite(studentId: string, status: "accepted" | "declined") {
+    setInvites((current) => current.map((invite) => (invite.studentId === studentId ? { ...invite, status } : invite)));
   }
 
   function startKetka() {
@@ -139,62 +288,113 @@ export function MultiplayerKetka() {
       deckSize: deck.length,
       score: 0,
       isHuman: true,
+      isConnected: true,
+      groupId: currentStudent?.groupId,
     };
-    const opponents = selectedOpponentIds.map((id) => {
-      const student = classmates.find((item) => item.id === id);
+    const opponents = acceptedInvites.map((invite) => {
+      const student = onlineClassmates.find((item) => item.id === invite.studentId);
       const name = student?.fullName ?? "Player";
       const cards = cloneDeckForOpponent(deck, name);
       return {
-        playerId: id,
+        playerId: invite.studentId,
         playerName: name,
         cards,
         deckSize: cards.length,
         score: 0,
+        isConnected: true,
+        groupId: student?.groupId,
       };
     });
 
     setPlayers([me, ...opponents]);
     setWinnerName("");
+    setWinnerId("");
+    setTablePile([]);
+    setLastAnswer(null);
     setCurrentPlayerIndex(0);
     setTab("ketka");
   }
 
-  function resolveAnswer(cardId: string, correct: boolean) {
-    setPlayers((current) => {
-      const next = current.map((player) => ({ ...player, cards: [...player.cards] }));
-      const presenter = next[currentPlayerIndex];
-      const nextAnswererIndex = next.findIndex((player) => player.playerId !== presenter.playerId);
-      const cardIndex = presenter.cards.findIndex((card) => card.id === cardId);
-      if (cardIndex === -1) return current;
-      const [card] = presenter.cards.splice(cardIndex, 1);
-      presenter.score = (presenter.score ?? 0) + (correct ? 1 : 0);
-
-      if (!correct && nextAnswererIndex >= 0) {
-        next[nextAnswererIndex].cards.push({ ...card, id: `${next[nextAnswererIndex].playerId}-taken-${card.id}` });
-      }
-
-      const winner = next.find((player) => player.cards.length === 0);
-      if (winner) {
-        setWinnerName(winner.playerName);
-      }
-
-      return next.map((player) => ({ ...player, deckSize: player.cards.length }));
-    });
-
-    setCurrentPlayerIndex((current) => {
-      if (players.length === 0) return 0;
-      for (let offset = 1; offset <= players.length; offset += 1) {
-        const nextIndex = (current + offset) % players.length;
-        if ((players[nextIndex]?.cards.length ?? 0) > 0) return nextIndex;
-      }
-      return current;
-    });
+  function checkAnswer(cardId: string, answerText: string): AnswerCheckResult {
+    const card = players.flatMap((player) => player.cards).find((item) => item.id === cardId) ?? activeCard;
+    if (!card) {
+      return { isCorrect: false, answerText, distance: 999, message: "AI не нашел карточку для проверки." };
+    }
+    return aiCheckTranslation(answerText, card.translation);
   }
 
-  const memoryCards = useMemo(() => shuffle(deck.slice(0, 6).flatMap((card) => [
-    { id: `${card.id}-word`, pair: card.id, label: card.word },
-    { id: `${card.id}-translation`, pair: card.id, label: card.translation },
-  ])), [deck]);
+  function resolveAnswer(cardId: string, correct: boolean, answerText = "") {
+    const check = activeCard ? aiCheckTranslation(answerText, activeCard.translation) : null;
+    setLastAnswer(
+      check && check.isCorrect === correct
+        ? check
+        : {
+            isCorrect: correct,
+            answerText: answerText.trim() || "устный ответ",
+            distance: check?.distance ?? 0,
+            message: correct ? "Ответ принят вручную." : "Ответ не принят вручную.",
+          },
+    );
+    const next = players.map((player) => ({ ...player, cards: [...player.cards] }));
+    const presenter = next[currentPlayerIndex];
+    const answererIndex = findNextPlayerIndex(next, currentPlayerIndex);
+    const cardIndex = presenter?.cards.findIndex((card) => card.id === cardId) ?? -1;
+    if (!presenter || cardIndex === -1) return;
+
+    const [card] = presenter.cards.splice(cardIndex, 1);
+    if (correct) {
+      presenter.score = (presenter.score ?? 0) + 1;
+      setTablePile((currentPile) => [...currentPile, card]);
+      updateProgress((currentProgress) => ({ ...currentProgress, correctAnswers: currentProgress.correctAnswers + 1 }));
+    } else {
+      const answerPlayer = next[answererIndex];
+      if (answerPlayer) {
+        const takenCards = [...tablePile, card].map((item) => ({
+          ...item,
+          id: `${answerPlayer.playerId}-taken-${makeId(item.id)}`,
+        }));
+        answerPlayer.cards.push(...takenCards);
+      }
+      setTablePile([]);
+      updateProgress((currentProgress) => ({ ...currentProgress, wrongAnswers: currentProgress.wrongAnswers + 1 }));
+    }
+
+    const nextPlayers = next.map((player) => ({ ...player, deckSize: player.cards.length }));
+    const nextWinner = nextPlayers.find((player) => player.cards.length === 0);
+    const nextWinnerGroupId = nextWinner?.groupId ?? state.students.find((student) => student.id === nextWinner?.playerId)?.groupId ?? currentStudent?.groupId ?? "";
+    setPlayers(nextPlayers);
+    setCurrentPlayerIndex(findNextPlayerIndex(nextPlayers, currentPlayerIndex));
+
+    if (nextWinner && !winnerId) {
+      setWinnerName(nextWinner.playerName);
+      setWinnerId(nextWinner.playerId);
+      const isCurrentStudentWinner = nextWinner.playerId === currentStudent?.id;
+      updateProgress((currentProgress) => ({
+        ...currentProgress,
+        gamesPlayed: currentProgress.gamesPlayed + 1,
+        wins: currentProgress.wins + (isCurrentStudentWinner ? 1 : 0),
+        bonusPoints: currentProgress.bonusPoints + (isCurrentStudentWinner ? 5 : 0),
+        lastResult: `${nextWinner?.playerName} won Ketka Classic`,
+      }));
+      if (nextWinnerGroupId) {
+        awardGamePoints(nextWinner.playerId, nextWinnerGroupId, {
+          value: 5,
+          label: "Ketka Classic win +5",
+        });
+      }
+    }
+  }
+
+  const memoryCards = useMemo(
+    () =>
+      shuffle(
+        deck.slice(0, 6).flatMap((card) => [
+          { id: `${card.id}-word`, pair: card.id, label: card.word },
+          { id: `${card.id}-translation`, pair: card.id, label: card.translation },
+        ]),
+      ),
+    [deck],
+  );
 
   return (
     <div className="space-y-6">
@@ -204,29 +404,31 @@ export function MultiplayerKetka() {
             <p className="text-xs font-black uppercase tracking-[0.24em] text-white/45">Ketka Arena</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">Онлайн кетка для английского</h1>
             <p className="mt-3 max-w-3xl text-sm font-semibold text-white/65">
-              Ученики дома создают свои карточки, на уроке выбирают 1-3 соперников и играют: не знаешь перевод — забираешь карточку себе.
+              Ученики делают карточки как домашку, на уроке отправляют приглашение онлайн-соперникам, отвечают с AI-проверкой и играют до нуля карточек.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 rounded-3xl border border-white/10 bg-white/10 p-2 backdrop-blur-xl">
             <Stat label="Cards" value={deck.length} />
-            <Stat label="Players" value={selectedOpponentIds.length + 1} />
-            <Stat label="Mode" value="2-4" />
+            <Stat label="Online" value={onlineClassmates.length} />
+            <Stat label="Wins" value={progress.wins} />
           </div>
         </div>
       </section>
 
       <nav className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <TabButton active={tab === "homework"} onClick={() => setTab("homework")} icon={<CopyPlus className="h-4 w-4" />}>Homework cards</TabButton>
-        <TabButton active={tab === "lobby"} onClick={() => setTab("lobby")} icon={<UsersRound className="h-4 w-4" />}>Choose players</TabButton>
+        <TabButton active={tab === "lobby"} onClick={() => setTab("lobby")} icon={<UsersRound className="h-4 w-4" />}>Online lobby</TabButton>
         <TabButton active={tab === "ketka"} onClick={() => setTab("ketka")} icon={<Gamepad2 className="h-4 w-4" />}>Ketka classic</TabButton>
         <TabButton active={tab === "speed"} onClick={() => setTab("speed")} icon={<Zap className="h-4 w-4" />}>Speed</TabButton>
         <TabButton active={tab === "memory"} onClick={() => setTab("memory")} icon={<Brain className="h-4 w-4" />}>Memory</TabButton>
         <TabButton active={tab === "emoji"} onClick={() => setTab("emoji")} icon={<Sparkles className="h-4 w-4" />}>Emoji hint</TabButton>
       </nav>
 
+      <ProgressPanel progress={progress} />
+
       {tab === "homework" ? (
         <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
-          <Panel title="Создать домашнюю карточку" subtitle="Ученик сам пишет слово, подсказку, emoji и перевод. Это его homework deck.">
+          <Panel title="Создать домашнюю карточку" subtitle="Ученик сам пишет слово, подсказку, emoji и перевод. Это его homework deck для игры.">
             <CardForm form={form} setForm={setForm} onAdd={addCard} />
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <Button type="button" onClick={addAiCards} variant="secondary">
@@ -240,7 +442,7 @@ export function MultiplayerKetka() {
             </div>
           </Panel>
 
-          <Panel title="Моя стопка карточек" subtitle="Так они будут выглядеть на уроке: настоящие листочки, flip front/back и подсказки.">
+          <Panel title="Моя стопка карточек" subtitle="Карточки выглядят как настоящие листочки: front с английским словом и hint, back с переводом.">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <AnimatePresence>
                 {deck.map((card) => (
@@ -262,30 +464,82 @@ export function MultiplayerKetka() {
       ) : null}
 
       {tab === "lobby" ? (
-        <Panel title="Выбери соперников из группы" subtitle="Можно играть 2, 3 или 4 человека. В реальном онлайне эти игроки подключаются со своих телефонов, здесь уже готов classroom flow.">
+        <Panel title="Онлайн лобби и приглашения" subtitle="Играть можно только с теми, кто сейчас онлайн. Сначала отправь запрос, потом ученик принимает или отказывает.">
+          <div className="mb-4 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+            {offlineCount > 0
+              ? `${offlineCount} ученик(ов) сейчас offline, поэтому кнопка игры с ними не показывается как доступная.`
+              : "Все ученики из списка сейчас online."}
+          </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {classmates.map((student) => {
-              const active = selectedOpponentIds.includes(student.id);
+            {onlineClassmates.map((student) => {
+              const invite = invites.find((item) => item.studentId === student.id);
               return (
-                <button
-                  key={student.id}
-                  type="button"
-                  onClick={() => toggleOpponent(student.id)}
-                  className={`rounded-3xl border p-4 text-left transition ${
-                    active
-                      ? "border-burgundy-500 bg-burgundy-50 text-burgundy-950 shadow-soft dark:bg-burgundy-950/35 dark:text-white"
-                      : "border-burgundy-100 bg-white hover:border-burgundy-300 dark:border-zinc-800 dark:bg-zinc-950"
-                  }`}
-                >
-                  <p className="font-black">{student.fullName}</p>
-                  <p className="mt-1 text-sm text-charcoal/55 dark:text-zinc-400">{active ? "Добавлен в игру" : "Нажми, чтобы добавить"}</p>
-                </button>
+                <div key={student.id} className="rounded-3xl border border-burgundy-100 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-black">{student.fullName}</p>
+                      <p className="mt-1 inline-flex items-center text-xs font-black uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
+                        <Wifi className="mr-1.5 h-3.5 w-3.5" />
+                        online
+                      </p>
+                    </div>
+                    <InviteBadge status={invite?.status} />
+                  </div>
+
+                  {!invite ? (
+                    <Button type="button" onClick={() => sendInvite(student.id)} className="mt-4 w-full">
+                      <Send className="mr-2 h-4 w-4" />
+                      Send request
+                    </Button>
+                  ) : invite.status === "pending" ? (
+                    <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-3 dark:border-cyan-900/40 dark:bg-cyan-950/30">
+                      <p className="flex items-center text-sm font-black text-cyan-900 dark:text-cyan-100">
+                        <BellRing className="mr-2 h-4 w-4" />
+                        Уведомление пришло ученику
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => answerInvite(student.id, "accepted")}
+                          className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white"
+                        >
+                          <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => answerInvite(student.id, "declined")}
+                          className="inline-flex items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white"
+                        >
+                          <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button type="button" onClick={() => sendInvite(student.id)} variant="secondary" className="mt-4 w-full">
+                      Send again
+                    </Button>
+                  )}
+                </div>
               );
             })}
           </div>
+
+          {offlineCount > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {classmates.filter((student) => !student.isConnected).map((student) => (
+                <span key={student.id} className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-black text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+                  <WifiOff className="mr-1.5 h-3.5 w-3.5" />
+                  {student.fullName} offline
+                </span>
+              ))}
+            </div>
+          ) : null}
+
           <Button type="button" disabled={!canStart} onClick={startKetka} className="mt-5 w-full">
             <Gamepad2 className="mr-2 h-4 w-4" />
-            Start Ketka Classic
+            Start with {acceptedInvites.length + 1} player(s)
           </Button>
         </Panel>
       ) : null}
@@ -295,7 +549,7 @@ export function MultiplayerKetka() {
           <div className="overflow-hidden rounded-[2rem]">
             {winnerName ? (
               <div className="mb-4 rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
-                <p className="font-black">Победитель: {winnerName}. У него не осталось карточек.</p>
+                <p className="font-black">Победитель: {winnerName}. У него 0 карточек, +5 баллов добавлено в рейтинг, если это реальный ученик.</p>
               </div>
             ) : null}
             <GameBoard
@@ -304,18 +558,21 @@ export function MultiplayerKetka() {
               activeAnswererId={answerer?.playerId}
               currentCard={activeCard}
               localPlayerId={currentStudent?.id ?? "me"}
+              tablePileCount={tablePile.length}
+              lastAnswer={lastAnswer}
+              onCheckAnswer={checkAnswer}
               onCardAnswered={resolveAnswer}
             />
           </div>
         ) : (
-          <Panel title="Сначала выбери игроков" subtitle="Перейди в Choose players, добавь 1-3 соперников и запусти игру.">
+          <Panel title="Сначала собери онлайн комнату" subtitle="Перейди в Online lobby, отправь запрос 1-3 ученикам и дождись accept.">
             <Button type="button" onClick={() => setTab("lobby")}>Open lobby</Button>
           </Panel>
         )
       ) : null}
 
       {tab === "speed" ? (
-        <Panel title="Speed Translation" subtitle="Быстро выбери правильный перевод. Можно играть как разминку перед Ketka Classic.">
+        <Panel title="Speed Translation" subtitle="Быстро выбери правильный перевод. Хорошая разминка перед Ketka Classic.">
           <SpeedGame deck={deck} index={speedIndex} setIndex={setSpeedIndex} score={speedScore} setScore={setSpeedScore} />
         </Panel>
       ) : null}
@@ -354,6 +611,18 @@ export function MultiplayerKetka() {
         </Panel>
       ) : null}
     </div>
+  );
+}
+
+function ProgressPanel({ progress }: { progress: KetkaProgress }) {
+  return (
+    <section className="grid gap-3 rounded-[2rem] border border-burgundy-100 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-950 sm:grid-cols-2 lg:grid-cols-5">
+      <ProgressStat label="Games" value={progress.gamesPlayed} />
+      <ProgressStat label="Wins" value={progress.wins} />
+      <ProgressStat label="Correct" value={progress.correctAnswers} />
+      <ProgressStat label="Wrong" value={progress.wrongAnswers} />
+      <ProgressStat label="Bonus" value={`+${progress.bonusPoints}`} />
+    </section>
   );
 }
 
@@ -453,5 +722,50 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">{label}</p>
       <p className="mt-1 text-lg font-black">{value}</p>
     </div>
+  );
+}
+
+function ProgressStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-3xl border border-burgundy-100 bg-burgundy-50/45 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-charcoal/45 dark:text-zinc-500">{label}</p>
+      <p className="mt-1 text-2xl font-black text-charcoal dark:text-white">{value}</p>
+    </div>
+  );
+}
+
+function InviteBadge({ status }: { status?: InviteStatus }) {
+  if (status === "accepted") {
+    return (
+      <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
+        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+        accepted
+      </span>
+    );
+  }
+
+  if (status === "declined") {
+    return (
+      <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700 dark:bg-red-900/30 dark:text-red-200">
+        <XCircle className="mr-1.5 h-3.5 w-3.5" />
+        declined
+      </span>
+    );
+  }
+
+  if (status === "pending") {
+    return (
+      <span className="inline-flex items-center rounded-full bg-cyan-100 px-3 py-1 text-xs font-black text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200">
+        <BellRing className="mr-1.5 h-3.5 w-3.5" />
+        pending
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+      <Trophy className="mr-1.5 h-3.5 w-3.5" />
+      ready
+    </span>
   );
 }

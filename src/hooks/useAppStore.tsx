@@ -408,6 +408,7 @@ interface StoreValue {
   logout: () => void;
   updateAvatar: (fileUrl: string) => Promise<void>;
   applyScore: (studentId: string, groupId: string, action: ScoreAction) => Promise<ActionResult>;
+  awardGamePoints: (studentId: string, groupId: string, action: ScoreAction) => ActionResult;
   disableStudent: (studentId: string) => Promise<ActionResult>;
   renameGroup: (groupId: string, nextTitle: string) => Promise<ActionResult>;
   refreshState: () => Promise<void>;
@@ -764,6 +765,50 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       };
 
       return syncRankingsWithStudents(nextState);
+    });
+
+    return { ok: true, messageKey: "msg.scoreUpdated" };
+  }
+
+  function awardGamePoints(studentId: string, groupId: string, action: ScoreAction): ActionResult {
+    const student = state.students.find((item) => item.id === studentId);
+    if (!student || student.groupId !== groupId) {
+      return { ok: false, messageKey: "msg.scoreStudentNotFound" };
+    }
+
+    setState((prev) => {
+      const updatedStudents = prev.students.map((item) =>
+        item.id === studentId
+          ? {
+              ...item,
+              points: Number((item.points + action.value).toFixed(2)),
+              progress: item.progress
+                ? {
+                    ...item.progress,
+                    vocabulary: Math.min(100, item.progress.vocabulary + 2),
+                    weeklyXp: item.progress.weeklyXp + Math.round(action.value * 10),
+                  }
+                : item.progress,
+            }
+          : item,
+      );
+
+      return syncRankingsWithStudents({
+        ...prev,
+        students: updatedStudents,
+        ratingLogs: [
+          {
+            id: makeId("game-log"),
+            teacherId: "ketka-game",
+            studentId,
+            groupId,
+            delta: action.value,
+            label: action.label,
+            createdAt: new Date().toISOString(),
+          },
+          ...prev.ratingLogs,
+        ],
+      });
     });
 
     return { ok: true, messageKey: "msg.scoreUpdated" };
@@ -1167,6 +1212,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       logout,
       updateAvatar,
       applyScore,
+      awardGamePoints,
       disableStudent,
       renameGroup,
       refreshState,

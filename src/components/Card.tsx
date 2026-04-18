@@ -99,7 +99,7 @@ export function Card({ card, word, translation, hint, hintText, hintEmoji, onFli
           </div>
 
           <p className="rounded-2xl border border-emerald-950/10 bg-white/55 px-4 py-3 text-xs font-bold text-zinc-700 shadow-inner">
-            If a student does not know this translation, the card goes into their deck.
+            If a student misses, they take the whole table pile into their deck.
           </p>
         </PaperFace>
       </motion.div>
