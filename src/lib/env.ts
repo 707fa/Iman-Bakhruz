@@ -82,6 +82,8 @@ function normalizeBoolean(value: string | undefined, fallback: boolean): boolean
 
 export const DATA_PROVIDER_MODE: DataProviderMode = normalizeProvider(import.meta.env.VITE_DATA_PROVIDER, import.meta.env.VITE_API_URL);
 export const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL);
+const socketUrlCandidate = import.meta.env.VITE_SOCKET_URL ?? import.meta.env.VITE_API_URL;
+export const SOCKET_BASE_URL = normalizeOptionalUrl(socketUrlCandidate) ?? API_BASE_URL;
 export const API_REQUEST_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_API_TIMEOUT_MS, 65000);
 const gatewayUrlCandidate = import.meta.env.VITE_AI_GATEWAY_URL ?? (DATA_PROVIDER_MODE === "api" ? API_BASE_URL : undefined);
 export const AI_GATEWAY_URL = normalizeOptionalUrl(gatewayUrlCandidate);

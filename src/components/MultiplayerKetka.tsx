@@ -629,7 +629,7 @@ function KetkaInviteBox({
 
       {!socketConnected ? (
         <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-          Backend socket is not connected. Demo mode is active on this device.
+          Connecting to the online game server. If it stays offline, set VITE_SOCKET_URL to your ResultBack backend URL and allow this Vercel domain in backend CORS.
         </div>
       ) : null}
 
