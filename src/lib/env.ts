@@ -1,13 +1,19 @@
 export type DataProviderMode = "mock" | "api";
 
-function hasExplicitApiUrl(value: string | undefined): boolean {
+function hasExplicitUrl(value: string | undefined): boolean {
   return Boolean(value?.trim());
 }
 
-function shouldPreferApiMode(apiUrlValue: string | undefined): boolean {
-  if (hasExplicitApiUrl(apiUrlValue)) return true;
+function isLocalBrowser(): boolean {
+  if (typeof window === "undefined") return true;
+  const { hostname, protocol } = window.location;
+  return hostname === "localhost" || hostname === "127.0.0.1" || protocol === "file:";
+}
 
-  if (typeof window !== "undefined" && window.location.hostname.endsWith("vercel.app")) {
+function shouldPreferApiMode(apiUrlValue: string | undefined): boolean {
+  if (hasExplicitUrl(apiUrlValue)) return true;
+
+  if (isLocalBrowser()) {
     return true;
   }
 
@@ -21,15 +27,15 @@ function normalizeProvider(value: string | undefined, apiUrlValue: string | unde
   return shouldPreferApiMode(apiUrlValue) ? "api" : "mock";
 }
 
-function normalizeApiUrl(value: string | undefined): string {
+function normalizeApiUrl(value: string | undefined, localFallback: string): string {
   const explicit = (value?.trim() || "").replace(/\/+$/, "");
   if (explicit) return explicit;
 
-  if (typeof window !== "undefined" && window.location.hostname.endsWith("vercel.app")) {
-    return "https://result-backend-ynme.onrender.com";
+  if (isLocalBrowser()) {
+    return localFallback;
   }
 
-  return "http://127.0.0.1:8000";
+  return "";
 }
 
 function normalizeOptionalText(value: string | undefined): string | null {
@@ -80,12 +86,16 @@ function normalizeBoolean(value: string | undefined, fallback: boolean): boolean
   return fallback;
 }
 
-export const DATA_PROVIDER_MODE: DataProviderMode = normalizeProvider(import.meta.env.VITE_DATA_PROVIDER, import.meta.env.VITE_API_URL);
-export const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL);
-const socketUrlCandidate = import.meta.env.VITE_SOCKET_URL ?? import.meta.env.VITE_API_URL;
-export const SOCKET_BASE_URL = normalizeOptionalUrl(socketUrlCandidate) ?? API_BASE_URL;
+const platformApiUrlCandidate = import.meta.env.VITE_PLATFORM_API_URL ?? import.meta.env.VITE_API_URL;
+export const DATA_PROVIDER_MODE: DataProviderMode = normalizeProvider(import.meta.env.VITE_DATA_PROVIDER, platformApiUrlCandidate);
+const socketUrlCandidate = import.meta.env.VITE_SOCKET_URL ?? import.meta.env.VITE_AI_GATEWAY_URL;
+const gatewayUrlCandidate =
+  import.meta.env.VITE_AI_GATEWAY_URL ?? import.meta.env.VITE_SOCKET_URL ?? (DATA_PROVIDER_MODE === "api" ? platformApiUrlCandidate : undefined);
+
+export const API_BASE_URL = normalizeApiUrl(platformApiUrlCandidate, "http://127.0.0.1:8000");
+export const API_BASE_URL_CONFIGURED = Boolean(API_BASE_URL);
+export const SOCKET_BASE_URL = normalizeOptionalUrl(socketUrlCandidate) ?? (isLocalBrowser() ? "http://127.0.0.1:8080" : null);
 export const API_REQUEST_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_API_TIMEOUT_MS, 65000);
-const gatewayUrlCandidate = import.meta.env.VITE_AI_GATEWAY_URL ?? (DATA_PROVIDER_MODE === "api" ? API_BASE_URL : undefined);
 export const AI_GATEWAY_URL = normalizeOptionalUrl(gatewayUrlCandidate);
 export const AI_GATEWAY_ENABLED = normalizeBoolean(import.meta.env.VITE_AI_GATEWAY_ENABLED, AI_GATEWAY_URL !== null);
 export const AI_GATEWAY_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_AI_GATEWAY_TIMEOUT_MS, 90000);

@@ -8,6 +8,11 @@ export function useSocket(): Socket | null {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    if (!SOCKET_BASE_URL) {
+      setIsConnected(false);
+      return;
+    }
+
     if (!socket) {
       socket = io(SOCKET_BASE_URL, {
         path: "/socket.io",

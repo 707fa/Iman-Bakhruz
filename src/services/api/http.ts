@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_REQUEST_TIMEOUT_MS } from "../../lib/env";
+import { API_BASE_URL, API_BASE_URL_CONFIGURED, API_REQUEST_TIMEOUT_MS } from "../../lib/env";
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -32,6 +32,14 @@ async function parseJsonSafe(response: Response): Promise<unknown> {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  if (!API_BASE_URL_CONFIGURED) {
+    throw new ApiError(
+      0,
+      { message: "Platform API URL is not configured. Set VITE_PLATFORM_API_URL in Vercel." },
+      "Platform API URL is not configured",
+    );
+  }
+
   const headers: Record<string, string> = {};
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 

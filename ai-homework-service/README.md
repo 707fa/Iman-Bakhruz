@@ -78,6 +78,8 @@ npm start
 - Start command: `npm start`
 - Health check path: `/health`
 - Add env variables from `.env.example`
+- This service can be used for realtime multiplayer sockets too
+- If you only need sockets, `PROVIDER_ORDER` may be left empty
 
 ## Railway quick setup
 

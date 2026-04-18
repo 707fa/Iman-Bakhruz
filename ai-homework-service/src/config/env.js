@@ -48,7 +48,7 @@ const env = {
 
   maxImageBytes: toNumber(process.env.MAX_IMAGE_BYTES, 6 * 1024 * 1024),
 
-  providerOrder: toCsv(process.env.PROVIDER_ORDER, "gemini,deepseek,openrouter"),
+  providerOrder: toCsv(process.env.PROVIDER_ORDER, "gemini"),
 
   geminiApiKey: (process.env.GEMINI_API_KEY || "").trim(),
   geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
@@ -91,10 +91,6 @@ function validateEnv() {
 
   if (env.cacheTtlSeconds < 1) {
     errors.push("CACHE_TTL_SECONDS must be >= 1");
-  }
-
-  if (!env.providerOrder.length) {
-    errors.push("PROVIDER_ORDER must not be empty");
   }
 
   if (errors.length) {
