@@ -1,4 +1,4 @@
-﻿import { Activity, Flame, Star } from "lucide-react";
+import { Activity, Flame, Gamepad2, Star, Trophy } from "lucide-react";
 import { useUi } from "../hooks/useUi";
 import type { ProgressSnapshot } from "../types";
 import { Badge } from "./ui/badge";
@@ -10,7 +10,10 @@ interface ProgressOverviewCardProps {
   progress?: ProgressSnapshot;
 }
 
-const metricConfig: Array<{ key: keyof Omit<ProgressSnapshot, "status" | "weeklyXp" | "level" | "streakDays">; label: string }> = [
+const metricConfig: Array<{
+  key: keyof Omit<ProgressSnapshot, "status" | "weeklyXp" | "level" | "streakDays" | "gameWins" | "gamesPlayed" | "gameBonusPoints">;
+  label: string;
+}> = [
   { key: "grammar", label: "Grammar" },
   { key: "vocabulary", label: "Vocabulary" },
   { key: "homework", label: "Homework" },
@@ -36,6 +39,9 @@ export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardPr
     weeklyXp: 0,
     level: 1,
     streakDays: 0,
+    gameWins: 0,
+    gamesPlayed: 0,
+    gameBonusPoints: 0,
   };
 
   return (
@@ -77,6 +83,30 @@ export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardPr
           </div>
         </div>
 
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="rounded-2xl border border-burgundy-100 bg-burgundy-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="inline-flex items-center gap-1 text-xs text-charcoal/60 dark:text-zinc-400">
+              <Gamepad2 className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
+              Games
+            </p>
+            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-white">{safe.gamesPlayed ?? 0}</p>
+          </div>
+          <div className="rounded-2xl border border-burgundy-100 bg-burgundy-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="inline-flex items-center gap-1 text-xs text-charcoal/60 dark:text-zinc-400">
+              <Trophy className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
+              Game wins
+            </p>
+            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-white">{safe.gameWins ?? 0}</p>
+          </div>
+          <div className="rounded-2xl border border-burgundy-100 bg-burgundy-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="inline-flex items-center gap-1 text-xs text-charcoal/60 dark:text-zinc-400">
+              <Star className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
+              Game bonus
+            </p>
+            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-white">+{safe.gameBonusPoints ?? 0}</p>
+          </div>
+        </div>
+
         <div className="space-y-3">
           {metricConfig.map((metric) => {
             const value = safe[metric.key];
@@ -97,5 +127,3 @@ export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardPr
     </Card>
   );
 }
-
-

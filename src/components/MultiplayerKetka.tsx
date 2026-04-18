@@ -37,17 +37,7 @@ interface GameInvite {
   status: InviteStatus;
 }
 
-interface KetkaProgress {
-  gamesPlayed: number;
-  wins: number;
-  correctAnswers: number;
-  wrongAnswers: number;
-  bonusPoints: number;
-  lastResult?: string;
-}
-
 const STORAGE_KEY = "ketka-homework-deck-v2";
-const PROGRESS_KEY = "ketka-progress-v1";
 
 const fallbackDeck: LearningCard[] = [
   { id: "seed-car", word: "car", translation: "машина", hintText: "fast transport", hintEmoji: "🚗" },
@@ -79,32 +69,6 @@ function readDeck(): LearningCard[] {
 function saveDeck(cards: LearningCard[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
-}
-
-function readProgress(): KetkaProgress {
-  if (typeof window === "undefined") {
-    return { gamesPlayed: 0, wins: 0, correctAnswers: 0, wrongAnswers: 0, bonusPoints: 0 };
-  }
-  const raw = window.localStorage.getItem(PROGRESS_KEY);
-  if (!raw) return { gamesPlayed: 0, wins: 0, correctAnswers: 0, wrongAnswers: 0, bonusPoints: 0 };
-  try {
-    const parsed = JSON.parse(raw) as KetkaProgress;
-    return {
-      gamesPlayed: parsed.gamesPlayed ?? 0,
-      wins: parsed.wins ?? 0,
-      correctAnswers: parsed.correctAnswers ?? 0,
-      wrongAnswers: parsed.wrongAnswers ?? 0,
-      bonusPoints: parsed.bonusPoints ?? 0,
-      lastResult: parsed.lastResult,
-    };
-  } catch {
-    return { gamesPlayed: 0, wins: 0, correctAnswers: 0, wrongAnswers: 0, bonusPoints: 0 };
-  }
-}
-
-function saveProgress(progress: KetkaProgress) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -188,7 +152,6 @@ export function MultiplayerKetka() {
   const { state, currentStudent, awardGamePoints } = useAppStore();
   const [tab, setTab] = useState<ArenaTab>("homework");
   const [deck, setDeck] = useState<LearningCard[]>(() => readDeck());
-  const [progress, setProgress] = useState<KetkaProgress>(() => readProgress());
   const [form, setForm] = useState({ word: "", translation: "", hintText: "", hintEmoji: "" });
   const [invites, setInvites] = useState<GameInvite[]>([]);
   const [players, setPlayers] = useState<LocalPlayer[]>([]);
@@ -204,10 +167,6 @@ export function MultiplayerKetka() {
   useEffect(() => {
     saveDeck(deck);
   }, [deck]);
-
-  useEffect(() => {
-    saveProgress(progress);
-  }, [progress]);
 
   const classmates = useMemo(() => {
     const myGroupId = currentStudent?.groupId;
@@ -230,10 +189,6 @@ export function MultiplayerKetka() {
   const answerer = currentAnswererIndex >= 0 && currentAnswererIndex !== currentPlayerIndex ? players[currentAnswererIndex] : null;
   const activeCard = currentPlayer?.cards[0] ?? null;
   const canStart = acceptedInvites.length >= 1 && acceptedInvites.length <= 3 && deck.length > 0;
-
-  function updateProgress(mutator: (current: KetkaProgress) => KetkaProgress) {
-    setProgress((current) => mutator(current));
-  }
 
   function addCard() {
     if (!form.word.trim() || !form.translation.trim()) return;
@@ -345,7 +300,6 @@ export function MultiplayerKetka() {
     if (correct) {
       presenter.score = (presenter.score ?? 0) + 1;
       setTablePile((currentPile) => [...currentPile, card]);
-      updateProgress((currentProgress) => ({ ...currentProgress, correctAnswers: currentProgress.correctAnswers + 1 }));
     } else {
       const answerPlayer = next[answererIndex];
       if (answerPlayer) {
@@ -356,7 +310,6 @@ export function MultiplayerKetka() {
         answerPlayer.cards.push(...takenCards);
       }
       setTablePile([]);
-      updateProgress((currentProgress) => ({ ...currentProgress, wrongAnswers: currentProgress.wrongAnswers + 1 }));
     }
 
     const nextPlayers = next.map((player) => ({ ...player, deckSize: player.cards.length }));
@@ -368,14 +321,6 @@ export function MultiplayerKetka() {
     if (nextWinner && !winnerId) {
       setWinnerName(nextWinner.playerName);
       setWinnerId(nextWinner.playerId);
-      const isCurrentStudentWinner = nextWinner.playerId === currentStudent?.id;
-      updateProgress((currentProgress) => ({
-        ...currentProgress,
-        gamesPlayed: currentProgress.gamesPlayed + 1,
-        wins: currentProgress.wins + (isCurrentStudentWinner ? 1 : 0),
-        bonusPoints: currentProgress.bonusPoints + (isCurrentStudentWinner ? 5 : 0),
-        lastResult: `${nextWinner?.playerName} won Ketka Classic`,
-      }));
       if (nextWinnerGroupId) {
         awardGamePoints(nextWinner.playerId, nextWinnerGroupId, {
           value: 5,
@@ -410,7 +355,7 @@ export function MultiplayerKetka() {
           <div className="grid grid-cols-3 gap-2 rounded-3xl border border-white/10 bg-white/10 p-2 backdrop-blur-xl">
             <Stat label="Cards" value={deck.length} />
             <Stat label="Online" value={onlineClassmates.length} />
-            <Stat label="Wins" value={progress.wins} />
+            <Stat label="Mode" value="2-4" />
           </div>
         </div>
       </section>
@@ -423,8 +368,6 @@ export function MultiplayerKetka() {
         <TabButton active={tab === "memory"} onClick={() => setTab("memory")} icon={<Brain className="h-4 w-4" />}>Memory</TabButton>
         <TabButton active={tab === "emoji"} onClick={() => setTab("emoji")} icon={<Sparkles className="h-4 w-4" />}>Emoji hint</TabButton>
       </nav>
-
-      <ProgressPanel progress={progress} />
 
       {tab === "homework" ? (
         <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
@@ -614,18 +557,6 @@ export function MultiplayerKetka() {
   );
 }
 
-function ProgressPanel({ progress }: { progress: KetkaProgress }) {
-  return (
-    <section className="grid gap-3 rounded-[2rem] border border-burgundy-100 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-950 sm:grid-cols-2 lg:grid-cols-5">
-      <ProgressStat label="Games" value={progress.gamesPlayed} />
-      <ProgressStat label="Wins" value={progress.wins} />
-      <ProgressStat label="Correct" value={progress.correctAnswers} />
-      <ProgressStat label="Wrong" value={progress.wrongAnswers} />
-      <ProgressStat label="Bonus" value={`+${progress.bonusPoints}`} />
-    </section>
-  );
-}
-
 function CardForm({ form, setForm, onAdd }: {
   form: { word: string; translation: string; hintText: string; hintEmoji: string };
   setForm: (next: { word: string; translation: string; hintText: string; hintEmoji: string }) => void;
@@ -721,15 +652,6 @@ function Stat({ label, value }: { label: string; value: string | number }) {
     <div className="rounded-2xl bg-white/10 px-3 py-2 text-center">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">{label}</p>
       <p className="mt-1 text-lg font-black">{value}</p>
-    </div>
-  );
-}
-
-function ProgressStat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-3xl border border-burgundy-100 bg-burgundy-50/45 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
-      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-charcoal/45 dark:text-zinc-500">{label}</p>
-      <p className="mt-1 text-2xl font-black text-charcoal dark:text-white">{value}</p>
     </div>
   );
 }

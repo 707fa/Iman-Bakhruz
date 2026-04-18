@@ -782,13 +782,20 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
           ? {
               ...item,
               points: Number((item.points + action.value).toFixed(2)),
-              progress: item.progress
-                ? {
-                    ...item.progress,
-                    vocabulary: Math.min(100, item.progress.vocabulary + 2),
-                    weeklyXp: item.progress.weeklyXp + Math.round(action.value * 10),
-                  }
-                : item.progress,
+              progress: {
+                status: item.progress?.status ?? "yellow",
+                grammar: item.progress?.grammar ?? 0,
+                vocabulary: Math.min(100, (item.progress?.vocabulary ?? 0) + 2),
+                homework: item.progress?.homework ?? 0,
+                speaking: item.progress?.speaking ?? 0,
+                attendance: item.progress?.attendance ?? 0,
+                weeklyXp: (item.progress?.weeklyXp ?? 0) + Math.round(action.value * 10),
+                level: item.progress?.level ?? 1,
+                streakDays: item.progress?.streakDays ?? 0,
+                gamesPlayed: (item.progress?.gamesPlayed ?? 0) + 1,
+                gameWins: (item.progress?.gameWins ?? 0) + 1,
+                gameBonusPoints: (item.progress?.gameBonusPoints ?? 0) + action.value,
+              },
             }
           : item,
       );
