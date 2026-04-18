@@ -6,7 +6,6 @@ import {
   Bot,
   Brain,
   CheckCircle2,
-  CopyPlus,
   Gamepad2,
   Plus,
   Send,
@@ -25,7 +24,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { useSocket } from "../hooks/useSocket";
 import { Button } from "./ui/button";
 
-type ArenaTab = "homework" | "lobby" | "ketka" | "speed" | "memory" | "emoji";
+type ArenaTab = "ketka" | "speed" | "memory" | "emoji";
 type InviteStatus = "pending" | "accepted" | "declined";
 
 interface LocalPlayer extends CardGamePlayer {
@@ -54,7 +53,6 @@ interface KetkaInvitePayload {
   toStudentId: string;
   toStudentName: string;
   groupId: string;
-  accepted?: boolean;
 }
 
 const STORAGE_KEY = "ketka-homework-deck-v2";
@@ -138,25 +136,21 @@ function aiCheckTranslation(answerText: string, expectedTranslation: string): An
     distance,
     message: isCorrect
       ? distance === 0
-        ? "AI принял ответ как точный."
-        : `AI принял: похоже на правильный перевод, опечаток примерно ${distance}.`
-      : `AI не принял: ответ слишком далеко от перевода. Ошибок примерно ${distance}.`,
+        ? "AI accepted the exact answer."
+        : `AI accepted it as close enough. Approximate typo distance: ${distance}.`
+      : `AI did not accept it. Approximate typo distance: ${distance}.`,
   };
 }
 
-function isStudentOnline(studentId: string): boolean {
-  if (studentId === "demo-madina") return false;
-  return true;
+function isDemoOnline(studentId: string): boolean {
+  return studentId !== "demo-madina";
 }
 
 function cloneDeckForOpponent(deck: LearningCard[], name: string): LearningCard[] {
   const safeDeck = deck.length ? deck : fallbackDeck;
   return shuffle(safeDeck)
     .slice(0, Math.min(8, Math.max(3, safeDeck.length)))
-    .map((card, index) => ({
-      ...card,
-      id: `${name}-${index}-${card.id}`,
-    }));
+    .map((card, index) => ({ ...card, id: `${name}-${index}-${card.id}` }));
 }
 
 function findNextPlayerIndex(players: LocalPlayer[], currentIndex: number): number {
@@ -171,13 +165,13 @@ function findNextPlayerIndex(players: LocalPlayer[], currentIndex: number): numb
 export function MultiplayerKetka() {
   const { state, currentStudent, awardGamePoints } = useAppStore();
   const socket = useSocket();
-  const [tab, setTab] = useState<ArenaTab>("homework");
+  const [tab, setTab] = useState<ArenaTab>("ketka");
   const [deck, setDeck] = useState<LearningCard[]>(() => readDeck());
   const [form, setForm] = useState({ word: "", translation: "", hintText: "", hintEmoji: "" });
   const [invites, setInvites] = useState<GameInvite[]>([]);
   const [incomingInvites, setIncomingInvites] = useState<GameInvite[]>([]);
   const [onlineStudentIds, setOnlineStudentIds] = useState<Set<string>>(new Set());
-  const [socketNotice, setSocketNotice] = useState("");
+  const [notice, setNotice] = useState("");
   const [players, setPlayers] = useState<LocalPlayer[]>([]);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [winnerName, setWinnerName] = useState("");
@@ -221,26 +215,24 @@ export function MultiplayerKetka() {
         },
         ...current.filter((invite) => invite.inviteId !== payload.inviteId),
       ]);
-      setTab("lobby");
-      setSocketNotice(`${payload.fromStudentName} sent you a Ketka invite.`);
+      setTab("ketka");
+      setNotice(`${payload.fromStudentName} sent you a Ketka invite.`);
     };
 
     const handleInviteAccepted = (payload: KetkaInvitePayload) => {
-      if (payload.fromStudentId === currentStudent.id) {
-        setInvites((current) =>
-          current.map((invite) => (invite.inviteId === payload.inviteId || invite.studentId === payload.toStudentId ? { ...invite, status: "accepted" } : invite)),
-        );
-        setSocketNotice(`${payload.toStudentName} accepted your Ketka invite.`);
-      }
+      if (payload.fromStudentId !== currentStudent.id) return;
+      setInvites((current) =>
+        current.map((invite) => (invite.inviteId === payload.inviteId || invite.studentId === payload.toStudentId ? { ...invite, status: "accepted" } : invite)),
+      );
+      setNotice(`${payload.toStudentName} accepted your Ketka invite.`);
     };
 
     const handleInviteDeclined = (payload: KetkaInvitePayload) => {
-      if (payload.fromStudentId === currentStudent.id) {
-        setInvites((current) =>
-          current.map((invite) => (invite.inviteId === payload.inviteId || invite.studentId === payload.toStudentId ? { ...invite, status: "declined" } : invite)),
-        );
-        setSocketNotice(`${payload.toStudentName} declined your Ketka invite.`);
-      }
+      if (payload.fromStudentId !== currentStudent.id) return;
+      setInvites((current) =>
+        current.map((invite) => (invite.inviteId === payload.inviteId || invite.studentId === payload.toStudentId ? { ...invite, status: "declined" } : invite)),
+      );
+      setNotice(`${payload.toStudentName} declined your Ketka invite.`);
     };
 
     socket.on("KETKA_ONLINE_STUDENTS", handleOnlineStudents);
@@ -260,17 +252,19 @@ export function MultiplayerKetka() {
     const myGroupId = currentStudent?.groupId;
     const sameGroup = state.students
       .filter((student) => student.id !== currentStudent?.id && (!myGroupId || student.groupId === myGroupId))
-      .map((student) => ({ ...student, isConnected: socket ? onlineStudentIds.has(student.id) : isStudentOnline(student.id) }));
-    const fallback = [
-      { id: "demo-aisha", fullName: "Aisha Demo", groupId: myGroupId ?? "", isConnected: true },
-      { id: "demo-umar", fullName: "Umar Demo", groupId: myGroupId ?? "", isConnected: true },
+      .map((student) => ({ ...student, isConnected: socket ? onlineStudentIds.has(student.id) : isDemoOnline(student.id) }));
+
+    if (sameGroup.length) return sameGroup;
+
+    return [
+      { id: "demo-aisha", fullName: "Aisha Demo", groupId: myGroupId ?? "", isConnected: !socket },
+      { id: "demo-umar", fullName: "Umar Demo", groupId: myGroupId ?? "", isConnected: !socket },
       { id: "demo-madina", fullName: "Madina Demo", groupId: myGroupId ?? "", isConnected: false },
     ];
-    return sameGroup.length ? sameGroup : fallback;
   }, [currentStudent, onlineStudentIds, socket, state.students]);
 
   const onlineClassmates = classmates.filter((student) => student.isConnected);
-  const offlineCount = classmates.length - onlineClassmates.length;
+  const offlineClassmates = classmates.filter((student) => !student.isConnected);
   const acceptedInvites = invites.filter((invite) => invite.status === "accepted");
   const currentPlayer = players[currentPlayerIndex];
   const currentAnswererIndex = players.length > 1 ? findNextPlayerIndex(players, currentPlayerIndex) : -1;
@@ -295,13 +289,7 @@ export function MultiplayerKetka() {
 
   function addAiCards() {
     setDeck((current) => [
-      ...aiWords.map(([word, translation, hintText, hintEmoji]) => ({
-        id: makeId("ai"),
-        word,
-        translation,
-        hintText,
-        hintEmoji,
-      })),
+      ...aiWords.map(([word, translation, hintText, hintEmoji]) => ({ id: makeId("ai"), word, translation, hintText, hintEmoji })),
       ...current,
     ]);
   }
@@ -313,37 +301,19 @@ export function MultiplayerKetka() {
     if (socket) {
       socket.emit("KETKA_SEND_INVITE", { toStudentId: studentId }, (reply: { ok: boolean; error?: string; invite?: KetkaInvitePayload }) => {
         if (!reply.ok || !reply.invite) {
-          setSocketNotice(reply.error ?? "Could not send invite.");
+          setNotice(reply.error ?? "Could not send invite.");
           return;
         }
-
-        setInvites((current) => {
-          const existing = current.find((invite) => invite.studentId === studentId);
-          const nextInvite: GameInvite = {
-            studentId,
-            inviteId: reply.invite?.inviteId,
-            status: "pending",
-          };
-          if (existing) {
-            return current.map((invite) => (invite.studentId === studentId ? nextInvite : invite));
-          }
-          return [...current, nextInvite];
-        });
-        setSocketNotice(`Invite sent to ${student.fullName}.`);
+        setInvites((current) => upsertInvite(current, { studentId, inviteId: reply.invite?.inviteId, status: "pending" }));
+        setNotice(`Invite sent to ${student.fullName}.`);
       });
       return;
     }
 
-    setInvites((current) => {
-      const existing = current.find((invite) => invite.studentId === studentId);
-      if (existing) {
-        return current.map((invite) => (invite.studentId === studentId ? { ...invite, status: "pending" } : invite));
-      }
-      return [...current, { studentId, status: "pending" }];
-    });
+    setInvites((current) => upsertInvite(current, { studentId, status: "pending" }));
   }
 
-  function answerInvite(studentId: string, status: "accepted" | "declined") {
+  function answerInvite(studentId: string, status: InviteStatus) {
     setInvites((current) => current.map((invite) => (invite.studentId === studentId ? { ...invite, status } : invite)));
   }
 
@@ -352,12 +322,11 @@ export function MultiplayerKetka() {
 
     socket.emit("KETKA_RESPOND_INVITE", { inviteId: invite.inviteId, accepted }, (reply: { ok: boolean; error?: string }) => {
       if (!reply.ok) {
-        setSocketNotice(reply.error ?? "Could not respond to invite.");
+        setNotice(reply.error ?? "Could not respond to invite.");
         return;
       }
-
       setIncomingInvites((current) => current.filter((item) => item.inviteId !== invite.inviteId));
-      setSocketNotice(accepted ? `You accepted ${invite.fromStudentName}'s invite.` : `You declined ${invite.fromStudentName}'s invite.`);
+      setNotice(accepted ? `You accepted ${invite.fromStudentName}'s invite.` : `You declined ${invite.fromStudentName}'s invite.`);
     });
   }
 
@@ -372,6 +341,7 @@ export function MultiplayerKetka() {
       isConnected: true,
       groupId: currentStudent?.groupId,
     };
+
     const opponents = acceptedInvites.map((invite) => {
       const student = onlineClassmates.find((item) => item.id === invite.studentId);
       const name = student?.fullName ?? "Player";
@@ -393,13 +363,21 @@ export function MultiplayerKetka() {
     setTablePile([]);
     setLastAnswer(null);
     setCurrentPlayerIndex(0);
-    setTab("ketka");
+  }
+
+  function resetMatch() {
+    setPlayers([]);
+    setWinnerName("");
+    setWinnerId("");
+    setTablePile([]);
+    setLastAnswer(null);
+    setCurrentPlayerIndex(0);
   }
 
   function checkAnswer(cardId: string, answerText: string): AnswerCheckResult {
     const card = players.flatMap((player) => player.cards).find((item) => item.id === cardId) ?? activeCard;
     if (!card) {
-      return { isCorrect: false, answerText, distance: 999, message: "AI не нашел карточку для проверки." };
+      return { isCorrect: false, answerText, distance: 999, message: "AI could not find this card." };
     }
     return aiCheckTranslation(answerText, card.translation);
   }
@@ -411,11 +389,12 @@ export function MultiplayerKetka() {
         ? check
         : {
             isCorrect: correct,
-            answerText: answerText.trim() || "устный ответ",
+            answerText: answerText.trim() || "spoken answer",
             distance: check?.distance ?? 0,
-            message: correct ? "Ответ принят вручную." : "Ответ не принят вручную.",
+            message: correct ? "Answer accepted manually." : "Answer rejected manually.",
           },
     );
+
     const next = players.map((player) => ({ ...player, cards: [...player.cards] }));
     const presenter = next[currentPlayerIndex];
     const answererIndex = findNextPlayerIndex(next, currentPlayerIndex);
@@ -429,10 +408,7 @@ export function MultiplayerKetka() {
     } else {
       const answerPlayer = next[answererIndex];
       if (answerPlayer) {
-        const takenCards = [...tablePile, card].map((item) => ({
-          ...item,
-          id: `${answerPlayer.playerId}-taken-${makeId(item.id)}`,
-        }));
+        const takenCards = [...tablePile, card].map((item) => ({ ...item, id: `${answerPlayer.playerId}-taken-${makeId(item.id)}` }));
         answerPlayer.cards.push(...takenCards);
       }
       setTablePile([]);
@@ -441,6 +417,7 @@ export function MultiplayerKetka() {
     const nextPlayers = next.map((player) => ({ ...player, deckSize: player.cards.length }));
     const nextWinner = nextPlayers.find((player) => player.cards.length === 0);
     const nextWinnerGroupId = nextWinner?.groupId ?? state.students.find((student) => student.id === nextWinner?.playerId)?.groupId ?? currentStudent?.groupId ?? "";
+
     setPlayers(nextPlayers);
     setCurrentPlayerIndex(findNextPlayerIndex(nextPlayers, currentPlayerIndex));
 
@@ -448,10 +425,7 @@ export function MultiplayerKetka() {
       setWinnerName(nextWinner.playerName);
       setWinnerId(nextWinner.playerId);
       if (nextWinnerGroupId) {
-        awardGamePoints(nextWinner.playerId, nextWinnerGroupId, {
-          value: 5,
-          label: "Ketka Classic win +5",
-        });
+        awardGamePoints(nextWinner.playerId, nextWinnerGroupId, { value: 5, label: "Ketka Classic win +5" });
       }
     }
   }
@@ -473,9 +447,9 @@ export function MultiplayerKetka() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.24em] text-white/45">Ketka Arena</p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">Онлайн кетка для английского</h1>
+            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">English games in one clean arena</h1>
             <p className="mt-3 max-w-3xl text-sm font-semibold text-white/65">
-              Ученики делают карточки как домашку, на уроке отправляют приглашение онлайн-соперникам, отвечают с AI-проверкой и играют до нуля карточек.
+              Ketka now keeps cards, online opponents, invites, and match start on one screen. Only game modes are separated.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 rounded-3xl border border-white/10 bg-white/10 p-2 backdrop-blur-xl">
@@ -486,188 +460,22 @@ export function MultiplayerKetka() {
         </div>
       </section>
 
-      <nav className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <TabButton active={tab === "homework"} onClick={() => setTab("homework")} icon={<CopyPlus className="h-4 w-4" />}>Homework cards</TabButton>
-        <TabButton active={tab === "lobby"} onClick={() => setTab("lobby")} icon={<UsersRound className="h-4 w-4" />}>Online lobby</TabButton>
-        <TabButton active={tab === "ketka"} onClick={() => setTab("ketka")} icon={<Gamepad2 className="h-4 w-4" />}>Ketka classic</TabButton>
+      <nav className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <TabButton active={tab === "ketka"} onClick={() => setTab("ketka")} icon={<Gamepad2 className="h-4 w-4" />}>Ketka</TabButton>
         <TabButton active={tab === "speed"} onClick={() => setTab("speed")} icon={<Zap className="h-4 w-4" />}>Speed</TabButton>
         <TabButton active={tab === "memory"} onClick={() => setTab("memory")} icon={<Brain className="h-4 w-4" />}>Memory</TabButton>
-        <TabButton active={tab === "emoji"} onClick={() => setTab("emoji")} icon={<Sparkles className="h-4 w-4" />}>Emoji hint</TabButton>
+        <TabButton active={tab === "emoji"} onClick={() => setTab("emoji")} icon={<Sparkles className="h-4 w-4" />}>Emoji</TabButton>
       </nav>
-
-      {tab === "homework" ? (
-        <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
-          <Panel title="Создать домашнюю карточку" subtitle="Ученик сам пишет слово, подсказку, emoji и перевод. Это его homework deck для игры.">
-            <CardForm form={form} setForm={setForm} onAdd={addCard} />
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <Button type="button" onClick={addAiCards} variant="secondary">
-                <Bot className="mr-2 h-4 w-4" />
-                AI ideas
-              </Button>
-              <Button type="button" onClick={() => setDeck([])} variant="ghost">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Clear deck
-              </Button>
-            </div>
-          </Panel>
-
-          <Panel title="Моя стопка карточек" subtitle="Карточки выглядят как настоящие листочки: front с английским словом и hint, back с переводом.">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <AnimatePresence>
-                {deck.map((card) => (
-                  <motion.div key={card.id} layout>
-                    <Card card={card} compact />
-                    <button
-                      type="button"
-                      onClick={() => setDeck((current) => current.filter((item) => item.id !== card.id))}
-                      className="mt-2 w-full rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-red-700 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200"
-                    >
-                      Remove
-                    </button>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          </Panel>
-        </div>
-      ) : null}
-
-      {tab === "lobby" ? (
-        <Panel title="Онлайн лобби и приглашения" subtitle="Играть можно только с теми, кто сейчас онлайн. Сначала отправь запрос, потом ученик принимает или отказывает.">
-          {socketNotice ? (
-            <div className="mb-4 rounded-3xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-900 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-100">
-              {socketNotice}
-            </div>
-          ) : null}
-
-          {incomingInvites.length > 0 ? (
-            <div className="mb-4 grid gap-3">
-              {incomingInvites.map((invite) => (
-                <div key={invite.inviteId ?? invite.studentId} className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/25">
-                  <p className="flex items-center text-sm font-black text-emerald-900 dark:text-emerald-100">
-                    <BellRing className="mr-2 h-4 w-4" />
-                    {invite.fromStudentName ?? "Student"} wants to play Ketka with you.
-                  </p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => respondIncomingInvite(invite, true)}
-                      className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-white"
-                    >
-                      <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                      Accept
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => respondIncomingInvite(invite, false)}
-                      className="inline-flex items-center justify-center rounded-2xl bg-red-600 px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-white"
-                    >
-                      <XCircle className="mr-1.5 h-4 w-4" />
-                      Decline
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {!socket ? (
-            <div className="mb-4 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-100">
-              Socket is not connected yet. Real online invites will work when the backend is available.
-            </div>
-          ) : null}
-
-          <div className="mb-4 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-            {offlineCount > 0
-              ? `${offlineCount} ученик(ов) сейчас offline, поэтому кнопка игры с ними не показывается как доступная.`
-              : "Все ученики из списка сейчас online."}
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {onlineClassmates.map((student) => {
-              const invite = invites.find((item) => item.studentId === student.id);
-              return (
-                <div key={student.id} className="rounded-3xl border border-burgundy-100 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-black">{student.fullName}</p>
-                      <p className="mt-1 inline-flex items-center text-xs font-black uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
-                        <Wifi className="mr-1.5 h-3.5 w-3.5" />
-                        online
-                      </p>
-                    </div>
-                    <InviteBadge status={invite?.status} />
-                  </div>
-
-                  {!invite ? (
-                    <Button type="button" onClick={() => sendInvite(student.id)} className="mt-4 w-full">
-                      <Send className="mr-2 h-4 w-4" />
-                      Send request
-                    </Button>
-                  ) : invite.status === "pending" ? (
-                    <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-3 dark:border-cyan-900/40 dark:bg-cyan-950/30">
-                      <p className="flex items-center text-sm font-black text-cyan-900 dark:text-cyan-100">
-                        <BellRing className="mr-2 h-4 w-4" />
-                        Уведомление пришло ученику
-                      </p>
-                      {!socket ? (
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => answerInvite(student.id, "accepted")}
-                          className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white"
-                        >
-                          <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                          Accept
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => answerInvite(student.id, "declined")}
-                          className="inline-flex items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white"
-                        >
-                          <XCircle className="mr-1.5 h-3.5 w-3.5" />
-                          Decline
-                        </button>
-                      </div>
-                      ) : (
-                        <p className="mt-2 text-xs font-bold text-cyan-800 dark:text-cyan-100">Waiting for accept or decline on the other device.</p>
-                      )}
-                    </div>
-                  ) : (
-                    <Button type="button" onClick={() => sendInvite(student.id)} variant="secondary" className="mt-4 w-full">
-                      Send again
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {offlineCount > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {classmates.filter((student) => !student.isConnected).map((student) => (
-                <span key={student.id} className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-black text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
-                  <WifiOff className="mr-1.5 h-3.5 w-3.5" />
-                  {student.fullName} offline
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          <Button type="button" disabled={!canStart} onClick={startKetka} className="mt-5 w-full">
-            <Gamepad2 className="mr-2 h-4 w-4" />
-            Start with {acceptedInvites.length + 1} player(s)
-          </Button>
-        </Panel>
-      ) : null}
 
       {tab === "ketka" ? (
         players.length > 0 ? (
-          <div className="overflow-hidden rounded-[2rem]">
-            {winnerName ? (
-              <div className="mb-4 rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
-                <p className="font-black">Победитель: {winnerName}. У него 0 карточек, +5 баллов добавлено в рейтинг, если это реальный ученик.</p>
-              </div>
-            ) : null}
+          <div className="space-y-4 overflow-hidden rounded-[2rem]">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-burgundy-100 bg-white px-4 py-3 shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
+              <p className="text-sm font-black text-charcoal dark:text-white">
+                {winnerName ? `Winner: ${winnerName}. +5 rating points added.` : `Playing with ${players.length} players.`}
+              </p>
+              <Button type="button" variant="secondary" onClick={resetMatch}>Back to setup</Button>
+            </div>
             <GameBoard
               players={players}
               currentPlayerTurn={currentPlayer?.playerId ?? ""}
@@ -681,26 +489,74 @@ export function MultiplayerKetka() {
             />
           </div>
         ) : (
-          <Panel title="Сначала собери онлайн комнату" subtitle="Перейди в Online lobby, отправь запрос 1-3 ученикам и дождись accept.">
-            <Button type="button" onClick={() => setTab("lobby")}>Open lobby</Button>
-          </Panel>
+          <div className="grid gap-5 xl:grid-cols-[360px_1fr_380px]">
+            <Panel title="1. Create cards" subtitle="Students write the English word, hint, emoji, and Russian translation as homework.">
+              <CardForm form={form} setForm={setForm} onAdd={addCard} />
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Button type="button" onClick={addAiCards} variant="secondary">
+                  <Bot className="mr-2 h-4 w-4" />
+                  AI ideas
+                </Button>
+                <Button type="button" onClick={() => setDeck([])} variant="ghost">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear
+                </Button>
+              </div>
+            </Panel>
+
+            <Panel title="2. Your Ketka deck" subtitle="These cards are used in class. Click a card to flip it.">
+              <div className="grid gap-4 md:grid-cols-2">
+                <AnimatePresence>
+                  {deck.map((card) => (
+                    <motion.div key={card.id} layout>
+                      <Card card={card} compact />
+                      <button
+                        type="button"
+                        onClick={() => setDeck((current) => current.filter((item) => item.id !== card.id))}
+                        className="mt-2 w-full rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-red-700 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200"
+                      >
+                        Remove
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </Panel>
+
+            <Panel title="3. Invite opponents" subtitle="Only online students from your own group can receive game requests.">
+              <KetkaInviteBox
+                socketConnected={Boolean(socket)}
+                notice={notice}
+                incomingInvites={incomingInvites}
+                onlineClassmates={onlineClassmates}
+                offlineClassmates={offlineClassmates}
+                invites={invites}
+                acceptedCount={acceptedInvites.length}
+                canStart={canStart}
+                onSendInvite={sendInvite}
+                onDemoAnswerInvite={answerInvite}
+                onRespondIncomingInvite={respondIncomingInvite}
+                onStart={startKetka}
+              />
+            </Panel>
+          </div>
         )
       ) : null}
 
       {tab === "speed" ? (
-        <Panel title="Speed Translation" subtitle="Быстро выбери правильный перевод. Хорошая разминка перед Ketka Classic.">
+        <Panel title="Speed Translation" subtitle="Choose the correct translation fast. Good warm-up before Ketka.">
           <SpeedGame deck={deck} index={speedIndex} setIndex={setSpeedIndex} score={speedScore} setScore={setSpeedScore} />
         </Panel>
       ) : null}
 
       {tab === "memory" ? (
-        <Panel title="Memory Match" subtitle="Найди пары: английское слово и русский перевод.">
+        <Panel title="Memory Match" subtitle="Match English words with Russian translations.">
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {memoryCards.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setMemoryOpened((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current.slice(-1), item.id])}
+                onClick={() => setMemoryOpened((current) => (current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current.slice(-1), item.id]))}
                 className="min-h-24 rounded-3xl border border-burgundy-100 bg-white p-4 text-lg font-black shadow-soft transition hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-950"
               >
                 {memoryOpened.includes(item.id) ? item.label : "Ketka"}
@@ -711,7 +567,7 @@ export function MultiplayerKetka() {
       ) : null}
 
       {tab === "emoji" ? (
-        <Panel title="Emoji Hint" subtitle="Смотри только emoji и подсказку, угадывай английское слово.">
+        <Panel title="Emoji Hint" subtitle="Look at the emoji and hint, then guess the English word.">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {deck.slice(0, 9).map((card) => (
               <div key={card.id} className="rounded-[2rem] border border-burgundy-100 bg-white p-5 text-center shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
@@ -730,7 +586,145 @@ export function MultiplayerKetka() {
   );
 }
 
-function CardForm({ form, setForm, onAdd }: {
+function upsertInvite(invites: GameInvite[], nextInvite: GameInvite): GameInvite[] {
+  const existing = invites.find((invite) => invite.studentId === nextInvite.studentId);
+  if (!existing) return [...invites, nextInvite];
+  return invites.map((invite) => (invite.studentId === nextInvite.studentId ? { ...invite, ...nextInvite } : invite));
+}
+
+function KetkaInviteBox({
+  socketConnected,
+  notice,
+  incomingInvites,
+  onlineClassmates,
+  offlineClassmates,
+  invites,
+  acceptedCount,
+  canStart,
+  onSendInvite,
+  onDemoAnswerInvite,
+  onRespondIncomingInvite,
+  onStart,
+}: {
+  socketConnected: boolean;
+  notice: string;
+  incomingInvites: GameInvite[];
+  onlineClassmates: Array<{ id: string; fullName: string; isConnected: boolean }>;
+  offlineClassmates: Array<{ id: string; fullName: string; isConnected: boolean }>;
+  invites: GameInvite[];
+  acceptedCount: number;
+  canStart: boolean;
+  onSendInvite: (studentId: string) => void;
+  onDemoAnswerInvite: (studentId: string, status: InviteStatus) => void;
+  onRespondIncomingInvite: (invite: GameInvite, accepted: boolean) => void;
+  onStart: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      {notice ? (
+        <div className="rounded-3xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-900 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-100">
+          {notice}
+        </div>
+      ) : null}
+
+      {!socketConnected ? (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+          Backend socket is not connected. Demo mode is active on this device.
+        </div>
+      ) : null}
+
+      {incomingInvites.map((invite) => (
+        <div key={invite.inviteId ?? invite.studentId} className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/25">
+          <p className="flex items-center text-sm font-black text-emerald-900 dark:text-emerald-100">
+            <BellRing className="mr-2 h-4 w-4" />
+            {invite.fromStudentName ?? "Student"} wants to play Ketka.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <button type="button" onClick={() => onRespondIncomingInvite(invite, true)} className="rounded-2xl bg-emerald-600 px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-white">
+              Accept
+            </button>
+            <button type="button" onClick={() => onRespondIncomingInvite(invite, false)} className="rounded-2xl bg-red-600 px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-white">
+              Decline
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <div className="space-y-3">
+        {onlineClassmates.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-burgundy-200 bg-burgundy-50/50 px-4 py-6 text-center text-sm font-bold text-charcoal/60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+            No online classmates from your group right now.
+          </div>
+        ) : null}
+
+        {onlineClassmates.map((student) => {
+          const invite = invites.find((item) => item.studentId === student.id);
+          return (
+            <div key={student.id} className="rounded-3xl border border-burgundy-100 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-black">{student.fullName}</p>
+                  <p className="mt-1 inline-flex items-center text-xs font-black uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
+                    <Wifi className="mr-1.5 h-3.5 w-3.5" />
+                    online
+                  </p>
+                </div>
+                <InviteBadge status={invite?.status} />
+              </div>
+
+              {!invite ? (
+                <Button type="button" onClick={() => onSendInvite(student.id)} className="mt-4 w-full">
+                  <Send className="mr-2 h-4 w-4" />
+                  Send request
+                </Button>
+              ) : invite.status === "pending" ? (
+                <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-3 text-xs font-bold text-cyan-900 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-100">
+                  Waiting for accept or decline.
+                  {!socketConnected ? (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => onDemoAnswerInvite(student.id, "accepted")} className="rounded-xl bg-emerald-600 px-3 py-2 text-white">
+                        Demo accept
+                      </button>
+                      <button type="button" onClick={() => onDemoAnswerInvite(student.id, "declined")} className="rounded-xl bg-red-600 px-3 py-2 text-white">
+                        Demo decline
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <Button type="button" onClick={() => onSendInvite(student.id)} variant="secondary" className="mt-4 w-full">
+                  Send again
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {offlineClassmates.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {offlineClassmates.map((student) => (
+            <span key={student.id} className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-black text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+              <WifiOff className="mr-1.5 h-3.5 w-3.5" />
+              {student.fullName} offline
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      <Button type="button" disabled={!canStart} onClick={onStart} className="w-full">
+        <UsersRound className="mr-2 h-4 w-4" />
+        Start Ketka with {acceptedCount + 1} player(s)
+      </Button>
+    </div>
+  );
+}
+
+function CardForm({
+  form,
+  setForm,
+  onAdd,
+}: {
   form: { word: string; translation: string; hintText: string; hintEmoji: string };
   setForm: (next: { word: string; translation: string; hintText: string; hintEmoji: string }) => void;
   onAdd: () => void;
@@ -749,7 +743,13 @@ function CardForm({ form, setForm, onAdd }: {
   );
 }
 
-function SpeedGame({ deck, index, setIndex, score, setScore }: {
+function SpeedGame({
+  deck,
+  index,
+  setIndex,
+  score,
+  setScore,
+}: {
   deck: LearningCard[];
   index: number;
   setIndex: (next: number) => void;
@@ -757,7 +757,10 @@ function SpeedGame({ deck, index, setIndex, score, setScore }: {
   setScore: (next: number) => void;
 }) {
   const card = deck[index % Math.max(deck.length, 1)] ?? fallbackDeck[0];
-  const options = useMemo(() => shuffle([card.translation, ...shuffle(deck.filter((item) => item.id !== card.id)).slice(0, 3).map((item) => item.translation)]), [card, deck]);
+  const options = useMemo(
+    () => shuffle([card.translation, ...shuffle(deck.filter((item) => item.id !== card.id)).slice(0, 3).map((item) => item.translation)]),
+    [card, deck],
+  );
 
   function choose(option: string) {
     if (option === card.translation) setScore(score + 1);
