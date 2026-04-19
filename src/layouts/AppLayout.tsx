@@ -237,7 +237,7 @@ export function AppLayout() {
         </div>
       </div>
 
-      <nav className="fixed inset-x-2 bottom-[max(0.4rem,env(safe-area-inset-bottom))] z-[65] rounded-2xl border border-burgundy-100 bg-white/95 p-1.5 shadow-lift backdrop-blur lg:hidden dark:border-zinc-800 dark:bg-zinc-950/95">
+      <nav className="fixed inset-x-2 bottom-[max(0.35rem,env(safe-area-inset-bottom))] z-[65] rounded-[1.35rem] border border-burgundy-100 bg-white/95 p-1.5 shadow-lift backdrop-blur lg:hidden dark:border-zinc-800 dark:bg-zinc-950/95">
         <div
           className="grid gap-1"
           style={{ gridTemplateColumns: `repeat(${Math.max(mobileQuickNav.length, 1)}, minmax(0, 1fr))` }}
@@ -249,12 +249,12 @@ export function AppLayout() {
                 key={`mobile-bottom-${item.href}`}
                 to={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[10px] font-semibold transition",
+                  "flex min-h-[4rem] flex-col items-center justify-center gap-1 rounded-[1rem] px-1 py-2 text-[10px] font-semibold transition sm:min-h-[4.25rem] sm:px-1.5",
                   active ? "bg-burgundy-700 text-white" : "text-charcoal/70 dark:text-zinc-300",
                 )}
               >
-                <item.icon className="h-4 w-4" />
-                <span className="truncate">{item.label}</span>
+                <item.icon className="h-4 w-4 shrink-0 sm:h-[1.15rem] sm:w-[1.15rem]" />
+                <span className="max-w-full truncate text-center leading-tight">{item.label}</span>
               </Link>
             );
           })}

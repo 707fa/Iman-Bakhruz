@@ -382,18 +382,13 @@ export function MultiplayerKetka() {
     return aiCheckTranslation(answerText, card.translation);
   }
 
-  function resolveAnswer(cardId: string, correct: boolean, answerText = "") {
-    const check = activeCard ? aiCheckTranslation(answerText, activeCard.translation) : null;
-    setLastAnswer(
-      check && check.isCorrect === correct
-        ? check
-        : {
-            isCorrect: correct,
-            answerText: answerText.trim() || "spoken answer",
-            distance: check?.distance ?? 0,
-            message: correct ? "Answer accepted manually." : "Answer rejected manually.",
-          },
-    );
+  function resolveAnswer(cardId: string, result: AnswerCheckResult) {
+    const correct = result.isCorrect;
+    const pileToTransfer = tablePile.length + 1;
+    const nextStatusMessage = correct
+      ? "Correct. The answer is accepted and the game moves to the next card."
+      : `Incorrect. The answering player takes ${pileToTransfer} card${pileToTransfer === 1 ? "" : "s"}.`;
+    setLastAnswer({ ...result, message: nextStatusMessage });
 
     const next = players.map((player) => ({ ...player, cards: [...player.cards] }));
     const presenter = next[currentPlayerIndex];
