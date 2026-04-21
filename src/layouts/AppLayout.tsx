@@ -215,7 +215,7 @@ export function AppLayout() {
                   <LanguageSwitcher compact mode="single" />
                 </div>
                 <div className="hidden sm:block">
-                  <LanguageSwitcher compact />
+                  <LanguageSwitcher compact mode="single" />
                 </div>
                 <ThemeToggle compact />
                 <UserMenu fullName={userName} avatarUrl={avatar} profileHref={profileHref} onLogout={logout} />

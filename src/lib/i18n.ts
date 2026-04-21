@@ -1030,7 +1030,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
   en: EN,
 };
 
-export const localeOrder: Locale[] = ["ru", "uz", "en"];
+export const localeOrder: Locale[] = ["ru", "en", "uz"];
 
 export function translate(locale: Locale, key: string, params?: TranslateParams): string {
   const template = dictionaries[locale][key] ?? dictionaries.ru[key] ?? key;

@@ -45,7 +45,7 @@ export function PublicTopPage() {
               subtitleClassName="hidden sm:block"
             />
             <div className="flex shrink-0 items-center gap-2">
-              <LanguageSwitcher compact />
+              <LanguageSwitcher compact mode="single" />
               <ThemeToggle compact />
             </div>
           </div>
