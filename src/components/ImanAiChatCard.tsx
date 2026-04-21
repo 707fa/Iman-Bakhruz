@@ -1,4 +1,4 @@
-import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
+import { Bot, ImagePlus, Loader2, Mic, MicOff, Send, User, Volume2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
 import { AI_GATEWAY_URL, DATA_PROVIDER_MODE } from "../lib/env";
@@ -16,6 +16,38 @@ import { Input } from "./ui/input";
 
 interface ImanAiChatCardProps {
   title?: string;
+}
+
+interface SpeechRecognitionResultLike {
+  readonly isFinal: boolean;
+  readonly 0: { readonly transcript: string };
+}
+
+interface SpeechRecognitionEventLike extends Event {
+  readonly resultIndex: number;
+  readonly results: ArrayLike<SpeechRecognitionResultLike>;
+}
+
+interface SpeechRecognitionLike {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+interface SpeechRecognitionConstructorLike {
+  new (): SpeechRecognitionLike;
+}
+
+declare global {
+  interface Window {
+    webkitSpeechRecognition?: SpeechRecognitionConstructorLike;
+    SpeechRecognition?: SpeechRecognitionConstructorLike;
+  }
 }
 
 function toReadableTime(value: string): string {
@@ -136,8 +168,15 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [loading, setLoading] = useState(false);
   const [statusHint, setStatusHint] = useState<string | null>(null);
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceSpeaking, setVoiceSpeaking] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const typingTimersRef = useRef<number[]>([]);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const shouldResumeListeningRef = useRef(false);
   const { showToast } = useToast();
 
   const sessionUserId = state.session?.userId;
@@ -157,6 +196,130 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     () => `iman-ai-chat-v2:${sessionUserId ?? "guest"}`,
     [sessionUserId],
   );
+
+  const speechLang = locale === "uz" ? "uz-UZ" : locale === "en" ? "en-US" : "ru-RU";
+
+  function pickNaturalVoice(lang: string): SpeechSynthesisVoice | null {
+    if (!("speechSynthesis" in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) return null;
+
+    const langBase = lang.toLowerCase().slice(0, 2);
+    const sameLanguage = voices.filter((voice) => voice.lang.toLowerCase().startsWith(langBase));
+    const pool = sameLanguage.length > 0 ? sameLanguage : voices;
+
+    const preferred = pool.find((voice) => /natural|neural|google|microsoft|siri|yandex/i.test(voice.name));
+    return preferred ?? pool.find((voice) => voice.default) ?? pool[0] ?? null;
+  }
+
+  function speakAssistantText(textToSpeak: string) {
+    if (!("speechSynthesis" in window)) return;
+    const cleaned = textToSpeak.trim();
+    if (!cleaned) return;
+
+    const utterance = new SpeechSynthesisUtterance(cleaned);
+    utterance.lang = speechLang;
+    utterance.rate = 0.97;
+    utterance.pitch = 1;
+    const voice = pickNaturalVoice(speechLang);
+    if (voice) utterance.voice = voice;
+
+    utterance.onstart = () => setVoiceSpeaking(true);
+    utterance.onend = () => {
+      setVoiceSpeaking(false);
+      if (shouldResumeListeningRef.current && voiceOpen) {
+        try {
+          recognitionRef.current?.start();
+          setVoiceListening(true);
+        } catch {
+          setVoiceListening(false);
+        }
+      }
+    };
+    utterance.onerror = () => {
+      setVoiceSpeaking(false);
+    };
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function stopVoiceListening() {
+    shouldResumeListeningRef.current = false;
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // noop
+    }
+    setVoiceListening(false);
+  }
+
+  function startVoiceListening() {
+    const RecognitionCtor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    if (!RecognitionCtor) {
+      setVoiceError("Voice input is not supported in this browser.");
+      return;
+    }
+
+    setVoiceError(null);
+    const recognition = new RecognitionCtor();
+    recognition.lang = speechLang;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      let finalText = "";
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const transcript = result?.[0]?.transcript?.trim() ?? "";
+        if (!transcript) continue;
+        if (result.isFinal) {
+          finalText += `${finalText ? " " : ""}${transcript}`;
+        } else {
+          interim += `${interim ? " " : ""}${transcript}`;
+        }
+      }
+
+      if (interim) {
+        setVoiceTranscript(interim);
+      }
+
+      if (finalText) {
+        setVoiceTranscript(finalText);
+        shouldResumeListeningRef.current = true;
+        try {
+          recognition.stop();
+        } catch {
+          // noop
+        }
+        setVoiceListening(false);
+        void handleSend(finalText);
+      }
+    };
+
+    recognition.onerror = () => {
+      setVoiceError("Could not recognize voice. Check microphone permission.");
+      setVoiceListening(false);
+    };
+
+    recognition.onend = () => {
+      if (!shouldResumeListeningRef.current) {
+        setVoiceListening(false);
+      }
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setVoiceListening(true);
+      setVoiceTranscript("");
+    } catch {
+      setVoiceError("Could not start microphone.");
+      setVoiceListening(false);
+    }
+  }
 
   useEffect(() => {
     if (!canUseApi) return;
@@ -212,6 +375,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     return () => {
       typingTimersRef.current.forEach((timerId) => window.clearInterval(timerId));
       typingTimersRef.current = [];
+      stopVoiceListening();
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
@@ -282,24 +449,26 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     return Boolean((text || "").trim() || imageFile);
   }, [text, imageFile]);
 
-  async function handleSend() {
-    if (!canSend || sending) return;
+  async function handleSend(voiceText?: string) {
+    const effectiveText = (voiceText ?? text).trim();
+    const selectedFile = voiceText ? null : imageFile;
+    const selectedPreview = voiceText ? null : imagePreview;
+    const canSendNow = Boolean(effectiveText || selectedFile);
+
+    if (!canSendNow || sending) return;
     if (!useGatewayMode && !token) return;
 
     setSending(true);
     setStatusHint(null);
 
-    const trimmedText = text.trim();
-    const selectedFile = imageFile;
-    const selectedPreview = imagePreview;
-    const textWithContext = trimmedText
-      ? `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\n[/CONTEXT]\n\n${trimmedText}`
+    const textWithContext = effectiveText
+      ? `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\n[/CONTEXT]\n\n${effectiveText}`
       : "";
 
     const userMessage: AiChatMessage = {
       id: makeMessageId("u"),
       role: "user",
-      text: trimmedText || "Homework photo",
+      text: effectiveText || "Homework photo",
       imageUrl: selectedPreview || undefined,
       createdAt: new Date().toISOString(),
     };
@@ -312,9 +481,11 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setTypingMessageId(assistantMessage.id);
-    setText("");
-    setImageFile(null);
-    setImagePreview(null);
+    if (!voiceText) {
+      setText("");
+      setImageFile(null);
+      setImagePreview(null);
+    }
 
     try {
       if (useGatewayMode) {
@@ -332,7 +503,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 ? "\n\n[cache]"
                 : "";
 
-          await typeAssistantReply(assistantMessage.id, `${response.result}${providerTail}`);
+          const finalReply = `${response.result}${providerTail}`;
+          await typeAssistantReply(assistantMessage.id, finalReply);
+          speakAssistantText(finalReply);
           setStatusHint(null);
           return;
         } catch (gatewayError) {
@@ -341,7 +514,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             try {
               const imageBase64 = selectedFile ? await fileToDataUrl(selectedFile) : undefined;
               const updatedMessages = await platformApi.sendAiMessage(token, {
-                text: trimmedText || undefined,
+                text: effectiveText || undefined,
                 imageBase64,
                 level: studentLevel,
                 language: aiLanguage,
@@ -349,7 +522,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 groupTime: currentGroup?.time,
                 systemContext,
               });
-              await typeAssistantReply(assistantMessage.id, extractAssistantReply(updatedMessages));
+              const finalReply = extractAssistantReply(updatedMessages);
+              await typeAssistantReply(assistantMessage.id, finalReply);
+              speakAssistantText(finalReply);
               setStatusHint("Gateway unavailable. Switched to backend AI.");
               showToast({ message: "Gateway unavailable. Backup AI mode enabled.", tone: "info" });
               return;
@@ -382,7 +557,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
       const imageBase64 = selectedFile ? await fileToDataUrl(selectedFile) : undefined;
       const updatedMessages = await platformApi.sendAiMessage(token!, {
-        text: trimmedText || undefined,
+        text: effectiveText || undefined,
         imageBase64,
         level: studentLevel,
         language: aiLanguage,
@@ -390,7 +565,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         groupTime: currentGroup?.time,
         systemContext,
       });
-      await typeAssistantReply(assistantMessage.id, extractAssistantReply(updatedMessages));
+      const finalReply = extractAssistantReply(updatedMessages);
+      await typeAssistantReply(assistantMessage.id, finalReply);
+      speakAssistantText(finalReply);
       setStatusHint(null);
     } catch (error) {
       if (isAuthError(error)) {
@@ -415,7 +592,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="relative space-y-3">
         {!canUseApi ? (
           <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             AI chat requires API login or configured gateway URL.
@@ -509,7 +686,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               </div>
             ) : null}
 
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
               <Input
                 value={text}
                 onChange={(event) => setText(event.target.value)}
@@ -555,7 +732,56 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                 Send
               </Button>
+
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  if (voiceOpen) {
+                    setVoiceOpen(false);
+                    stopVoiceListening();
+                    return;
+                  }
+                  setVoiceOpen(true);
+                  startVoiceListening();
+                }}
+              >
+                {voiceListening ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
+                Voice
+              </Button>
             </div>
+
+            {voiceOpen ? (
+              <div className="pointer-events-auto absolute bottom-24 right-4 z-20 flex items-center gap-3 rounded-2xl border border-burgundy-300/60 bg-white/95 px-3 py-2 shadow-lg dark:border-burgundy-800 dark:bg-zinc-900/95">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (voiceListening) {
+                      stopVoiceListening();
+                    } else {
+                      startVoiceListening();
+                    }
+                  }}
+                  className={`grid h-12 w-12 place-items-center rounded-full border transition ${
+                    voiceListening
+                      ? "border-burgundy-400 bg-burgundy-600 text-white animate-pulse"
+                      : "border-burgundy-200 bg-burgundy-50 text-burgundy-700 dark:border-burgundy-700 dark:bg-burgundy-900/40 dark:text-burgundy-100"
+                  }`}
+                  aria-label={voiceListening ? "Stop voice input" : "Start voice input"}
+                >
+                  {voiceListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                </button>
+                <div className="min-w-[11rem] max-w-[16rem]">
+                  <p className="text-xs font-semibold text-charcoal dark:text-zinc-100">
+                    {voiceSpeaking ? "Iman is speaking..." : voiceListening ? "Listening..." : "Voice paused"}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-charcoal/70 dark:text-zinc-400">
+                    {voiceTranscript || voiceError || "Say your question in microphone"}
+                  </p>
+                </div>
+                <Volume2 className={`h-4 w-4 ${voiceSpeaking ? "text-burgundy-700" : "text-charcoal/40 dark:text-zinc-500"}`} />
+              </div>
+            ) : null}
           </>
         )}
       </CardContent>
