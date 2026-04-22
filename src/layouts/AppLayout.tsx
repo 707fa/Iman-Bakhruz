@@ -1,5 +1,6 @@
 import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, MessageCircle, Mic, Trophy, UsersRound } from "lucide-react";
-import { useMemo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo, useRef } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
@@ -29,6 +30,7 @@ function navItemClass(active: boolean): string {
 
 export function AppLayout() {
   const location = useLocation();
+  const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const { state, currentStudent, currentStudentAccess, currentTeacher, currentParent, logout } = useAppStore();
   const { t } = useUi();
   const session = state.session;
@@ -109,6 +111,10 @@ export function AppLayout() {
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? currentParent?.fullName ?? "User";
   const avatar = currentStudent?.avatarUrl ?? currentTeacher?.avatarUrl ?? currentParent?.avatarUrl;
   const profileHref = session.role === "student" ? "/profile" : session.role === "teacher" ? "/teacher/profile" : "/parent/profile";
+
+  useEffect(() => {
+    contentScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [location.pathname]);
 
   return (
     <div className="relative h-dvh overflow-hidden bg-white text-charcoal dark:bg-black dark:text-zinc-100">
@@ -223,15 +229,28 @@ export function AppLayout() {
             </div>
           </header>
 
-          <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[calc(5.25rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-6">
+          <div
+            ref={contentScrollRef}
+            className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[calc(5.25rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-6"
+          >
             <div className="mx-auto w-full max-w-[1320px]">
-              {session.role === "student" ? (
-                <div className="mb-4 inline-flex w-full flex-wrap items-center gap-2 rounded-2xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
-                  <Trophy className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                  <span>{t("promo.top5WeeklyFree")}</span>
-                </div>
-              ) : null}
-              <Outlet />
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={`${location.pathname}${location.search}`}
+                  initial={{ opacity: 0, y: 14, filter: "blur(3px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -8, filter: "blur(2px)" }}
+                  transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  {session.role === "student" ? (
+                    <div className="mb-4 inline-flex w-full flex-wrap items-center gap-2 rounded-2xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
+                      <Trophy className="h-4 w-4 text-burgundy-700 dark:text-white" />
+                      <span>{t("promo.top5WeeklyFree")}</span>
+                    </div>
+                  ) : null}
+                  <Outlet />
+                </motion.div>
+              </AnimatePresence>
             </div>
           </div>
         </div>
