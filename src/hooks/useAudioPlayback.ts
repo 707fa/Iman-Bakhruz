@@ -68,6 +68,28 @@ function waitForVoices(timeoutMs = 700): Promise<SpeechSynthesisVoice[]> {
   });
 }
 
+function toSpeechText(text: string): string {
+  const normalized = text
+    .replace(/\[[^\]]+\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (normalized.length <= 260) return normalized;
+
+  const chunks = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
+  if (chunks.length === 0) return normalized.slice(0, 260);
+
+  let combined = "";
+  for (let index = 0; index < chunks.length; index += 1) {
+    const next = chunks[index];
+    if ((`${combined} ${next}`.trim()).length > 260) break;
+    combined = `${combined} ${next}`.trim();
+    if (index >= 1) break;
+  }
+
+  return combined || normalized.slice(0, 260);
+}
+
 interface OutputMeterSession {
   audioContext: AudioContext;
   analyser: AnalyserNode;
@@ -246,9 +268,10 @@ export function useAudioPlayback() {
 
       stop();
       setSpeaking(true);
+      const speechText = toSpeechText(text);
 
       try {
-        const played = await playViaGateway(text, lang);
+        const played = await playViaGateway(speechText, lang);
         if (played) {
           setSpeaking(false);
           stopMeter();
@@ -258,7 +281,7 @@ export function useAudioPlayback() {
         // Fallback to browser speech synthesis when gateway is unavailable.
       }
 
-      await playViaBrowserTts(text, lang);
+      await playViaBrowserTts(speechText, lang);
     },
     [muted, playViaBrowserTts, playViaGateway, stop, stopMeter],
   );

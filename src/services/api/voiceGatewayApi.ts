@@ -1,4 +1,5 @@
 import { AI_GATEWAY_TIMEOUT_MS, VOICE_GATEWAY_ENABLED, VOICE_GATEWAY_URL, VOICE_TTS_VOICE } from "../../lib/env";
+import { getApiToken } from "../tokenStorage";
 import { ApiError } from "./http";
 
 export interface VoiceTtsPayload {
@@ -84,6 +85,7 @@ export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTt
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), AI_GATEWAY_TIMEOUT_MS);
   const voice = payload.voice?.trim() || VOICE_TTS_VOICE || "female-natural";
+  const token = getApiToken();
 
   try {
     const candidatePaths = lastSuccessfulTtsPath
@@ -95,9 +97,14 @@ export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTt
       let response: Response;
 
       try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
         response = await fetch(`${VOICE_GATEWAY_URL}${path}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             text,
             lang: payload.lang,
