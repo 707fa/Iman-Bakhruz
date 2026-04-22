@@ -223,6 +223,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     () => `iman-ai-chat-v2:${sessionUserId ?? "guest"}`,
     [sessionUserId],
   );
+  const imageInputId = useMemo(() => `iman-ai-photo-input-${sessionUserId ?? "guest"}`, [sessionUserId]);
 
   const speechLang =
     studentLevel === "beginner" || studentLevel === "elementary"
@@ -238,6 +239,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     onExchange: async (userText) => {
       const assistant = await handleSend(userText, true);
       return assistant || "Let's continue. I'm here to help.";
+    },
+    onError: (message) => {
+      showToast({ message, tone: "error" });
     },
   });
 
@@ -659,11 +663,11 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             <div className="rounded-[1.65rem] border border-burgundy-200/80 bg-white/95 p-1.5 shadow-[0_16px_36px_-24px_rgba(80,0,20,0.55)] backdrop-blur dark:border-zinc-700 dark:bg-zinc-950/95">
               <div className="flex items-center gap-1.5">
                 <input
+                  id={imageInputId}
                   ref={imageInputRef}
                   type="file"
                   accept="image/*"
-                  capture="environment"
-                  className="hidden"
+                  className="sr-only"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     event.currentTarget.value = "";
@@ -671,14 +675,17 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                     void applySelectedImage(file);
                   }}
                 />
-                <button
-                  type="button"
-                  onClick={() => imageInputRef.current?.click()}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-burgundy-200/80 bg-burgundy-50 text-burgundy-700 transition hover:scale-[1.02] hover:bg-burgundy-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                <label
+                  htmlFor={imageInputId}
+                  className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-burgundy-200/80 bg-burgundy-50 text-burgundy-700 transition hover:scale-[1.02] hover:bg-burgundy-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
                   aria-label="Attach photo"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    imageInputRef.current?.click();
+                  }}
                 >
                   <ImagePlus className="h-5 w-5" />
-                </button>
+                </label>
 
                 <Input
                   value={text}

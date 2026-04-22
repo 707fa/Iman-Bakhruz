@@ -5,9 +5,7 @@ function randomWave() {
   return 0.22 + Math.random() * 0.76;
 }
 
-function pickVoice(lang: string): SpeechSynthesisVoice | null {
-  if (!("speechSynthesis" in window)) return null;
-  const voices = window.speechSynthesis.getVoices();
+function pickVoice(lang: string, voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   if (!voices.length) return null;
   const normalized = lang.toLowerCase();
   const femaleHints = [
@@ -47,6 +45,32 @@ function pickVoice(lang: string): SpeechSynthesisVoice | null {
   const byFamily = voices.find((voice) => voice.lang.toLowerCase().startsWith(family));
   if (byFamily) return byFamily;
   return voices.find((voice) => voice.localService) ?? voices[0] ?? null;
+}
+
+function waitForVoices(timeoutMs = 700): Promise<SpeechSynthesisVoice[]> {
+  return new Promise((resolve) => {
+    if (!("speechSynthesis" in window)) {
+      resolve([]);
+      return;
+    }
+
+    const initial = window.speechSynthesis.getVoices();
+    if (initial.length > 0) {
+      resolve(initial);
+      return;
+    }
+
+    const timerId = window.setTimeout(() => {
+      window.speechSynthesis.onvoiceschanged = null;
+      resolve(window.speechSynthesis.getVoices());
+    }, timeoutMs);
+
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.clearTimeout(timerId);
+      window.speechSynthesis.onvoiceschanged = null;
+      resolve(window.speechSynthesis.getVoices());
+    };
+  });
 }
 
 export function useAudioPlayback() {
@@ -96,10 +120,11 @@ export function useAudioPlayback() {
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-      utterance.rate = 0.93;
-      utterance.pitch = 1;
+      utterance.rate = 0.9;
+      utterance.pitch = 1.03;
       utterance.volume = 1;
-      const voice = pickVoice(lang);
+      const voices = await waitForVoices();
+      const voice = pickVoice(lang, voices);
       if (voice) {
         utterance.voice = voice;
       }

@@ -39,6 +39,7 @@ declare global {
 interface UseVoiceAssistantOptions {
   lang: string;
   onExchange?: (userText: string) => Promise<string>;
+  onError?: (message: string) => void;
 }
 
 function makeId(prefix: string) {
@@ -51,7 +52,7 @@ function mockReply(userText: string): string {
   return `Great. I heard you: "${clean}". Let's practice this in better English together.`;
 }
 
-export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions) {
+export function useVoiceAssistant({ lang, onExchange, onError }: UseVoiceAssistantOptions) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState<VoiceTranscriptItem[]>([]);
@@ -126,12 +127,14 @@ export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions
     const RecognitionCtor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!RecognitionCtor) {
       setState("error");
+      onError?.("Voice input is not supported in this browser. Use Chrome/Edge on HTTPS.");
       return;
     }
 
     const micOk = await mic.start();
     if (!micOk) {
       setState("error");
+      onError?.("Microphone permission is blocked. Please allow microphone access.");
       return;
     }
 
@@ -165,6 +168,7 @@ export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions
     };
     recognition.onerror = () => {
       setState("error");
+      onError?.("Voice recognition error. Please retry and check microphone permission.");
     };
     recognition.onend = () => {
       if (!keepListeningRef.current && state !== "speaking") {
@@ -175,7 +179,7 @@ export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions
     keepListeningRef.current = true;
     recognition.start();
     setState(audio.muted ? "muted" : "listening");
-  }, [audio.muted, handleFinalText, lang, mic, state]);
+  }, [audio.muted, handleFinalText, lang, mic, onError, state]);
 
   const toggleMic = useCallback(() => {
     if (state === "listening") {
