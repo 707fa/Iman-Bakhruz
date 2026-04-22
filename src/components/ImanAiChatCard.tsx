@@ -1,4 +1,4 @@
-import { Bot, ImagePlus, Loader2, Mic, Send, User } from "lucide-react";
+import { Bot, ImagePlus, Loader2, Mic, Send, User, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
 import { AI_GATEWAY_URL, DATA_PROVIDER_MODE } from "../lib/env";
@@ -538,71 +538,93 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
             {imagePreview ? (
               <div className="rounded-2xl border border-burgundy-100 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-950">
-                <img src={imagePreview} alt="Selected homework" className="max-h-48 rounded-xl object-contain" />
+                <div className="relative inline-flex">
+                  <img src={imagePreview} alt="Selected homework" className="max-h-48 rounded-xl object-contain" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview(null);
+                    }}
+                    className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full border border-white/35 bg-black/65 text-white backdrop-blur transition hover:bg-black/80"
+                    aria-label="Remove selected photo"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ) : null}
 
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-              <Input
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                placeholder="Write question or homework comment..."
-                onPaste={(event) => {
-                  const items = event.clipboardData?.items;
-                  if (!items || items.length === 0) return;
-                  const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
-                  if (!imageItem) return;
-                  const file = fileFromClipboardItem(imageItem);
-                  if (!file) return;
-                  event.preventDefault();
-                  void applySelectedImage(file);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    void handleSend();
-                  }
-                }}
-              />
+            <div className="rounded-[1.65rem] border border-burgundy-200/80 bg-white/95 p-1.5 shadow-[0_16px_36px_-24px_rgba(80,0,20,0.55)] backdrop-blur dark:border-zinc-700 dark:bg-zinc-950/95">
+              <div className="flex items-center gap-1.5">
+                <label className="inline-flex shrink-0">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      void applySelectedImage(file);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="grid h-11 w-11 place-items-center rounded-full border border-burgundy-200/80 bg-burgundy-50 text-burgundy-700 transition hover:scale-[1.02] hover:bg-burgundy-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                    aria-label="Attach photo"
+                  >
+                    <ImagePlus className="h-5 w-5" />
+                  </button>
+                </label>
 
-              <label className="inline-flex">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
+                <Input
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  placeholder="Write to Iman Chat..."
+                  className="h-11 min-w-0 border-0 bg-transparent px-2.5 shadow-none focus-visible:ring-0"
+                  onPaste={(event) => {
+                    const items = event.clipboardData?.items;
+                    if (!items || items.length === 0) return;
+                    const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
+                    if (!imageItem) return;
+                    const file = fileFromClipboardItem(imageItem);
                     if (!file) return;
+                    event.preventDefault();
                     void applySelectedImage(file);
                   }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      void handleSend();
+                    }
+                  }}
                 />
-                <Button asChild variant="secondary" type="button">
-                  <span>
-                    <ImagePlus className="mr-2 h-4 w-4" />
-                    Photo
-                  </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    voice.setOpen(true);
+                    if (voice.micMuted) {
+                      voice.toggleMic();
+                    }
+                  }}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-burgundy-300/75 bg-burgundy-100 text-burgundy-700 transition hover:scale-[1.02] hover:bg-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                  aria-label="Open voice mode"
+                >
+                  <Mic className="h-5 w-5" />
+                </button>
+
+                <Button
+                  type="button"
+                  onClick={() => void handleSend()}
+                  disabled={!canSend || sending}
+                  className="h-11 w-11 shrink-0 rounded-full p-0"
+                  aria-label="Send message"
+                >
+                  {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                 </Button>
-              </label>
-
-              <Button onClick={() => void handleSend()} disabled={!canSend || sending}>
-                {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                Send
-              </Button>
+              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                voice.setOpen(true);
-                if (voice.micMuted) {
-                  voice.toggleMic();
-                }
-              }}
-              className="absolute right-4 top-1/2 z-20 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-black/65 text-white shadow-[0_8px_30px_-16px_rgba(0,0,0,0.9)] backdrop-blur-xl transition hover:scale-[1.03] hover:bg-black/80"
-              aria-label="Open voice mode"
-            >
-              <Mic className="h-4.5 w-4.5" />
-            </button>
 
             <VoiceScreen
               open={voice.open}

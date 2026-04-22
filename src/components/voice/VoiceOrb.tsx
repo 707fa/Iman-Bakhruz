@@ -26,14 +26,14 @@ export function VoiceOrb({ state, level }: VoiceOrbProps) {
         : "from-slate-100/75 via-blue-300/50 to-violet-500/65";
 
   return (
-    <div className="relative grid h-[18rem] w-[18rem] place-items-center sm:h-[23rem] sm:w-[23rem]">
+    <div className="relative grid h-[20.5rem] w-[20.5rem] place-items-center sm:h-[26rem] sm:w-[26rem]">
       <motion.div
-        className="absolute inset-[-12%] rounded-full bg-violet-500/15 blur-[64px]"
-        animate={reducedMotion ? undefined : { opacity: [0.2, 0.36, 0.2], scale: [0.95, 1.07, 0.95] }}
-        transition={{ duration: state === "speaking" ? 1.3 : 2.7, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+        className="absolute inset-[-16%] rounded-full bg-violet-500/20 blur-[76px]"
+        animate={reducedMotion ? undefined : { opacity: [0.18, 0.38, 0.18], scale: [0.94, 1.08, 0.94] }}
+        transition={{ duration: state === "speaking" ? 1.1 : 2.4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute inset-0 rounded-full border border-white/20"
+        className="absolute inset-[-2%] rounded-full border border-white/20"
         animate={
           reducedMotion
             ? undefined
@@ -44,25 +44,25 @@ export function VoiceOrb({ state, level }: VoiceOrbProps) {
               }
         }
         transition={{
-          rotate: { duration: 11, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
-          scale: { duration: 2.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
-          opacity: { duration: 2.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+          rotate: { duration: 10, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
+          scale: { duration: 1.9, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+          opacity: { duration: 1.9, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
         }}
       />
       <motion.div
-        className={`absolute inset-3 rounded-full bg-gradient-to-br blur-[48px] ${tint}`}
-        animate={reducedMotion ? undefined : { scale: [0.92, 1.12, 0.92], opacity: [0.35, 0.92, 0.4] }}
-        transition={{ duration: state === "speaking" ? 1.15 : 2.4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+        className={`absolute inset-3 rounded-full bg-gradient-to-br blur-[56px] ${tint}`}
+        animate={reducedMotion ? undefined : { scale: [0.9, 1.14, 0.9], opacity: [0.34, 0.94, 0.42] }}
+        transition={{ duration: state === "speaking" ? 0.95 : 2.1, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute inset-[17%] rounded-full border border-white/20 bg-black/45 backdrop-blur-2xl"
+        className="absolute inset-[16%] rounded-full border border-white/20 bg-black/45 backdrop-blur-2xl"
         animate={reducedMotion ? undefined : { scale: [scale * 0.95, scale, scale * 0.95], opacity: [0.76, 0.95, 0.8] }}
-        transition={{ duration: state === "speaking" ? 0.72 : 1.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+        transition={{ duration: state === "speaking" ? 0.62 : 1.25, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       />
       <motion.div
-        className={`absolute inset-[25%] rounded-full bg-gradient-to-br ${tint}`}
+        className={`absolute inset-[24%] rounded-full bg-gradient-to-br ${tint}`}
         animate={reducedMotion ? undefined : { scale: [scale * 0.9, scale * 1.08, scale * 0.9], opacity: [0.68, 0.98, 0.74] }}
-        transition={{ duration: state === "speaking" ? 0.6 : 1.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+        transition={{ duration: state === "speaking" ? 0.54 : 1.05, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       />
     </div>
   );
