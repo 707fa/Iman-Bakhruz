@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { smoothValue } from "../lib/audio";
+import { isVoiceGatewayReady, requestVoiceTts } from "../services/api/voiceGatewayApi";
 
 function randomWave() {
   return 0.22 + Math.random() * 0.76;
@@ -38,12 +39,6 @@ function pickVoice(lang: string, voices: SpeechSynthesisVoice[]): SpeechSynthesi
 
   const ranked = [...voices].sort((a, b) => scoreVoice(b) - scoreVoice(a));
   if (ranked.length > 0) return ranked[0] ?? null;
-
-  const exact = voices.find((voice) => voice.lang.toLowerCase() === normalized);
-  if (exact) return exact;
-  const family = normalized.split("-")[0];
-  const byFamily = voices.find((voice) => voice.lang.toLowerCase().startsWith(family));
-  if (byFamily) return byFamily;
   return voices.find((voice) => voice.localService) ?? voices[0] ?? null;
 }
 
@@ -73,42 +68,145 @@ function waitForVoices(timeoutMs = 700): Promise<SpeechSynthesisVoice[]> {
   });
 }
 
+interface OutputMeterSession {
+  audioContext: AudioContext;
+  analyser: AnalyserNode;
+  source: MediaElementAudioSourceNode;
+  data: Uint8Array<ArrayBuffer>;
+}
+
 export function useAudioPlayback() {
   const [muted, setMuted] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [outputLevel, setOutputLevel] = useState(0);
+
   const meterRef = useRef<number | null>(null);
   const smoothRef = useRef(0);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+  const outputMeterRef = useRef<OutputMeterSession | null>(null);
 
   const stopMeter = useCallback(() => {
     if (meterRef.current) {
       window.cancelAnimationFrame(meterRef.current);
       meterRef.current = null;
     }
+
+    const meter = outputMeterRef.current;
+    if (meter) {
+      meter.source.disconnect();
+      meter.analyser.disconnect();
+      if (meter.audioContext.state !== "closed") {
+        void meter.audioContext.close();
+      }
+      outputMeterRef.current = null;
+    }
+
     smoothRef.current = 0;
     setOutputLevel(0);
   }, []);
 
-  const animateMeter = useCallback(() => {
+  const animateSyntheticMeter = useCallback(() => {
     smoothRef.current = smoothValue(smoothRef.current, randomWave(), 0.28);
     setOutputLevel(smoothRef.current);
-    meterRef.current = window.requestAnimationFrame(animateMeter);
+    meterRef.current = window.requestAnimationFrame(animateSyntheticMeter);
+  }, []);
+
+  const animateAudioMeter = useCallback(() => {
+    const meter = outputMeterRef.current;
+    if (!meter) {
+      meterRef.current = window.requestAnimationFrame(animateSyntheticMeter);
+      return;
+    }
+
+    meter.analyser.getByteFrequencyData(meter.data);
+    let sum = 0;
+    for (let index = 0; index < meter.data.length; index += 1) {
+      sum += meter.data[index];
+    }
+    const avg = sum / meter.data.length;
+    const nextLevel = Math.min(1, Math.max(0, avg / 190));
+    smoothRef.current = smoothValue(smoothRef.current, nextLevel, 0.3);
+    setOutputLevel(smoothRef.current);
+    meterRef.current = window.requestAnimationFrame(animateAudioMeter);
+  }, [animateSyntheticMeter]);
+
+  const setupAudioMeter = useCallback(
+    async (audioElement: HTMLAudioElement) => {
+      try {
+        const audioContext = new AudioContext();
+        if (audioContext.state === "suspended") {
+          await audioContext.resume();
+        }
+        const source = audioContext.createMediaElementSource(audioElement);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 1024;
+        analyser.smoothingTimeConstant = 0.86;
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        outputMeterRef.current = {
+          audioContext,
+          analyser,
+          source,
+          data: new Uint8Array(analyser.frequencyBinCount) as Uint8Array<ArrayBuffer>,
+        };
+        meterRef.current = window.requestAnimationFrame(animateAudioMeter);
+      } catch {
+        meterRef.current = window.requestAnimationFrame(animateSyntheticMeter);
+      }
+    },
+    [animateAudioMeter, animateSyntheticMeter],
+  );
+
+  const cleanupObjectUrl = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
   }, []);
 
   const stop = useCallback(() => {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
+
+    if (audioElRef.current) {
+      audioElRef.current.pause();
+      audioElRef.current.src = "";
+      audioElRef.current = null;
+    }
+
+    cleanupObjectUrl();
     setSpeaking(false);
     stopMeter();
-  }, [stopMeter]);
+  }, [cleanupObjectUrl, stopMeter]);
 
-  const play = useCallback(
+  const playViaGateway = useCallback(
+    async (text: string, lang: string): Promise<boolean> => {
+      if (!isVoiceGatewayReady()) return false;
+
+      const response = await requestVoiceTts({ text, lang });
+      const audio = new Audio(response.audioSrc);
+      audio.preload = "auto";
+      audioElRef.current = audio;
+      if (response.audioSrc.startsWith("blob:")) {
+        objectUrlRef.current = response.audioSrc;
+      }
+
+      await setupAudioMeter(audio);
+      await audio.play();
+      await new Promise<void>((resolve, reject) => {
+        audio.onended = () => resolve();
+        audio.onerror = () => reject(new Error("Failed to play gateway TTS audio"));
+      });
+      return true;
+    },
+    [setupAudioMeter],
+  );
+
+  const playViaBrowserTts = useCallback(
     async (text: string, lang: string) => {
-      if (!text.trim() || muted) return;
-      stop();
-      setSpeaking(true);
-      meterRef.current = window.requestAnimationFrame(animateMeter);
+      meterRef.current = window.requestAnimationFrame(animateSyntheticMeter);
 
       if (!("speechSynthesis" in window)) {
         globalThis.setTimeout(() => {
@@ -139,7 +237,30 @@ export function useAudioPlayback() {
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     },
-    [animateMeter, muted, stop, stopMeter],
+    [animateSyntheticMeter, stopMeter],
+  );
+
+  const play = useCallback(
+    async (text: string, lang: string) => {
+      if (!text.trim() || muted) return;
+
+      stop();
+      setSpeaking(true);
+
+      try {
+        const played = await playViaGateway(text, lang);
+        if (played) {
+          setSpeaking(false);
+          stopMeter();
+          return;
+        }
+      } catch {
+        // Fallback to browser speech synthesis when gateway is unavailable.
+      }
+
+      await playViaBrowserTts(text, lang);
+    },
+    [muted, playViaBrowserTts, playViaGateway, stop, stopMeter],
   );
 
   const toggleMuted = useCallback(() => {

@@ -91,6 +91,7 @@ export const DATA_PROVIDER_MODE: DataProviderMode = normalizeProvider(import.met
 const socketUrlCandidate = import.meta.env.VITE_SOCKET_URL ?? import.meta.env.VITE_AI_GATEWAY_URL;
 const gatewayUrlCandidate =
   import.meta.env.VITE_AI_GATEWAY_URL ?? import.meta.env.VITE_SOCKET_URL ?? (DATA_PROVIDER_MODE === "api" ? platformApiUrlCandidate : undefined);
+const voiceGatewayUrlCandidate = import.meta.env.VITE_VOICE_GATEWAY_URL ?? gatewayUrlCandidate;
 
 export const API_BASE_URL = normalizeApiUrl(platformApiUrlCandidate, "http://127.0.0.1:8000");
 export const API_BASE_URL_CONFIGURED = Boolean(API_BASE_URL);
@@ -99,6 +100,9 @@ export const API_REQUEST_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_API_
 export const AI_GATEWAY_URL = normalizeOptionalUrl(gatewayUrlCandidate);
 export const AI_GATEWAY_ENABLED = normalizeBoolean(import.meta.env.VITE_AI_GATEWAY_ENABLED, AI_GATEWAY_URL !== null);
 export const AI_GATEWAY_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_AI_GATEWAY_TIMEOUT_MS, 90000);
+export const VOICE_GATEWAY_URL = normalizeOptionalUrl(voiceGatewayUrlCandidate);
+export const VOICE_GATEWAY_ENABLED = normalizeBoolean(import.meta.env.VITE_VOICE_GATEWAY_ENABLED, VOICE_GATEWAY_URL !== null);
+export const VOICE_TTS_VOICE = normalizeOptionalText(import.meta.env.VITE_VOICE_TTS_VOICE);
 export const API_HINT_TEACHER_PHONE = normalizeOptionalText(import.meta.env.VITE_API_HINT_TEACHER_PHONE);
 export const API_HINT_TEACHER_PASSWORD = normalizeOptionalText(import.meta.env.VITE_API_HINT_TEACHER_PASSWORD);
 export const API_HINT_STUDENT_PHONE = normalizeOptionalText(import.meta.env.VITE_API_HINT_STUDENT_PHONE);
