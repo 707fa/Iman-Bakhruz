@@ -231,7 +231,7 @@ export function AppLayout() {
 
           <div
             ref={contentScrollRef}
-            className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[calc(5.25rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-6"
+            className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[calc(5.7rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-6"
           >
             <div className="mx-auto w-full max-w-[1320px]">
               <AnimatePresence mode="wait" initial={false}>
@@ -257,10 +257,7 @@ export function AppLayout() {
       </div>
 
       <nav className="fixed inset-x-2 bottom-[max(0.35rem,env(safe-area-inset-bottom))] z-[65] rounded-[1.35rem] border border-burgundy-100 bg-white/95 p-1.5 shadow-lift backdrop-blur lg:hidden dark:border-zinc-800 dark:bg-zinc-950/95">
-        <div
-          className="grid gap-1"
-          style={{ gridTemplateColumns: `repeat(${Math.max(mobileQuickNav.length, 1)}, minmax(0, 1fr))` }}
-        >
+        <div className="[-ms-overflow-style:none] flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {mobileQuickNav.map((item) => {
             const active = isItemActive(location.pathname, item);
             return (
@@ -268,7 +265,7 @@ export function AppLayout() {
                 key={`mobile-bottom-${item.href}`}
                 to={item.href}
                 className={cn(
-                  "flex min-h-[4rem] flex-col items-center justify-center gap-1 rounded-[1rem] px-1 py-2 text-[10px] font-semibold transition sm:min-h-[4.25rem] sm:px-1.5",
+                  "flex min-h-[4rem] min-w-[4.75rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1rem] px-2 py-2 text-[10px] font-semibold transition sm:min-h-[4.25rem]",
                   active ? "bg-burgundy-700 text-white" : "text-charcoal/70 dark:text-zinc-300",
                 )}
               >

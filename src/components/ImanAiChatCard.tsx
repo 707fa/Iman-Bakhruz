@@ -39,6 +39,47 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Failed to decode image"));
+    image.src = dataUrl;
+  });
+}
+
+async function optimizeImageForUpload(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  if (file.size <= 2_400_000) return file;
+
+  try {
+    const dataUrl = await fileToDataUrl(file);
+    const image = await loadImageFromDataUrl(dataUrl);
+    const maxSize = 1600;
+    const ratio = Math.min(1, maxSize / Math.max(image.width, image.height));
+    const width = Math.max(1, Math.round(image.width * ratio));
+    const height = Math.max(1, Math.round(image.height * ratio));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((nextBlob) => resolve(nextBlob), "image/jpeg", 0.86);
+    });
+    if (!blob) return file;
+
+    const filename = file.name.replace(/\.[^.]+$/, "") || "homework";
+    return new File([blob], `${filename}.jpg`, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 function fileFromClipboardItem(item: DataTransferItem): File | null {
   const blob = item.getAsFile();
   if (!blob) return null;
@@ -161,6 +202,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [statusHint, setStatusHint] = useState<string | null>(null);
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimersRef = useRef<number[]>([]);
   const { showToast } = useToast();
 
@@ -289,8 +331,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
   async function applySelectedImage(file: File) {
     try {
-      const dataUrl = await fileToDataUrl(file);
-      setImageFile(file);
+      const normalized = await optimizeImageForUpload(file);
+      const dataUrl = await fileToDataUrl(normalized);
+      setImageFile(normalized);
       setImagePreview(dataUrl);
       setStatusHint("Photo added. Click Send.");
       showToast({ message: "Photo added.", tone: "success", durationMs: 1800 });
@@ -607,31 +650,35 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-charcoal/60 dark:text-zinc-400">{imageFile?.name ?? "Pasted image"}</p>
+                <p className="mt-1 text-xs text-charcoal/60 dark:text-zinc-400">
+                  {imageFile?.name ?? "Pasted image"} {imageFile ? `(${Math.max(1, Math.round(imageFile.size / 1024))} KB)` : ""}
+                </p>
               </div>
             ) : null}
 
             <div className="rounded-[1.65rem] border border-burgundy-200/80 bg-white/95 p-1.5 shadow-[0_16px_36px_-24px_rgba(80,0,20,0.55)] backdrop-blur dark:border-zinc-700 dark:bg-zinc-950/95">
               <div className="flex items-center gap-1.5">
-                <label className="inline-flex shrink-0">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (!file) return;
-                      void applySelectedImage(file);
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="grid h-11 w-11 place-items-center rounded-full border border-burgundy-200/80 bg-burgundy-50 text-burgundy-700 transition hover:scale-[1.02] hover:bg-burgundy-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
-                    aria-label="Attach photo"
-                  >
-                    <ImagePlus className="h-5 w-5" />
-                  </button>
-                </label>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.currentTarget.value = "";
+                    if (!file) return;
+                    void applySelectedImage(file);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-burgundy-200/80 bg-burgundy-50 text-burgundy-700 transition hover:scale-[1.02] hover:bg-burgundy-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                  aria-label="Attach photo"
+                >
+                  <ImagePlus className="h-5 w-5" />
+                </button>
 
                 <Input
                   value={text}
