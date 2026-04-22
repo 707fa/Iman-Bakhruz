@@ -32,8 +32,7 @@ export function LoginPage() {
     setIsSubmitting(true);
     try {
       const result = await login({ phone, password });
-      const text = t(result.messageKey, result.messageParams);
-      showToast({ message: text, tone: result.ok ? "success" : "error" });
+      showToast({ message: t(result.messageKey, result.messageParams), tone: result.ok ? "success" : "error" });
       if (result.ok) {
         navigate("/", { replace: true });
       }
@@ -61,10 +60,8 @@ export function LoginPage() {
             titleClassName="text-white"
             subtitleClassName="text-white/80"
           />
-
           <h1 className="mt-12 max-w-md text-5xl font-bold leading-tight lg:text-6xl">{t("auth.heroTitle")}</h1>
           <p className="mt-5 max-w-md text-lg text-white/85">{t("auth.heroSubtitle")}</p>
-
           <div className="mt-8 flex flex-wrap gap-2">
             <Badge className="bg-white/15 text-white">{t("ui.student")}</Badge>
             <Badge className="bg-white/15 text-white">{t("ui.teacher")}</Badge>
@@ -89,7 +86,7 @@ export function LoginPage() {
             </div>
           </div>
 
-          <Card className="w-full">
+          <Card className="w-full rounded-3xl">
             <CardHeader className="space-y-2">
               <CardTitle className="text-2xl font-bold sm:text-3xl">{t("auth.loginTitle")}</CardTitle>
               <CardDescription>{t("auth.loginSubtitle")}</CardDescription>
@@ -123,6 +120,7 @@ export function LoginPage() {
                     />
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="password">{t("auth.password")}</Label>
                   <PasswordField
@@ -135,7 +133,8 @@ export function LoginPage() {
                     placeholder={t("auth.passwordPlaceholder")}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+
+                <Button type="submit" className="h-11 w-full rounded-2xl" disabled={isSubmitting}>
                   <LogIn className="mr-2 h-4 w-4" />
                   {isSubmitting ? `${t("auth.loginButton")}...` : t("auth.loginButton")}
                 </Button>
@@ -148,9 +147,9 @@ export function LoginPage() {
                 </Link>
               </p>
               <p className="mt-2 text-center text-sm text-charcoal/65 dark:text-zinc-400">
-                Родителям: вход здесь же, регистрация{" "}
+                For parents:{" "}
                 <Link to="/register/parent" className="font-semibold text-charcoal hover:text-black dark:text-white dark:hover:text-zinc-200">
-                  по отдельной форме
+                  separate registration form
                 </Link>
               </p>
             </CardContent>
@@ -160,3 +159,4 @@ export function LoginPage() {
     </div>
   );
 }
+

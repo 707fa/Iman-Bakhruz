@@ -894,23 +894,27 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       try {
         const auth = await platformApi.login(normalizedPayload);
         setApiToken(auth.token);
+        const nextSession = buildSessionFromAuth(auth);
+        // Fast first paint: open workspace immediately, sync full state in background.
+        setState((prev) => ({ ...withSeedData(prev), session: nextSession }));
 
-        try {
-          const remote = await platformApi.getState(auth.token);
-          const nextSession = applySubscriptionToSession(resolveSessionFromRemote(auth, remote), auth.subscription ?? remote.subscription);
-          setState((prev) => withRemoteState(prev, remote, nextSession));
-          return {
-            ok: true,
-            messageKey: nextSession.role === "teacher" ? "msg.loginTeacher" : "msg.loginStudent",
-          };
-        } catch {
-          const nextSession = buildSessionFromAuth(auth);
-          setState((prev) => ({ ...prev, session: nextSession }));
-          return {
-            ok: true,
-            messageKey: nextSession.role === "teacher" ? "msg.loginTeacher" : "msg.loginStudent",
-          };
-        }
+        void (async () => {
+          try {
+            const remote = await platformApi.getState(auth.token);
+            const syncedSession = applySubscriptionToSession(
+              resolveSessionFromRemote(auth, remote),
+              auth.subscription ?? remote.subscription,
+            );
+            setState((prev) => withRemoteState(prev, remote, syncedSession));
+          } catch {
+            // Keep local session when backend state endpoint is slow.
+          }
+        })();
+
+        return {
+          ok: true,
+          messageKey: nextSession.role === "teacher" ? "msg.loginTeacher" : "msg.loginStudent",
+        };
       } catch (error) {
         if (error instanceof ApiError) {
           // Allow local fallback only when backend is temporarily unavailable.

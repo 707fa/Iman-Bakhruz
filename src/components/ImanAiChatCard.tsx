@@ -308,7 +308,13 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
   function typeAssistantReply(messageId: string, fullText: string): Promise<void> {
     const safeText = fullText.trim() || "I could not generate a reply. Please try again.";
-    const chunkSize = Math.max(2, Math.ceil(safeText.length / 100));
+    if (safeText.length > 260) {
+      updateMessageText(messageId, safeText);
+      setTypingMessageId((current) => (current === messageId ? null : current));
+      return Promise.resolve();
+    }
+
+    const chunkSize = Math.max(5, Math.ceil(safeText.length / 36));
     updateMessageText(messageId, "");
     setTypingMessageId(messageId);
 
@@ -323,7 +329,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           setTypingMessageId((current) => (current === messageId ? null : current));
           resolve();
         }
-      }, 18);
+      }, 10);
 
       typingTimersRef.current.push(timerId);
     });

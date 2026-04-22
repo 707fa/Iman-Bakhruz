@@ -244,7 +244,7 @@ export function StudentSpeakingPage() {
   async function generateQuestions() {
     const topic = lessonTopic.trim();
     if (!topic) {
-      setQuestionError("Введите тему урока");
+      setQuestionError("Enter lesson topic");
       return;
     }
 
@@ -261,7 +261,7 @@ export function StudentSpeakingPage() {
       });
       setGeneratedQuestions(questions.slice(0, DAILY_TARGET));
       setQuestionIndex(0);
-      showToast({ message: "AI подготовил 20 speaking вопросов", tone: "success" });
+      showToast({ message: "AI prepared 20 speaking questions", tone: "success" });
     } catch (error) {
       const message = mapSpeakingApiErrorToMessage(error);
       setQuestionError(message);
@@ -328,7 +328,7 @@ export function StudentSpeakingPage() {
     }
 
     if (wordsCount(transcript) < MIN_WORDS) {
-      showToast({ message: `Минимум ${MIN_WORDS} слов для проверки.`, tone: "error" });
+      showToast({ message: `Minimum ${MIN_WORDS} words required.`, tone: "error" });
       return;
     }
 
@@ -382,71 +382,82 @@ export function StudentSpeakingPage() {
         }
       />
 
-      <Card className="rounded-2xl">
-        <CardContent className="space-y-3 p-3 sm:p-4">
-          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+      <Card className="overflow-hidden rounded-3xl border-burgundy-200/70">
+        <CardContent className="bg-gradient-to-br from-burgundy-50 via-white to-burgundy-50 p-4 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-900 sm:p-5">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
             <Input
               value={lessonTopic}
               onChange={(event) => setLessonTopic(event.target.value)}
-              placeholder="Тема урока (например: Past Simple, Daily routine, Travel)"
+              placeholder="Lesson topic (Past Simple, Travel, Daily routine...)"
+              className="h-11 rounded-2xl"
             />
-            <Button onClick={() => void generateQuestions()} disabled={generatingQuestions} className="h-10 px-4">
+            <Button onClick={() => void generateQuestions()} disabled={generatingQuestions} className="h-11 rounded-2xl px-4">
               {generatingQuestions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              AI 20 вопросов
+              Generate 20
             </Button>
           </div>
-          {questionError ? <p className="text-xs text-burgundy-700 dark:text-burgundy-200">{questionError}</p> : null}
-          <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
             <Badge className="bg-burgundy-700 text-white">{t("speaking.question")}</Badge>
             <Badge variant="positive">{questionIndex + 1}/{effectiveQuestions.length || DAILY_TARGET}</Badge>
             <Badge variant="positive">{currentQuestion?.topic || "Topic"}</Badge>
             {taskLoading ? <Badge variant="positive">Teacher tasks loading...</Badge> : null}
           </div>
-          <p className="text-base font-semibold text-charcoal dark:text-zinc-100 sm:text-lg">{currentQuestion?.prompt || "No question"}</p>
-          <Button variant="secondary" onClick={listenQuestion} className="h-9 text-sm">
-            <Volume2 className="mr-2 h-4 w-4" />
-            {t("speaking.listenQuestion")}
-          </Button>
+          {questionError ? <p className="mt-2 text-xs text-burgundy-700 dark:text-burgundy-200">{questionError}</p> : null}
+          <p className="mt-2 text-base font-semibold text-charcoal dark:text-zinc-100 sm:text-lg">{currentQuestion?.prompt || "No question"}</p>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_310px]">
-        <Card className="rounded-2xl">
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <Card className="rounded-3xl">
           <CardHeader className="pb-2">
             <CardTitle className="inline-flex items-center gap-2 text-lg">
               <Mic className="h-5 w-5 text-burgundy-700 dark:text-white" />
-              {t("speaking.recording")}
+              Live Speaking
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <Badge variant="positive">{statusLabel}</Badge>
               <Badge variant="positive">{t("speaking.timer")}: {toClock(recordingSeconds)}</Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {!speech.supported ? (
               <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
                 {t("speaking.unsupported")}
               </p>
             ) : null}
 
-            <Button
-              onClick={toggleRecording}
-              disabled={status === "processing"}
-              className="h-10 w-full text-sm"
-              variant={speech.listening ? "secondary" : "default"}
-            >
-              {speech.listening ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("speaking.stopRecording")}
-                </>
-              ) : (
-                <>
-                  <Mic className="mr-2 h-4 w-4" />
-                  {t("speaking.startRecording")}
-                </>
-              )}
-            </Button>
+            <div className="grid place-items-center py-2">
+              <button
+                type="button"
+                onClick={toggleRecording}
+                disabled={status === "processing"}
+                className={[
+                  "grid h-28 w-28 place-items-center rounded-full border text-white shadow-[0_26px_60px_-28px_rgba(80,0,20,0.65)] transition",
+                  speech.listening
+                    ? "scale-105 border-burgundy-400 bg-burgundy-600"
+                    : "border-burgundy-300 bg-burgundy-700 hover:scale-[1.03]",
+                  status === "processing" ? "cursor-not-allowed opacity-70" : "",
+                ].join(" ")}
+                aria-label={speech.listening ? t("speaking.stopRecording") : t("speaking.startRecording")}
+              >
+                {status === "processing" ? <Loader2 className="h-8 w-8 animate-spin" /> : <Mic className="h-9 w-9" />}
+              </button>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Button variant="secondary" onClick={listenQuestion} className="h-10 rounded-xl text-sm">
+                <Volume2 className="mr-2 h-4 w-4" />
+                Listen
+              </Button>
+              <Button variant="secondary" onClick={goNextQuestion} className="h-10 rounded-xl text-sm">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Next
+              </Button>
+              <Button variant="secondary" onClick={resetAttempt} className="h-10 rounded-xl text-sm">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset
+              </Button>
+            </div>
 
             <div className="space-y-1.5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-charcoal/65 dark:text-zinc-400">
@@ -455,8 +466,8 @@ export function StudentSpeakingPage() {
               <textarea
                 value={manualTranscript}
                 onChange={(event) => setManualTranscript(event.target.value)}
-                rows={4}
-                className="w-full resize-y rounded-xl border border-burgundy-100 bg-white p-2.5 text-sm text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
+                rows={5}
+                className="w-full resize-y rounded-2xl border border-burgundy-100 bg-white p-3 text-sm text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
                 placeholder={t("speaking.transcriptPlaceholder")}
               />
             </div>
@@ -467,26 +478,16 @@ export function StudentSpeakingPage() {
               </p>
             ) : null}
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"} className="h-10 text-sm">
-                {status === "processing" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                {t("speaking.analyze")}
-              </Button>
-              <Button variant="secondary" onClick={resetAttempt} className="h-10 text-sm">
-                <RotateCcw className="mr-2 h-4 w-4" />
-                {t("speaking.retry")}
-              </Button>
-              <Button variant="secondary" onClick={goNextQuestion} className="h-10 text-sm">
-                <Sparkles className="mr-2 h-4 w-4" />
-                {t("speaking.nextQuestion")}
-              </Button>
-            </div>
+            <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"} className="h-11 w-full rounded-xl text-sm">
+              {status === "processing" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+              {t("speaking.analyze")}
+            </Button>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl">
-          <CardContent className="space-y-2 p-3 sm:p-4">
-            <h3 className="text-base font-bold">{t("speaking.history")}</h3>
+        <Card className="rounded-3xl">
+          <CardContent className="space-y-2 p-4">
+            <h3 className="text-base font-bold">Recent Attempts</h3>
             {history.length === 0 ? (
               <p className="text-xs text-charcoal/65 dark:text-zinc-400">{t("speaking.historyEmpty")}</p>
             ) : (
@@ -504,7 +505,7 @@ export function StudentSpeakingPage() {
         </Card>
       </div>
 
-      <Card className="rounded-2xl">
+      <Card className="rounded-3xl">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">{t("speaking.results")}</CardTitle>
         </CardHeader>
@@ -542,3 +543,4 @@ export function StudentSpeakingPage() {
     </div>
   );
 }
+

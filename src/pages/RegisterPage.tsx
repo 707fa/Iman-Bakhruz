@@ -40,7 +40,6 @@ export function RegisterPage() {
     () => Array.from(new Set(registrationGroups.map((group) => group.daysPattern))) as GroupDaysPattern[],
     [registrationGroups],
   );
-
   const [daysPattern, setDaysPattern] = useState<GroupDaysPattern>(dayPatterns[0] ?? "mwf");
 
   const groupTitles = useMemo(
@@ -50,7 +49,6 @@ export function RegisterPage() {
       ),
     [registrationGroups, daysPattern],
   );
-
   const [selectedGroupTitle, setSelectedGroupTitle] = useState(groupTitles[0] ?? "");
 
   const availableTimes = useMemo(
@@ -60,7 +58,6 @@ export function RegisterPage() {
         .map((group) => group.time),
     [registrationGroups, daysPattern, selectedGroupTitle],
   );
-
   const [time, setTime] = useState(availableTimes[0] ?? "");
 
   useEffect(() => {
@@ -142,7 +139,7 @@ export function RegisterPage() {
 
   return (
     <div className="flex min-h-dvh items-start justify-center bg-white p-4 pb-8 pt-5 dark:bg-black sm:min-h-screen sm:items-center sm:p-8">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-2xl rounded-3xl">
         <CardHeader className="space-y-3">
           <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
             <BrandLogo
@@ -237,11 +234,7 @@ export function RegisterPage() {
                 />
                 {t("auth.centerStudentToggle")}
               </label>
-              {!isImanStudent ? (
-                <p className="text-xs text-charcoal/65 dark:text-zinc-400">
-                  {t("auth.guestAccountHint")}
-                </p>
-              ) : null}
+              {!isImanStudent ? <p className="text-xs text-charcoal/65 dark:text-zinc-400">{t("auth.guestAccountHint")}</p> : null}
             </div>
 
             {isImanStudent ? (
@@ -259,9 +252,7 @@ export function RegisterPage() {
                       setTime(firstGroup?.time ?? "");
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("auth.selectDays")} />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("auth.selectDays")} /></SelectTrigger>
                     <SelectContent>
                       {dayPatterns.map((pattern) => (
                         <SelectItem key={pattern} value={pattern}>
@@ -284,9 +275,7 @@ export function RegisterPage() {
                       setTime(firstTime);
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("auth.selectGroup")} />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("auth.selectGroup")} /></SelectTrigger>
                     <SelectContent>
                       {groupTitles.map((groupTitle) => (
                         <SelectItem key={groupTitle} value={groupTitle}>
@@ -300,9 +289,7 @@ export function RegisterPage() {
                 <div className="space-y-2 sm:col-span-2">
                   <Label>{t("auth.time")}</Label>
                   <Select value={time} onValueChange={setTime} disabled={isSubmitting}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("auth.selectTime")} />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("auth.selectTime")} /></SelectTrigger>
                     <SelectContent>
                       {availableTimes.map((itemTime) => (
                         <SelectItem key={itemTime} value={itemTime}>
@@ -315,7 +302,7 @@ export function RegisterPage() {
               </>
             ) : null}
 
-            <Button type="submit" className="sm:col-span-2" disabled={isSubmitting}>
+            <Button type="submit" className="h-11 rounded-2xl sm:col-span-2" disabled={isSubmitting}>
               <UserPlus className="mr-2 h-4 w-4" />
               {isSubmitting ? `${t("auth.registerButton")}...` : t("auth.registerButton")}
             </Button>
@@ -328,9 +315,9 @@ export function RegisterPage() {
             </Link>
           </p>
           <p className="mt-2 text-center text-sm text-charcoal/65 dark:text-zinc-400">
-            Для родителей:{" "}
+            For parents:{" "}
             <Link to="/register/parent" className="font-semibold text-charcoal hover:text-black dark:text-white dark:hover:text-zinc-200">
-              отдельная регистрация
+              separate registration
             </Link>
           </p>
         </CardContent>
@@ -338,3 +325,4 @@ export function RegisterPage() {
     </div>
   );
 }
+
