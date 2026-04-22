@@ -16,6 +16,8 @@ export async function requestMicrophoneStream(): Promise<MediaStream> {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
+      channelCount: 1,
+      sampleRate: 48000,
     },
   });
 }

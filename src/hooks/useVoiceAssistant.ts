@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useAudioPlayback } from "./useAudioPlayback";
 import { useMicrophoneLevel } from "./useMicrophoneLevel";
-import type { VoiceState, VoiceTranscriptItem } from "../types/voice";
+import type { VoiceSessionMessage, VoiceState, VoiceTranscriptItem } from "../types/voice";
 
 interface SpeechRecognitionResultLike {
   readonly isFinal: boolean;
@@ -17,6 +17,7 @@ interface SpeechRecognitionLike {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
+  maxAlternatives?: number;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onerror: (() => void) | null;
   onend: (() => void) | null;
@@ -58,6 +59,7 @@ export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions
   const audio = useAudioPlayback();
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const keepListeningRef = useRef(false);
+  const sessionMessagesRef = useRef<VoiceSessionMessage[]>([]);
 
   const visualLevel = state === "listening" ? mic.level : state === "speaking" ? audio.outputLevel : state === "thinking" ? 0.45 : 0.14;
 
@@ -80,6 +82,11 @@ export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions
       if (!clean) return;
 
       setTranscript((prev) => [...prev.slice(-7).filter((item) => !item.partial), { id: makeId("u"), role: "user", text: clean }]);
+      sessionMessagesRef.current.push({
+        role: "user",
+        text: clean,
+        createdAt: new Date().toISOString(),
+      });
       setState("thinking");
 
       let assistantText = "";
@@ -90,6 +97,11 @@ export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions
       }
 
       setTranscript((prev) => [...prev.slice(-7), { id: makeId("a"), role: "assistant", text: assistantText }]);
+      sessionMessagesRef.current.push({
+        role: "assistant",
+        text: assistantText,
+        createdAt: new Date().toISOString(),
+      });
       if (audio.muted) {
         setState("muted");
         return;
@@ -127,6 +139,7 @@ export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions
     recognition.lang = lang;
     recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
     recognition.onresult = (event) => {
       let interim = "";
       let finalText = "";
@@ -191,6 +204,12 @@ export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions
     setTranscript([]);
   }, [audio, stopListening]);
 
+  const consumeSessionMessages = useCallback(() => {
+    const snapshot = [...sessionMessagesRef.current];
+    sessionMessagesRef.current = [];
+    return snapshot;
+  }, []);
+
   return useMemo(
     () => ({
       open,
@@ -203,7 +222,8 @@ export function useVoiceAssistant({ lang, onExchange }: UseVoiceAssistantOptions
       audioMuted: audio.muted,
       toggleMic,
       toggleAudio,
+      consumeSessionMessages,
     }),
-    [audio.muted, close, open, state, toggleAudio, toggleMic, transcript, visualLevel],
+    [audio.muted, close, consumeSessionMessages, open, state, toggleAudio, toggleMic, transcript, visualLevel],
   );
 }

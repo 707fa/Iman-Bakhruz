@@ -5,6 +5,19 @@ function randomWave() {
   return 0.22 + Math.random() * 0.76;
 }
 
+function pickVoice(lang: string): SpeechSynthesisVoice | null {
+  if (!("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  const normalized = lang.toLowerCase();
+  const exact = voices.find((voice) => voice.lang.toLowerCase() === normalized);
+  if (exact) return exact;
+  const family = normalized.split("-")[0];
+  const byFamily = voices.find((voice) => voice.lang.toLowerCase().startsWith(family));
+  if (byFamily) return byFamily;
+  return voices.find((voice) => voice.localService) ?? voices[0] ?? null;
+}
+
 export function useAudioPlayback() {
   const [muted, setMuted] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -52,8 +65,13 @@ export function useAudioPlayback() {
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-      utterance.rate = 0.97;
+      utterance.rate = 0.93;
       utterance.pitch = 1;
+      utterance.volume = 1;
+      const voice = pickVoice(lang);
+      if (voice) {
+        utterance.voice = voice;
+      }
       utterance.onend = () => {
         setSpeaking(false);
         stopMeter();
@@ -62,6 +80,7 @@ export function useAudioPlayback() {
         setSpeaking(false);
         stopMeter();
       };
+      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     },
     [animateMeter, muted, stop, stopMeter],

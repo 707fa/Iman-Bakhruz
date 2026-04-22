@@ -134,6 +134,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageViewerUrl, setImageViewerUrl] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [statusHint, setStatusHint] = useState<string | null>(null);
@@ -299,6 +300,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     const selectedFile = voiceText ? null : imageFile;
     const selectedPreview = voiceText ? null : imagePreview;
     const canSendNow = Boolean(effectiveText || selectedFile);
+    const shouldWriteToChat = !silentVoiceMode;
 
     if (!canSendNow || sending) return null;
     if (!useGatewayMode && !token) return null;
@@ -324,8 +326,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       createdAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMessage, assistantMessage]);
-    setTypingMessageId(assistantMessage.id);
+    if (shouldWriteToChat) {
+      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      setTypingMessageId(assistantMessage.id);
+    }
     if (!voiceText) {
       setText("");
       setImageFile(null);
@@ -349,7 +353,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 : "";
 
           const finalReply = `${response.result}${providerTail}`;
-          await typeAssistantReply(assistantMessage.id, finalReply);
+          if (shouldWriteToChat) {
+            await typeAssistantReply(assistantMessage.id, finalReply);
+          }
           setStatusHint(null);
           return finalReply;
         } catch (gatewayError) {
@@ -367,7 +373,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 systemContext,
               });
               const finalReply = extractAssistantReply(updatedMessages);
-              await typeAssistantReply(assistantMessage.id, finalReply);
+              if (shouldWriteToChat) {
+                await typeAssistantReply(assistantMessage.id, finalReply);
+              }
               setStatusHint("Gateway unavailable. Switched to backend AI.");
               if (!silentVoiceMode) {
                 showToast({ message: "Gateway unavailable. Backup AI mode enabled.", tone: "info" });
@@ -380,7 +388,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 return null;
               }
               const message = mapBackendAiErrorToMessage(fallbackError);
-              updateMessageText(assistantMessage.id, message);
+              if (shouldWriteToChat) {
+                updateMessageText(assistantMessage.id, message);
+              }
               if (!silentVoiceMode) {
                 showToast({ message, tone: "error" });
               }
@@ -390,7 +400,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
           if (isApiMode && !token) {
             const message = "Please log in again: backend token is required for AI.";
-            updateMessageText(assistantMessage.id, message);
+            if (shouldWriteToChat) {
+              updateMessageText(assistantMessage.id, message);
+            }
             if (!silentVoiceMode) {
               showToast({ message, tone: "error" });
             }
@@ -398,7 +410,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           }
 
           const message = mapAiGatewayErrorToMessage(gatewayError);
-          updateMessageText(assistantMessage.id, message);
+          if (shouldWriteToChat) {
+            updateMessageText(assistantMessage.id, message);
+          }
           if (!silentVoiceMode) {
             showToast({ message, tone: "error" });
           }
@@ -417,7 +431,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         systemContext,
       });
       const finalReply = extractAssistantReply(updatedMessages);
-      await typeAssistantReply(assistantMessage.id, finalReply);
+      if (shouldWriteToChat) {
+        await typeAssistantReply(assistantMessage.id, finalReply);
+      }
       setStatusHint(null);
       return finalReply;
     } catch (error) {
@@ -427,14 +443,18 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         return null;
       }
       const message = useGatewayMode ? mapAiGatewayErrorToMessage(error) : mapBackendAiErrorToMessage(error);
-      updateMessageText(assistantMessage.id, message);
+      if (shouldWriteToChat) {
+        updateMessageText(assistantMessage.id, message);
+      }
       if (!silentVoiceMode) {
         showToast({ message, tone: "error" });
       }
       return message;
     } finally {
       setSending(false);
-      setTypingMessageId((current) => (current === assistantMessage.id ? null : current));
+      if (shouldWriteToChat) {
+        setTypingMessageId((current) => (current === assistantMessage.id ? null : current));
+      }
     }
 
     return null;
@@ -508,9 +528,14 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                           </div>
                         ) : null}
                         {message.imageUrl ? (
-                          <a href={message.imageUrl} target="_blank" rel="noreferrer" className="mt-2 block">
-                            <img src={message.imageUrl} alt="Homework" className="max-h-52 rounded-xl border border-white/20 object-contain" />
-                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setImageViewerUrl(message.imageUrl!)}
+                            className="mt-2 block text-left"
+                            aria-label="Open image preview"
+                          >
+                            <img src={message.imageUrl} alt="Homework" className="max-h-52 rounded-xl border border-white/20 object-contain transition hover:opacity-95" />
+                          </button>
                         ) : null}
                         <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/75" : "text-charcoal/50 dark:text-zinc-400"}`}>
                           {toReadableTime(message.createdAt)}
@@ -520,7 +545,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                   );
                 })
               )}
-              {sending && !typingMessageId ? (
+              {sending && !typingMessageId && !voice.open ? (
                 <div className="flex justify-start">
                   <div className="max-w-[90%] rounded-2xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100">
                     <div className="mb-1 inline-flex items-center gap-1 text-xs text-charcoal/55 dark:text-zinc-400">
@@ -552,6 +577,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                     <X className="h-4 w-4" />
                   </button>
                 </div>
+                <p className="mt-1 text-xs text-charcoal/60 dark:text-zinc-400">{imageFile?.name ?? "Pasted image"}</p>
               </div>
             ) : null}
 
@@ -636,9 +662,39 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               onToggleMic={voice.toggleMic}
               onToggleAudio={voice.toggleAudio}
               onClose={() => {
+                const committed = voice.consumeSessionMessages();
+                if (committed.length > 0) {
+                  const normalized: AiChatMessage[] = committed
+                    .filter((item) => item.text.trim())
+                    .map((item) => ({
+                      id: makeMessageId(item.role === "assistant" ? "a" : "u"),
+                      role: item.role,
+                      text: item.text,
+                      createdAt: item.createdAt,
+                    }));
+                  if (normalized.length > 0) {
+                    setMessages((prev) => [...prev, ...normalized].slice(-100));
+                  }
+                }
                 void voice.close();
               }}
             />
+
+            {imageViewerUrl ? (
+              <div className="fixed inset-0 z-[170] grid place-items-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setImageViewerUrl(null)}>
+                <div className="relative max-h-[92vh] max-w-[92vw]" onClick={(event) => event.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setImageViewerUrl(null)}
+                    className="absolute -right-2 -top-2 grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-black/70 text-white"
+                    aria-label="Close image preview"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                  <img src={imageViewerUrl} alt="Homework preview" className="max-h-[92vh] rounded-2xl border border-white/20 object-contain" />
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </CardContent>

@@ -6,3 +6,9 @@ export interface VoiceTranscriptItem {
   text: string;
   partial?: boolean;
 }
+
+export interface VoiceSessionMessage {
+  role: "user" | "assistant";
+  text: string;
+  createdAt: string;
+}
