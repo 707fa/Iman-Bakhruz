@@ -36,17 +36,24 @@ export function buildImanChatContextPrompt(params: {
 }): string {
   const { level, locale, groupTitle, groupTime } = params;
   const preferredLanguage = resolveAiFeedbackLanguage(level, locale);
+  const supportLanguage = preferredLanguage === "en" ? "ru/uz" : preferredLanguage;
 
   const languageRule = isFoundationLevel(level)
     ? [
         "Language rule:",
-        `- Main explanation language: ${preferredLanguage.toUpperCase()}.`,
-        "- Also include short simple English examples after explanation.",
+        "- Understand and accept user input in English, Russian, and Uzbek.",
+        "- Output ratio target for beginner/elementary:",
+        "- About 70% simple English + about 30% support language.",
+        `- Support language for this student: ${supportLanguage.toUpperCase()}.`,
+        "- Keep English words short and easy (A1/A2).",
+        "- Correct mistakes gently like a friendly tutor.",
       ].join("\n")
     : [
         "Language rule:",
-        "- Reply only in English.",
-        "- Keep explanations clear and concise.",
+        "- Understand and accept user input in English, Russian, and Uzbek.",
+        "- Output ratio target for higher levels:",
+        "- About 98% English, up to 2% support language only if needed for clarity.",
+        "- Keep explanations clear, concise, and practical.",
       ].join("\n");
 
   return [
@@ -59,4 +66,3 @@ export function buildImanChatContextPrompt(params: {
     "When answering questions, keep answers practical and student-friendly.",
   ].join("\n");
 }
-

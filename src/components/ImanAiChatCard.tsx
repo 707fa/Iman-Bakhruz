@@ -83,6 +83,27 @@ function makeMessageId(prefix: "u" | "a"): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function buildVoiceMixRule(level: ReturnType<typeof normalizeStudentLevelFromGroupTitle>, locale: "ru" | "uz" | "en"): string {
+  const support = locale === "en" ? "ru/uz" : locale;
+  if (level === "beginner" || level === "elementary") {
+    return [
+      "Voice tutor rule:",
+      "- Understand RU/UZ/EN speech.",
+      "- Reply with about 70% simple English and about 30% support language.",
+      `- Support language: ${support}.`,
+      "- Keep tone warm and human-like.",
+    ].join("\n");
+  }
+
+  return [
+    "Voice tutor rule:",
+    "- Understand RU/UZ/EN speech.",
+    "- Reply with about 98% English.",
+    "- Use support language only for very short clarification when needed.",
+    "- Keep tone warm and human-like.",
+  ].join("\n");
+}
+
 function readLocalMessages(storageKey: string): AiChatMessage[] {
   if (typeof window === "undefined") return [];
   const raw = window.localStorage.getItem(storageKey);
@@ -161,7 +182,14 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     [sessionUserId],
   );
 
-  const speechLang = locale === "uz" ? "uz-UZ" : locale === "en" ? "en-US" : "ru-RU";
+  const speechLang =
+    studentLevel === "beginner" || studentLevel === "elementary"
+      ? locale === "uz"
+        ? "uz-UZ"
+        : locale === "en"
+          ? "en-US"
+          : "ru-RU"
+      : "en-US";
 
   const voice = useVoiceAssistant({
     lang: speechLang,
@@ -309,7 +337,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     setStatusHint(null);
 
     const textWithContext = effectiveText
-      ? `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\n[/CONTEXT]\n\n${effectiveText}`
+      ? `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nvoice_mode=${silentVoiceMode ? "true" : "false"}\n[/CONTEXT]\n\n${
+          silentVoiceMode ? `${buildVoiceMixRule(studentLevel, aiLanguage)}\n\nUser said:\n${effectiveText}` : effectiveText
+        }`
       : "";
 
     const userMessage: AiChatMessage = {

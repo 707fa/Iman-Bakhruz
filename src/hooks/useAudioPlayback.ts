@@ -10,6 +10,37 @@ function pickVoice(lang: string): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return null;
   const normalized = lang.toLowerCase();
+  const femaleHints = [
+    "female",
+    "woman",
+    "zira",
+    "samantha",
+    "victoria",
+    "karen",
+    "moira",
+    "ava",
+    "aria",
+    "alloy",
+    "sonia",
+    "natalia",
+    "katya",
+  ];
+  const maleHints = ["male", "man", "david", "mark", "alex", "ivan", "pavel", "daniel"];
+  const scoreVoice = (voice: SpeechSynthesisVoice) => {
+    const name = `${voice.name} ${voice.voiceURI}`.toLowerCase();
+    let score = 0;
+    if (voice.lang.toLowerCase() === normalized) score += 30;
+    if (voice.lang.toLowerCase().startsWith(normalized.split("-")[0])) score += 18;
+    if (voice.localService) score += 8;
+    if (name.includes("neural") || name.includes("natural") || name.includes("premium")) score += 10;
+    if (femaleHints.some((hint) => name.includes(hint))) score += 24;
+    if (maleHints.some((hint) => name.includes(hint))) score -= 10;
+    return score;
+  };
+
+  const ranked = [...voices].sort((a, b) => scoreVoice(b) - scoreVoice(a));
+  if (ranked.length > 0) return ranked[0] ?? null;
+
   const exact = voices.find((voice) => voice.lang.toLowerCase() === normalized);
   if (exact) return exact;
   const family = normalized.split("-")[0];
