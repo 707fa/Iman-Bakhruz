@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { smoothValue } from "../lib/audio";
+import { VOICE_BROWSER_FALLBACK_ENABLED } from "../lib/env";
 import { isVoiceGatewayReady, requestVoiceTts } from "../services/api/voiceGatewayApi";
 
 function randomWave() {
@@ -278,7 +279,11 @@ export function useAudioPlayback() {
           return;
         }
       } catch {
-        // Fallback to browser speech synthesis when gateway is unavailable.
+        if (!VOICE_BROWSER_FALLBACK_ENABLED && isVoiceGatewayReady()) {
+          setSpeaking(false);
+          stopMeter();
+          return;
+        }
       }
 
       await playViaBrowserTts(speechText, lang);
