@@ -1,5 +1,6 @@
 import { Bot, ImagePlus, Loader2, Mic, MicOff, Send, User, Volume2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { AiChatMessage } from "../types";
 import { AI_GATEWAY_URL, DATA_PROVIDER_MODE } from "../lib/env";
 import { useAppStore } from "../hooks/useAppStore";
@@ -686,7 +687,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               </div>
             ) : null}
 
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
               <Input
                 value={text}
                 onChange={(event) => setText(event.target.value)}
@@ -732,56 +733,71 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                 Send
               </Button>
-
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  if (voiceOpen) {
-                    setVoiceOpen(false);
-                    stopVoiceListening();
-                    return;
-                  }
-                  setVoiceOpen(true);
-                  startVoiceListening();
-                }}
-              >
-                {voiceListening ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
-                Voice
-              </Button>
             </div>
 
-            {voiceOpen ? (
-              <div className="pointer-events-auto absolute bottom-24 right-4 z-20 flex items-center gap-3 rounded-2xl border border-burgundy-300/60 bg-white/95 px-3 py-2 shadow-lg dark:border-burgundy-800 dark:bg-zinc-900/95">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (voiceListening) {
-                      stopVoiceListening();
-                    } else {
-                      startVoiceListening();
-                    }
-                  }}
-                  className={`grid h-12 w-12 place-items-center rounded-full border transition ${
-                    voiceListening
-                      ? "border-burgundy-400 bg-burgundy-600 text-white animate-pulse"
-                      : "border-burgundy-200 bg-burgundy-50 text-burgundy-700 dark:border-burgundy-700 dark:bg-burgundy-900/40 dark:text-burgundy-100"
-                  }`}
-                  aria-label={voiceListening ? "Stop voice input" : "Start voice input"}
+            <motion.button
+              type="button"
+              onClick={() => {
+                if (voiceOpen) {
+                  setVoiceOpen(false);
+                  stopVoiceListening();
+                  return;
+                }
+                setVoiceOpen(true);
+                startVoiceListening();
+              }}
+              className="absolute bottom-4 right-4 z-20 grid h-12 w-12 place-items-center rounded-full border border-burgundy-400/60 bg-burgundy-700 text-white shadow-lg"
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03 }}
+              aria-label={voiceOpen ? "Close voice" : "Open voice"}
+            >
+              {voiceListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </motion.button>
+
+            <AnimatePresence>
+              {voiceOpen ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.97 }}
+                  className="pointer-events-auto absolute bottom-20 right-4 z-20 w-[15.5rem] rounded-2xl border border-burgundy-300/60 bg-white/95 p-3 shadow-xl dark:border-burgundy-800 dark:bg-zinc-900/95"
                 >
-                  {voiceListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                </button>
-                <div className="min-w-[11rem] max-w-[16rem]">
-                  <p className="text-xs font-semibold text-charcoal dark:text-zinc-100">
-                    {voiceSpeaking ? "Iman is speaking..." : voiceListening ? "Listening..." : "Voice paused"}
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-charcoal dark:text-zinc-100">Voice</p>
+                    <Volume2 className={`h-4 w-4 ${voiceSpeaking ? "text-burgundy-700 dark:text-burgundy-300" : "text-charcoal/40 dark:text-zinc-500"}`} />
+                  </div>
+
+                  <div className="relative mx-auto mb-2 grid h-16 w-16 place-items-center">
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-burgundy-500/20 blur-md"
+                      animate={{ scale: voiceListening || voiceSpeaking ? [1, 1.18, 1] : [1, 1.05, 1], opacity: [0.45, 0.85, 0.45] }}
+                      transition={{ duration: voiceListening || voiceSpeaking ? 1 : 2.1, repeat: Number.POSITIVE_INFINITY }}
+                    />
+                    <motion.div
+                      className="absolute inset-[14%] rounded-full border border-burgundy-300/60 bg-burgundy-700/85"
+                      animate={{ scale: voiceListening ? [1, 1.08, 1] : voiceSpeaking ? [1, 1.12, 1] : [1, 1.02, 1] }}
+                      transition={{ duration: voiceListening || voiceSpeaking ? 0.85 : 2, repeat: Number.POSITIVE_INFINITY }}
+                    />
+                    {voiceListening ? <MicOff className="relative z-10 h-5 w-5 text-white" /> : <Mic className="relative z-10 h-5 w-5 text-white" />}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (voiceListening) stopVoiceListening();
+                      else startVoiceListening();
+                    }}
+                    className="mb-2 w-full rounded-xl border border-burgundy-300/60 bg-burgundy-50 px-2.5 py-1.5 text-xs font-semibold text-burgundy-800 transition hover:bg-burgundy-100 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100"
+                  >
+                    {voiceListening ? "Stop listening" : "Start listening"}
+                  </button>
+
+                  <p className="truncate text-center text-[11px] text-charcoal/70 dark:text-zinc-400">
+                    {voiceSpeaking ? "Iman is speaking..." : voiceListening ? (voiceTranscript || "Listening...") : (voiceError || "Tap and speak")}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-charcoal/70 dark:text-zinc-400">
-                    {voiceTranscript || voiceError || "Say your question in microphone"}
-                  </p>
-                </div>
-                <Volume2 className={`h-4 w-4 ${voiceSpeaking ? "text-burgundy-700" : "text-charcoal/40 dark:text-zinc-500"}`} />
-              </div>
-            ) : null}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </>
         )}
       </CardContent>
