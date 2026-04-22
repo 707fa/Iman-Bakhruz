@@ -1,54 +1,23 @@
-import { Bot, ImagePlus, Loader2, Mic, MicOff, Send, User, Volume2 } from "lucide-react";
+import { Bot, ImagePlus, Loader2, Mic, Send, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import type { AiChatMessage } from "../types";
 import { AI_GATEWAY_URL, DATA_PROVIDER_MODE } from "../lib/env";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
+import { useVoiceAssistant } from "../hooks/useVoiceAssistant";
 import { buildImanChatContextPrompt, normalizeStudentLevelFromGroupTitle, resolveAiFeedbackLanguage } from "../lib/studentLevel";
 import { ApiError } from "../services/api/http";
 import { clearApiToken, getApiToken } from "../services/tokenStorage";
 import { platformApi } from "../services/api/platformApi";
 import { aiGatewayCheckHomework, mapAiGatewayErrorToMessage } from "../services/api/aiGatewayApi";
+import { VoiceScreen } from "./voice/VoiceScreen";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 
 interface ImanAiChatCardProps {
   title?: string;
-}
-
-interface SpeechRecognitionResultLike {
-  readonly isFinal: boolean;
-  readonly 0: { readonly transcript: string };
-}
-
-interface SpeechRecognitionEventLike extends Event {
-  readonly resultIndex: number;
-  readonly results: ArrayLike<SpeechRecognitionResultLike>;
-}
-
-interface SpeechRecognitionLike {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-}
-
-interface SpeechRecognitionConstructorLike {
-  new (): SpeechRecognitionLike;
-}
-
-declare global {
-  interface Window {
-    webkitSpeechRecognition?: SpeechRecognitionConstructorLike;
-    SpeechRecognition?: SpeechRecognitionConstructorLike;
-  }
 }
 
 function toReadableTime(value: string): string {
@@ -169,15 +138,8 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [loading, setLoading] = useState(false);
   const [statusHint, setStatusHint] = useState<string | null>(null);
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
-  const [voiceOpen, setVoiceOpen] = useState(false);
-  const [voiceListening, setVoiceListening] = useState(false);
-  const [voiceSpeaking, setVoiceSpeaking] = useState(false);
-  const [voiceTranscript, setVoiceTranscript] = useState("");
-  const [voiceError, setVoiceError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const typingTimersRef = useRef<number[]>([]);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const shouldResumeListeningRef = useRef(false);
   const { showToast } = useToast();
 
   const sessionUserId = state.session?.userId;
@@ -200,127 +162,13 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
   const speechLang = locale === "uz" ? "uz-UZ" : locale === "en" ? "en-US" : "ru-RU";
 
-  function pickNaturalVoice(lang: string): SpeechSynthesisVoice | null {
-    if (!("speechSynthesis" in window)) return null;
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length === 0) return null;
-
-    const langBase = lang.toLowerCase().slice(0, 2);
-    const sameLanguage = voices.filter((voice) => voice.lang.toLowerCase().startsWith(langBase));
-    const pool = sameLanguage.length > 0 ? sameLanguage : voices;
-
-    const preferred = pool.find((voice) => /natural|neural|google|microsoft|siri|yandex/i.test(voice.name));
-    return preferred ?? pool.find((voice) => voice.default) ?? pool[0] ?? null;
-  }
-
-  function speakAssistantText(textToSpeak: string) {
-    if (!("speechSynthesis" in window)) return;
-    const cleaned = textToSpeak.trim();
-    if (!cleaned) return;
-
-    const utterance = new SpeechSynthesisUtterance(cleaned);
-    utterance.lang = speechLang;
-    utterance.rate = 0.97;
-    utterance.pitch = 1;
-    const voice = pickNaturalVoice(speechLang);
-    if (voice) utterance.voice = voice;
-
-    utterance.onstart = () => setVoiceSpeaking(true);
-    utterance.onend = () => {
-      setVoiceSpeaking(false);
-      if (shouldResumeListeningRef.current && voiceOpen) {
-        try {
-          recognitionRef.current?.start();
-          setVoiceListening(true);
-        } catch {
-          setVoiceListening(false);
-        }
-      }
-    };
-    utterance.onerror = () => {
-      setVoiceSpeaking(false);
-    };
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  }
-
-  function stopVoiceListening() {
-    shouldResumeListeningRef.current = false;
-    try {
-      recognitionRef.current?.stop();
-    } catch {
-      // noop
-    }
-    setVoiceListening(false);
-  }
-
-  function startVoiceListening() {
-    const RecognitionCtor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!RecognitionCtor) {
-      setVoiceError("Voice input is not supported in this browser.");
-      return;
-    }
-
-    setVoiceError(null);
-    const recognition = new RecognitionCtor();
-    recognition.lang = speechLang;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event) => {
-      let interim = "";
-      let finalText = "";
-
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const result = event.results[index];
-        const transcript = result?.[0]?.transcript?.trim() ?? "";
-        if (!transcript) continue;
-        if (result.isFinal) {
-          finalText += `${finalText ? " " : ""}${transcript}`;
-        } else {
-          interim += `${interim ? " " : ""}${transcript}`;
-        }
-      }
-
-      if (interim) {
-        setVoiceTranscript(interim);
-      }
-
-      if (finalText) {
-        setVoiceTranscript(finalText);
-        shouldResumeListeningRef.current = true;
-        try {
-          recognition.stop();
-        } catch {
-          // noop
-        }
-        setVoiceListening(false);
-        void handleSend(finalText);
-      }
-    };
-
-    recognition.onerror = () => {
-      setVoiceError("Could not recognize voice. Check microphone permission.");
-      setVoiceListening(false);
-    };
-
-    recognition.onend = () => {
-      if (!shouldResumeListeningRef.current) {
-        setVoiceListening(false);
-      }
-    };
-
-    recognitionRef.current = recognition;
-    try {
-      recognition.start();
-      setVoiceListening(true);
-      setVoiceTranscript("");
-    } catch {
-      setVoiceError("Could not start microphone.");
-      setVoiceListening(false);
-    }
-  }
+  const voice = useVoiceAssistant({
+    lang: speechLang,
+    onExchange: async (userText) => {
+      const assistant = await handleSend(userText, true);
+      return assistant || "Let's continue. I'm here to help.";
+    },
+  });
 
   useEffect(() => {
     if (!canUseApi) return;
@@ -376,10 +224,6 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     return () => {
       typingTimersRef.current.forEach((timerId) => window.clearInterval(timerId));
       typingTimersRef.current = [];
-      stopVoiceListening();
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
     };
   }, []);
 
@@ -450,14 +294,14 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     return Boolean((text || "").trim() || imageFile);
   }, [text, imageFile]);
 
-  async function handleSend(voiceText?: string) {
+  async function handleSend(voiceText?: string, silentVoiceMode = false): Promise<string | null> {
     const effectiveText = (voiceText ?? text).trim();
     const selectedFile = voiceText ? null : imageFile;
     const selectedPreview = voiceText ? null : imagePreview;
     const canSendNow = Boolean(effectiveText || selectedFile);
 
-    if (!canSendNow || sending) return;
-    if (!useGatewayMode && !token) return;
+    if (!canSendNow || sending) return null;
+    if (!useGatewayMode && !token) return null;
 
     setSending(true);
     setStatusHint(null);
@@ -506,9 +350,8 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
           const finalReply = `${response.result}${providerTail}`;
           await typeAssistantReply(assistantMessage.id, finalReply);
-          speakAssistantText(finalReply);
           setStatusHint(null);
-          return;
+          return finalReply;
         } catch (gatewayError) {
           // Soft fallback: if gateway is unreachable, try existing backend AI route.
           if (isApiMode && token) {
@@ -525,34 +368,41 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               });
               const finalReply = extractAssistantReply(updatedMessages);
               await typeAssistantReply(assistantMessage.id, finalReply);
-              speakAssistantText(finalReply);
               setStatusHint("Gateway unavailable. Switched to backend AI.");
-              showToast({ message: "Gateway unavailable. Backup AI mode enabled.", tone: "info" });
-              return;
+              if (!silentVoiceMode) {
+                showToast({ message: "Gateway unavailable. Backup AI mode enabled.", tone: "info" });
+              }
+              return finalReply;
             } catch (fallbackError) {
               if (isAuthError(fallbackError)) {
                 clearApiToken();
                 window.location.assign("/login");
-                return;
+                return null;
               }
               const message = mapBackendAiErrorToMessage(fallbackError);
               updateMessageText(assistantMessage.id, message);
-              showToast({ message, tone: "error" });
-              return;
+              if (!silentVoiceMode) {
+                showToast({ message, tone: "error" });
+              }
+              return message;
             }
           }
 
           if (isApiMode && !token) {
             const message = "Please log in again: backend token is required for AI.";
             updateMessageText(assistantMessage.id, message);
-            showToast({ message, tone: "error" });
-            return;
+            if (!silentVoiceMode) {
+              showToast({ message, tone: "error" });
+            }
+            return message;
           }
 
           const message = mapAiGatewayErrorToMessage(gatewayError);
           updateMessageText(assistantMessage.id, message);
-          showToast({ message, tone: "error" });
-          return;
+          if (!silentVoiceMode) {
+            showToast({ message, tone: "error" });
+          }
+          return message;
         }
       }
 
@@ -568,21 +418,26 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       });
       const finalReply = extractAssistantReply(updatedMessages);
       await typeAssistantReply(assistantMessage.id, finalReply);
-      speakAssistantText(finalReply);
       setStatusHint(null);
+      return finalReply;
     } catch (error) {
       if (isAuthError(error)) {
         clearApiToken();
         window.location.assign("/login");
-        return;
+        return null;
       }
       const message = useGatewayMode ? mapAiGatewayErrorToMessage(error) : mapBackendAiErrorToMessage(error);
       updateMessageText(assistantMessage.id, message);
-      showToast({ message, tone: "error" });
+      if (!silentVoiceMode) {
+        showToast({ message, tone: "error" });
+      }
+      return message;
     } finally {
       setSending(false);
       setTypingMessageId((current) => (current === assistantMessage.id ? null : current));
     }
+
+    return null;
   }
 
   return (
@@ -735,69 +590,33 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               </Button>
             </div>
 
-            <motion.button
+            <button
               type="button"
               onClick={() => {
-                if (voiceOpen) {
-                  setVoiceOpen(false);
-                  stopVoiceListening();
-                  return;
+                voice.setOpen(true);
+                if (voice.micMuted) {
+                  voice.toggleMic();
                 }
-                setVoiceOpen(true);
-                startVoiceListening();
               }}
-              className="absolute bottom-4 right-4 z-20 grid h-12 w-12 place-items-center rounded-full border border-burgundy-400/60 bg-burgundy-700 text-white shadow-lg"
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.03 }}
-              aria-label={voiceOpen ? "Close voice" : "Open voice"}
+              className="absolute right-4 top-1/2 z-20 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-black/65 text-white shadow-[0_8px_30px_-16px_rgba(0,0,0,0.9)] backdrop-blur-xl transition hover:scale-[1.03] hover:bg-black/80"
+              aria-label="Open voice mode"
             >
-              {voiceListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            </motion.button>
+              <Mic className="h-4.5 w-4.5" />
+            </button>
 
-            <AnimatePresence>
-              {voiceOpen ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 12, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.97 }}
-                  className="pointer-events-auto absolute bottom-20 right-4 z-20 w-[15.5rem] rounded-2xl border border-burgundy-300/60 bg-white/95 p-3 shadow-xl dark:border-burgundy-800 dark:bg-zinc-900/95"
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-semibold text-charcoal dark:text-zinc-100">Voice</p>
-                    <Volume2 className={`h-4 w-4 ${voiceSpeaking ? "text-burgundy-700 dark:text-burgundy-300" : "text-charcoal/40 dark:text-zinc-500"}`} />
-                  </div>
-
-                  <div className="relative mx-auto mb-2 grid h-16 w-16 place-items-center">
-                    <motion.div
-                      className="absolute inset-0 rounded-full bg-burgundy-500/20 blur-md"
-                      animate={{ scale: voiceListening || voiceSpeaking ? [1, 1.18, 1] : [1, 1.05, 1], opacity: [0.45, 0.85, 0.45] }}
-                      transition={{ duration: voiceListening || voiceSpeaking ? 1 : 2.1, repeat: Number.POSITIVE_INFINITY }}
-                    />
-                    <motion.div
-                      className="absolute inset-[14%] rounded-full border border-burgundy-300/60 bg-burgundy-700/85"
-                      animate={{ scale: voiceListening ? [1, 1.08, 1] : voiceSpeaking ? [1, 1.12, 1] : [1, 1.02, 1] }}
-                      transition={{ duration: voiceListening || voiceSpeaking ? 0.85 : 2, repeat: Number.POSITIVE_INFINITY }}
-                    />
-                    {voiceListening ? <MicOff className="relative z-10 h-5 w-5 text-white" /> : <Mic className="relative z-10 h-5 w-5 text-white" />}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (voiceListening) stopVoiceListening();
-                      else startVoiceListening();
-                    }}
-                    className="mb-2 w-full rounded-xl border border-burgundy-300/60 bg-burgundy-50 px-2.5 py-1.5 text-xs font-semibold text-burgundy-800 transition hover:bg-burgundy-100 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100"
-                  >
-                    {voiceListening ? "Stop listening" : "Start listening"}
-                  </button>
-
-                  <p className="truncate text-center text-[11px] text-charcoal/70 dark:text-zinc-400">
-                    {voiceSpeaking ? "Iman is speaking..." : voiceListening ? (voiceTranscript || "Listening...") : (voiceError || "Tap and speak")}
-                  </p>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
+            <VoiceScreen
+              open={voice.open}
+              state={voice.state}
+              level={voice.visualLevel}
+              transcript={voice.transcript}
+              micMuted={voice.micMuted}
+              audioMuted={voice.audioMuted}
+              onToggleMic={voice.toggleMic}
+              onToggleAudio={voice.toggleAudio}
+              onClose={() => {
+                void voice.close();
+              }}
+            />
           </>
         )}
       </CardContent>
