@@ -7,6 +7,7 @@ import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 import { useVoiceAssistant } from "../hooks/useVoiceAssistant";
 import { buildImanChatContextPrompt, normalizeStudentLevelFromGroupTitle, resolveAiFeedbackLanguage } from "../lib/studentLevel";
+import { normalizeAssistantReply } from "../lib/aiText";
 import { ApiError } from "../services/api/http";
 import { clearApiToken, getApiToken } from "../services/tokenStorage";
 import { platformApi } from "../services/api/platformApi";
@@ -335,9 +336,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     });
   }
 
-  function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): string {
-    return [...messagesList].reverse().find((message) => message.role === "assistant" && message.text.trim())?.text ?? fallback;
-  }
+function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): string {
+  const latest = [...messagesList].reverse().find((message) => message.role === "assistant" && message.text.trim())?.text ?? fallback;
+  return normalizeAssistantReply(latest);
+}
 
   async function applySelectedImage(file: File) {
     try {
@@ -428,18 +430,17 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             userId: sessionUserId,
           });
 
-          const providerTail =
-            response.provider && response.provider !== "cache"
-              ? `\n\n[${response.provider}${response.cached ? " | cache" : ""}]`
-              : response.cached
-                ? "\n\n[cache]"
-                : "";
-
-          const finalReply = `${response.result}${providerTail}`;
+          const finalReply = normalizeAssistantReply(response.result);
           if (shouldWriteToChat) {
             await typeAssistantReply(assistantMessage.id, finalReply);
           }
-          setStatusHint(null);
+          setStatusHint(
+            response.provider
+              ? `AI provider: ${response.provider}${response.cached ? " (cache)" : ""}`
+              : response.cached
+                ? "AI provider: cache"
+                : null,
+          );
           return finalReply;
         } catch (gatewayError) {
           // Soft fallback: if gateway is unreachable, try existing backend AI route.
@@ -455,7 +456,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 groupTime: currentGroup?.time,
                 systemContext,
               });
-              const finalReply = extractAssistantReply(updatedMessages);
+              const finalReply = normalizeAssistantReply(extractAssistantReply(updatedMessages));
               if (shouldWriteToChat) {
                 await typeAssistantReply(assistantMessage.id, finalReply);
               }
@@ -513,7 +514,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
         groupTime: currentGroup?.time,
         systemContext,
       });
-      const finalReply = extractAssistantReply(updatedMessages);
+      const finalReply = normalizeAssistantReply(extractAssistantReply(updatedMessages));
       if (shouldWriteToChat) {
         await typeAssistantReply(assistantMessage.id, finalReply);
       }

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useAudioPlayback } from "./useAudioPlayback";
 import { useMicrophoneLevel } from "./useMicrophoneLevel";
 import type { VoiceSessionMessage, VoiceState, VoiceTranscriptItem } from "../types/voice";
+import { normalizeAssistantReply } from "../lib/aiText";
 
 interface SpeechRecognitionResultLike {
   readonly isFinal: boolean;
@@ -49,7 +50,7 @@ function makeId(prefix: string) {
 function mockReply(userText: string): string {
   const clean = userText.trim();
   if (!clean) return "I am here with you. Tell me what to practice in English.";
-  return `Great. I heard you: "${clean}". Let's practice this in better English together.`;
+  return `Great, I heard you. Let's practice this in better English together.`;
 }
 
 export function useVoiceAssistant({ lang, onExchange, onError }: UseVoiceAssistantOptions) {
@@ -92,9 +93,9 @@ export function useVoiceAssistant({ lang, onExchange, onError }: UseVoiceAssista
 
       let assistantText = "";
       try {
-        assistantText = onExchange ? await onExchange(clean) : mockReply(clean);
+        assistantText = onExchange ? normalizeAssistantReply(await onExchange(clean)) : normalizeAssistantReply(mockReply(clean));
       } catch {
-        assistantText = mockReply(clean);
+        assistantText = normalizeAssistantReply(mockReply(clean));
       }
 
       setTranscript((prev) => [...prev.slice(-7), { id: makeId("a"), role: "assistant", text: assistantText }]);

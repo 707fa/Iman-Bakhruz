@@ -26,6 +26,7 @@ interface VoiceTtsRecord {
 }
 
 const VOICE_TTS_PATHS = ["/api/voice/tts", "/api/ai/voice/tts", "/api/tts"];
+let lastSuccessfulTtsPath: string | null = null;
 
 function parseJsonSafe(text: string): unknown {
   if (!text) return null;
@@ -85,8 +86,12 @@ export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTt
   const voice = payload.voice?.trim() || VOICE_TTS_VOICE || "female-natural";
 
   try {
-    for (let index = 0; index < VOICE_TTS_PATHS.length; index += 1) {
-      const path = VOICE_TTS_PATHS[index];
+    const candidatePaths = lastSuccessfulTtsPath
+      ? [lastSuccessfulTtsPath, ...VOICE_TTS_PATHS.filter((path) => path !== lastSuccessfulTtsPath)]
+      : [...VOICE_TTS_PATHS];
+
+    for (let index = 0; index < candidatePaths.length; index += 1) {
+      const path = candidatePaths[index];
       let response: Response;
 
       try {
@@ -105,7 +110,7 @@ export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTt
         if (error instanceof DOMException && error.name === "AbortError") {
           throw new ApiError(408, { message: "Voice gateway timeout." }, "Voice TTS timeout");
         }
-        if (index === VOICE_TTS_PATHS.length - 1) {
+        if (index === candidatePaths.length - 1) {
           if (error instanceof TypeError) {
             throw new ApiError(0, { message: "Voice gateway network error." }, "Voice TTS network error");
           }
@@ -115,7 +120,7 @@ export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTt
       }
 
       if (!response.ok) {
-        if (index < VOICE_TTS_PATHS.length - 1 && (response.status === 404 || response.status === 405)) {
+        if (index < candidatePaths.length - 1 && (response.status === 404 || response.status === 405)) {
           continue;
         }
         const payloadError = parseJsonSafe(await response.text());
@@ -125,6 +130,7 @@ export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTt
       const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
       if (contentType.startsWith("audio/")) {
         const blob = await response.blob();
+        lastSuccessfulTtsPath = path;
         return {
           audioSrc: URL.createObjectURL(blob),
         };
@@ -134,10 +140,11 @@ export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTt
       const responsePayload = parseJsonSafe(rawText);
       const normalized = normalizeJsonTts(responsePayload);
       if (normalized) {
+        lastSuccessfulTtsPath = path;
         return normalized;
       }
 
-      if (index < VOICE_TTS_PATHS.length - 1) {
+      if (index < candidatePaths.length - 1) {
         continue;
       }
 
