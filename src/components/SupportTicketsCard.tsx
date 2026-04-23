@@ -91,6 +91,10 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-xs text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          If phone notifications do not arrive, write your issue here. The admin gets full request details in Telegram automatically.
+        </p>
+
         {!token ? (
           <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             Support center is available in API mode.
@@ -156,5 +160,4 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     </Card>
   );
 }
-
 
