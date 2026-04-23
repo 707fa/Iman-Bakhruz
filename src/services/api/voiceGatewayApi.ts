@@ -84,7 +84,7 @@ export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTt
 
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), AI_GATEWAY_TIMEOUT_MS);
-  const voice = payload.voice?.trim() || VOICE_TTS_VOICE || "female-natural";
+  const voice = payload.voice?.trim() || VOICE_TTS_VOICE || "shimmer";
   const token = getApiToken();
 
   try {

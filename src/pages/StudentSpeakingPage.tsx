@@ -11,7 +11,9 @@ import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 import { getSpeakingQuestionsForLevel } from "../data/speakingQuestions";
 import { normalizeStudentLevelFromGroupTitle, resolveAiFeedbackLanguage } from "../lib/studentLevel";
+import { pickGatewayVoice, speakWithBestBrowserVoice } from "../lib/speech";
 import { checkSpeakingAnswer, generateSpeakingQuestions, mapSpeakingApiErrorToMessage, type GeneratedSpeakingQuestion } from "../services/api/speakingApi";
+import { isVoiceGatewayReady, requestVoiceTts } from "../services/api/voiceGatewayApi";
 import { getApiToken } from "../services/tokenStorage";
 import { platformApi } from "../services/api/platformApi";
 import type { HomeworkTask, SpeakingAnalysisResult } from "../types";
@@ -151,6 +153,7 @@ export function StudentSpeakingPage() {
   const [questionError, setQuestionError] = useState<string | null>(null);
 
   const [status, setStatus] = useState<SpeakingStatus>("idle");
+  const [questionSpeaking, setQuestionSpeaking] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [manualTranscript, setManualTranscript] = useState("");
   const [result, setResult] = useState<SpeakingAnalysisResult | null>(null);
@@ -296,18 +299,45 @@ export function StudentSpeakingPage() {
     setStatus("listening");
   }
 
-  function listenQuestion() {
+  async function listenQuestion() {
     if (!currentQuestion) return;
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      showToast({ message: t("speaking.listenUnavailable"), tone: "error" });
-      return;
-    }
 
-    const utterance = new SpeechSynthesisUtterance(currentQuestion.prompt);
-    utterance.lang = "en-US";
-    utterance.rate = 0.95;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    setQuestionSpeaking(true);
+    try {
+      if (isVoiceGatewayReady()) {
+        const response = await requestVoiceTts({
+          text: currentQuestion.prompt,
+          lang: "en-US",
+          voice: pickGatewayVoice("en-US"),
+        });
+        const audio = new Audio(response.audioSrc);
+        audio.preload = "auto";
+        await audio.play();
+        await new Promise<void>((resolve) => {
+          audio.onended = () => resolve();
+          audio.onerror = () => resolve();
+        });
+        return;
+      }
+
+      await speakWithBestBrowserVoice(currentQuestion.prompt, "en-US", {
+        rate: 0.93,
+        pitch: 1.03,
+        volume: 1,
+      });
+    } catch {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+        showToast({ message: t("speaking.listenUnavailable"), tone: "error" });
+        return;
+      }
+      await speakWithBestBrowserVoice(currentQuestion.prompt, "en-US", {
+        rate: 0.93,
+        pitch: 1.03,
+        volume: 1,
+      });
+    } finally {
+      setQuestionSpeaking(false);
+    }
   }
 
   function goNextQuestion() {
@@ -445,9 +475,9 @@ export function StudentSpeakingPage() {
             </div>
 
             <div className="grid gap-2 sm:grid-cols-3">
-              <Button variant="secondary" onClick={listenQuestion} className="h-10 rounded-xl text-sm">
-                <Volume2 className="mr-2 h-4 w-4" />
-                Listen
+              <Button variant="secondary" onClick={() => void listenQuestion()} disabled={questionSpeaking} className="h-10 rounded-xl text-sm">
+                {questionSpeaking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Volume2 className="mr-2 h-4 w-4" />}
+                {questionSpeaking ? "Playing..." : "Listen"}
               </Button>
               <Button variant="secondary" onClick={goNextQuestion} className="h-10 rounded-xl text-sm">
                 <Sparkles className="mr-2 h-4 w-4" />

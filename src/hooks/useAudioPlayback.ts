@@ -1,71 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { smoothValue } from "../lib/audio";
+import { pickGatewayVoice, speakWithBestBrowserVoice } from "../lib/speech";
 import { isVoiceGatewayReady, requestVoiceTts } from "../services/api/voiceGatewayApi";
 
 function randomWave() {
   return 0.22 + Math.random() * 0.76;
-}
-
-function pickVoice(lang: string, voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-  if (!voices.length) return null;
-  const normalized = lang.toLowerCase();
-  const femaleHints = [
-    "female",
-    "woman",
-    "zira",
-    "samantha",
-    "victoria",
-    "karen",
-    "moira",
-    "ava",
-    "aria",
-    "alloy",
-    "sonia",
-    "natalia",
-    "katya",
-  ];
-  const maleHints = ["male", "man", "david", "mark", "alex", "ivan", "pavel", "daniel"];
-  const scoreVoice = (voice: SpeechSynthesisVoice) => {
-    const name = `${voice.name} ${voice.voiceURI}`.toLowerCase();
-    let score = 0;
-    if (voice.lang.toLowerCase() === normalized) score += 30;
-    if (voice.lang.toLowerCase().startsWith(normalized.split("-")[0])) score += 18;
-    if (voice.localService) score += 8;
-    if (name.includes("neural") || name.includes("natural") || name.includes("premium")) score += 10;
-    if (femaleHints.some((hint) => name.includes(hint))) score += 24;
-    if (maleHints.some((hint) => name.includes(hint))) score -= 10;
-    return score;
-  };
-
-  const ranked = [...voices].sort((a, b) => scoreVoice(b) - scoreVoice(a));
-  if (ranked.length > 0) return ranked[0] ?? null;
-  return voices.find((voice) => voice.localService) ?? voices[0] ?? null;
-}
-
-function waitForVoices(timeoutMs = 700): Promise<SpeechSynthesisVoice[]> {
-  return new Promise((resolve) => {
-    if (!("speechSynthesis" in window)) {
-      resolve([]);
-      return;
-    }
-
-    const initial = window.speechSynthesis.getVoices();
-    if (initial.length > 0) {
-      resolve(initial);
-      return;
-    }
-
-    const timerId = window.setTimeout(() => {
-      window.speechSynthesis.onvoiceschanged = null;
-      resolve(window.speechSynthesis.getVoices());
-    }, timeoutMs);
-
-    window.speechSynthesis.onvoiceschanged = () => {
-      window.clearTimeout(timerId);
-      window.speechSynthesis.onvoiceschanged = null;
-      resolve(window.speechSynthesis.getVoices());
-    };
-  });
 }
 
 function toSpeechText(text: string): string {
@@ -207,7 +146,7 @@ export function useAudioPlayback() {
     async (text: string, lang: string): Promise<boolean> => {
       if (!isVoiceGatewayReady()) return false;
 
-      const response = await requestVoiceTts({ text, lang });
+      const response = await requestVoiceTts({ text, lang, voice: pickGatewayVoice(lang) });
       const audio = new Audio(response.audioSrc);
       audio.preload = "auto";
       audioElRef.current = audio;
@@ -229,35 +168,12 @@ export function useAudioPlayback() {
   const playViaBrowserTts = useCallback(
     async (text: string, lang: string) => {
       meterRef.current = window.requestAnimationFrame(animateSyntheticMeter);
-
-      if (!("speechSynthesis" in window)) {
-        globalThis.setTimeout(() => {
-          setSpeaking(false);
-          stopMeter();
-        }, Math.min(5000, Math.max(1200, text.length * 40)));
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
-      utterance.rate = 0.9;
-      utterance.pitch = 1.03;
-      utterance.volume = 1;
-      const voices = await waitForVoices();
-      const voice = pickVoice(lang, voices);
-      if (voice) {
-        utterance.voice = voice;
-      }
-      utterance.onend = () => {
+      try {
+        await speakWithBestBrowserVoice(text, lang, { rate: 0.9, pitch: 1.03, volume: 1 });
+      } finally {
         setSpeaking(false);
         stopMeter();
-      };
-      utterance.onerror = () => {
-        setSpeaking(false);
-        stopMeter();
-      };
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
+      }
     },
     [animateSyntheticMeter, stopMeter],
   );
