@@ -234,13 +234,14 @@ export function AppLayout() {
             className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[calc(5.7rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-6"
           >
             <div className="mx-auto w-full max-w-[1320px]">
-              <AnimatePresence mode="wait" initial={false}>
+              <AnimatePresence mode="sync" initial={false}>
                 <motion.div
                   key={`${location.pathname}${location.search}`}
-                  initial={{ opacity: 0, x: 54 }}
+                  initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -54 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+                  style={{ willChange: "transform, opacity" }}
                 >
                   {session.role === "student" ? (
                     <div className="mb-4 inline-flex w-full flex-wrap items-center gap-2 rounded-2xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
