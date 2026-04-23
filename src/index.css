@@ -5,21 +5,21 @@
   --font-sans: "Plus Jakarta Sans", "Segoe UI", Roboto, Arial, sans-serif;
   --font-display: "Space Grotesk", "Plus Jakarta Sans", "Segoe UI", sans-serif;
 
-  --color-burgundy-50: #faedf1;
-  --color-burgundy-100: #f2d7df;
-  --color-burgundy-200: #e4b2c2;
-  --color-burgundy-300: #d488a3;
-  --color-burgundy-400: #bc5e82;
-  --color-burgundy-500: #a23a64;
-  --color-burgundy-600: #8e1f48;
-  --color-burgundy-700: #800020;
-  --color-burgundy-800: #600018;
-  --color-burgundy-900: #3f0010;
+  --color-burgundy-50: #f8edf2;
+  --color-burgundy-100: #efd4df;
+  --color-burgundy-200: #ddaec1;
+  --color-burgundy-300: #c77f9c;
+  --color-burgundy-400: #ad4e75;
+  --color-burgundy-500: #8f2c56;
+  --color-burgundy-600: #70163f;
+  --color-burgundy-700: #5a0a30;
+  --color-burgundy-800: #430421;
+  --color-burgundy-900: #2b0215;
 
-  --color-charcoal: #131316;
+  --color-charcoal: #121116;
 
-  --shadow-soft: 0 16px 34px -24px rgba(71, 9, 24, 0.45);
-  --shadow-lift: 0 34px 70px -30px rgba(71, 9, 24, 0.55);
+  --shadow-soft: 0 16px 34px -24px rgba(58, 6, 26, 0.55);
+  --shadow-lift: 0 36px 74px -30px rgba(58, 6, 26, 0.65);
 }
 
 @layer base {
@@ -40,9 +40,17 @@
   body {
     @apply bg-white font-sans text-charcoal antialiased dark:bg-black dark:text-zinc-100;
     background-image:
-      radial-gradient(circle at 12% 10%, rgba(128, 0, 32, 0.03), transparent 28%),
-      radial-gradient(circle at 90% 0%, rgba(128, 0, 32, 0.025), transparent 30%);
+      radial-gradient(circle at 8% 6%, rgba(90, 10, 48, 0.08), transparent 30%),
+      radial-gradient(circle at 100% 0%, rgba(90, 10, 48, 0.06), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(252, 248, 250, 1) 100%);
     overflow-x: hidden;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(circle at 6% 8%, rgba(90, 10, 48, 0.28), transparent 34%),
+      radial-gradient(circle at 94% 0%, rgba(90, 10, 48, 0.2), transparent 36%),
+      linear-gradient(180deg, rgba(8, 8, 10, 1) 0%, rgba(13, 10, 14, 1) 100%);
   }
 
   input,
@@ -90,7 +98,7 @@
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(128, 0, 32, 0.45) transparent;
+    scrollbar-color: rgba(90, 10, 48, 0.6) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
@@ -103,19 +111,19 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgba(128, 0, 32, 0.45);
+    background-color: rgba(90, 10, 48, 0.6);
     border-radius: 9999px;
   }
 
   .surface-grid {
     background-image:
-      linear-gradient(rgba(128, 0, 32, 0.055) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(128, 0, 32, 0.055) 1px, transparent 1px);
+      linear-gradient(rgba(90, 10, 48, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(90, 10, 48, 0.08) 1px, transparent 1px);
     background-size: 26px 26px;
   }
 
   .glass-panel {
-    @apply border border-white/50 bg-white/80 shadow-lift backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/72;
+    @apply border border-white/60 bg-white/82 shadow-lift backdrop-blur-xl dark:border-burgundy-900/35 dark:bg-zinc-950/74;
   }
 
   .interactive-lift {

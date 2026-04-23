@@ -23,7 +23,7 @@ function isItemActive(pathname: string, item: NavItem): boolean {
 
 function navItemClass(active: boolean): string {
   if (active) {
-    return "bg-burgundy-700 text-white shadow-soft";
+    return "bg-gradient-to-b from-burgundy-600 to-burgundy-800 text-white shadow-soft";
   }
   return "text-charcoal/75 hover:bg-zinc-100 hover:text-charcoal dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white";
 }
@@ -133,7 +133,7 @@ export function AppLayout() {
             />
           </Link>
 
-          <div className="mt-6 rounded-2xl border border-burgundy-200 bg-burgundy-700 p-4 text-white">
+          <div className="mt-6 rounded-2xl border border-burgundy-300/70 bg-gradient-to-br from-burgundy-600 via-burgundy-700 to-burgundy-800 p-4 text-white shadow-soft">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/80">{t("app.workspace")}</p>
             <p className="mt-1 text-lg font-semibold">
               {session.role === "teacher" ? t("role.teacher") : session.role === "parent" ? t("nav.parent") : t("role.student")}
