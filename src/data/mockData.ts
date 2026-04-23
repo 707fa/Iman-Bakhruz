@@ -46,7 +46,7 @@ export const students: Student[] = [
    {
     id: "s_1",
     fullName: "Test Farruh",
-    phone: "+998978778177",
+    phone: "+998999999999",
     password: "123456789",
     groupId: "g_104",
     parentInviteCode: "PARENT-S1",
