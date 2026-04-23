@@ -282,7 +282,7 @@ export function useAudioPlayback() {
         if (!VOICE_BROWSER_FALLBACK_ENABLED && isVoiceGatewayReady()) {
           setSpeaking(false);
           stopMeter();
-          return;
+          throw new Error("Neural voice gateway is unavailable.");
         }
       }
 

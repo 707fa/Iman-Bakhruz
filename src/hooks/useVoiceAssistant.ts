@@ -109,7 +109,13 @@ export function useVoiceAssistant({ lang, onExchange, onError }: UseVoiceAssista
         return;
       }
       setState("speaking");
-      await audio.play(assistantText, lang);
+      try {
+        await audio.play(assistantText, lang);
+      } catch {
+        setState("error");
+        onError?.("Voice service is unavailable now. Check backend voice settings or enable browser fallback.");
+        return;
+      }
       setState("idle");
 
       if (open && keepListeningRef.current) {
