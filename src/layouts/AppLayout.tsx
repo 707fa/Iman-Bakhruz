@@ -200,6 +200,16 @@ export function AppLayout() {
               </nav>
             </>
           ) : null}
+
+          <div className="relative mt-6 overflow-hidden rounded-2xl bg-zinc-100/90 p-4 ring-1 ring-zinc-300/70 dark:bg-zinc-900/80 dark:ring-zinc-700">
+            <span className="absolute right-3 top-3 rounded-full bg-zinc-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
+              Soon
+            </span>
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Study</p>
+            <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Скоро добавим. Скоро сайт будет приложением.
+            </p>
+          </div>
         </aside>
 
         <div className="relative flex h-dvh min-w-0 flex-col">
