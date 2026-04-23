@@ -43,6 +43,17 @@ export const students: Student[] = [
     isPaid: true,
     paidUntil: "2035-01-01T00:00:00+05:00",
   },
+   {
+    id: "s_1",
+    fullName: "Test Farruh",
+    phone: "+998978778177",
+    password: "123456789",
+    groupId: "g_104",
+    parentInviteCode: "PARENT-S1",
+    points: 0,
+    isPaid: true,
+    paidUntil: "2035-01-01T00:00:00+05:00",
+  },
 ];
 
 export const parents: Parent[] = [
