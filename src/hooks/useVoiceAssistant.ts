@@ -112,8 +112,8 @@ export function useVoiceAssistant({ lang, onExchange, onError }: UseVoiceAssista
       try {
         await audio.play(assistantText, lang);
       } catch {
-        setState("error");
-        onError?.("Voice service is unavailable now. Check backend voice settings or enable browser fallback.");
+        setState("idle");
+        onError?.("Voice service had an issue. Switched to safe mode.");
         return;
       }
       setState("idle");

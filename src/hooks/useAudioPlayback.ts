@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { smoothValue } from "../lib/audio";
-import { VOICE_BROWSER_FALLBACK_ENABLED } from "../lib/env";
 import { isVoiceGatewayReady, requestVoiceTts } from "../services/api/voiceGatewayApi";
 
 function randomWave() {
@@ -279,11 +278,7 @@ export function useAudioPlayback() {
           return;
         }
       } catch {
-        if (!VOICE_BROWSER_FALLBACK_ENABLED && isVoiceGatewayReady()) {
-          setSpeaking(false);
-          stopMeter();
-          throw new Error("Neural voice gateway is unavailable.");
-        }
+        // If gateway fails, fallback to browser speech to avoid silent voice mode.
       }
 
       await playViaBrowserTts(speechText, lang);
