@@ -237,10 +237,10 @@ export function AppLayout() {
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={`${location.pathname}${location.search}`}
-                  initial={{ opacity: 0, y: 14, filter: "blur(3px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -8, filter: "blur(2px)" }}
-                  transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+                  initial={{ opacity: 0, x: 54 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -54 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                 >
                   {session.role === "student" ? (
                     <div className="mb-4 inline-flex w-full flex-wrap items-center gap-2 rounded-2xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
