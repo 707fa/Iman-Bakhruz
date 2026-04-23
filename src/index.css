@@ -5,21 +5,21 @@
   --font-sans: "Plus Jakarta Sans", "Segoe UI", Roboto, Arial, sans-serif;
   --font-display: "Space Grotesk", "Plus Jakarta Sans", "Segoe UI", sans-serif;
 
-  --color-burgundy-50: #f8edf1;
-  --color-burgundy-100: #f1d7df;
-  --color-burgundy-200: #e2afbf;
-  --color-burgundy-300: #cd7f97;
-  --color-burgundy-400: #b44f70;
-  --color-burgundy-500: #952b4e;
-  --color-burgundy-600: #7b1d3f;
-  --color-burgundy-700: #611632;
-  --color-burgundy-800: #470f24;
-  --color-burgundy-900: #2f0818;
+  --color-burgundy-50: #f8ecec;
+  --color-burgundy-100: #f1d3d3;
+  --color-burgundy-200: #e2a6a6;
+  --color-burgundy-300: #cd7373;
+  --color-burgundy-400: #b54646;
+  --color-burgundy-500: #9f1f1f;
+  --color-burgundy-600: #880000;
+  --color-burgundy-700: #6b0000;
+  --color-burgundy-800: #500000;
+  --color-burgundy-900: #320000;
 
   --color-charcoal: #0d0b10;
 
-  --shadow-soft: 0 12px 28px -22px rgba(47, 8, 24, 0.28);
-  --shadow-lift: 0 24px 52px -28px rgba(47, 8, 24, 0.34);
+  --shadow-soft: 0 12px 28px -22px rgba(50, 0, 0, 0.28);
+  --shadow-lift: 0 24px 52px -28px rgba(50, 0, 0, 0.34);
 }
 
 @layer base {
@@ -40,16 +40,16 @@
   body {
     @apply bg-white font-sans text-charcoal antialiased dark:bg-black dark:text-zinc-100;
     background-image:
-      radial-gradient(circle at 8% 6%, rgba(97, 22, 50, 0.08), transparent 30%),
-      radial-gradient(circle at 100% 0%, rgba(97, 22, 50, 0.05), transparent 34%),
+      radial-gradient(circle at 8% 6%, rgba(136, 0, 0, 0.08), transparent 30%),
+      radial-gradient(circle at 100% 0%, rgba(136, 0, 0, 0.05), transparent 34%),
       linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(252, 248, 250, 1) 100%);
     overflow-x: hidden;
   }
 
   .dark body {
     background-image:
-      radial-gradient(circle at 6% 8%, rgba(97, 22, 50, 0.24), transparent 34%),
-      radial-gradient(circle at 94% 0%, rgba(97, 22, 50, 0.14), transparent 36%),
+      radial-gradient(circle at 6% 8%, rgba(136, 0, 0, 0.2), transparent 34%),
+      radial-gradient(circle at 94% 0%, rgba(136, 0, 0, 0.12), transparent 36%),
       linear-gradient(180deg, rgba(5, 5, 7, 1) 0%, rgba(9, 6, 10, 1) 100%);
   }
 
@@ -98,7 +98,7 @@
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(97, 22, 50, 0.46) transparent;
+    scrollbar-color: rgba(136, 0, 0, 0.46) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
@@ -111,14 +111,14 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgba(97, 22, 50, 0.46);
+    background-color: rgba(136, 0, 0, 0.46);
     border-radius: 9999px;
   }
 
   .surface-grid {
     background-image:
-      linear-gradient(rgba(97, 22, 50, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(97, 22, 50, 0.06) 1px, transparent 1px);
+      linear-gradient(rgba(136, 0, 0, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(136, 0, 0, 0.06) 1px, transparent 1px);
     background-size: 26px 26px;
   }
 
