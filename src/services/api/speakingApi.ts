@@ -133,8 +133,9 @@ function fallbackAnalysisFromText(rawText: string, transcript: string): Speaking
 
 function buildPlatformAiSpeakingPrompt(payload: SpeakingCheckPayload): string {
   return [
-    "You are an English speaking evaluator for students.",
-    "Return STRICT JSON only (no markdown):",
+    "You are an expert English speaking evaluator for ESL students.",
+    "Evaluate the answer fully using grammar, fluency, vocabulary, and relevance to the question.",
+    "Return STRICT JSON only (no markdown, no explanation outside JSON):",
     "{",
     '  "score": number,',
     '  "grammarScore": number,',
@@ -147,7 +148,13 @@ function buildPlatformAiSpeakingPrompt(payload: SpeakingCheckPayload): string {
     '  "modelAnswer": "string",',
     '  "levelEstimate": "string"',
     "}",
-    "Use scores 0..100. Keep feedback practical and short.",
+    "Rules:",
+    "- Use scores 0..100 and keep them realistic.",
+    "- mistakes must include specific real mistakes from transcript when possible.",
+    "- correctedAnswer must be natural and grammatically correct English.",
+    "- modelAnswer must be a concise high-quality sample answer to the same question.",
+    "- feedback must be practical, clear, and short (max 4 lines).",
+    "- Never return null fields. Return empty string/array instead.",
     "",
     `Level hint: ${String(payload.level || "").trim() || "unknown"}`,
     `Language hint: ${String(payload.language || "").trim() || "en"}`,
