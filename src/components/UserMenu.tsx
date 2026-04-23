@@ -1,4 +1,4 @@
-﻿import { ChevronDown, LogOut, User } from "lucide-react";
+import { ChevronDown, Headset, LogOut, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useUi } from "../hooks/useUi";
@@ -9,10 +9,11 @@ interface UserMenuProps {
   fullName: string;
   avatarUrl?: string;
   profileHref: string;
+  supportHref?: string;
   onLogout: () => void;
 }
 
-export function UserMenu({ fullName, avatarUrl, profileHref, onLogout }: UserMenuProps) {
+export function UserMenu({ fullName, avatarUrl, profileHref, supportHref, onLogout }: UserMenuProps) {
   const { t } = useUi();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -64,6 +65,17 @@ export function UserMenu({ fullName, avatarUrl, profileHref, onLogout }: UserMen
             <User className="h-4 w-4" />
             {t("menu.profile")}
           </Link>
+
+          {supportHref ? (
+            <Link
+              to={supportHref}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-charcoal/80 transition hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              <Headset className="h-4 w-4" />
+              Support
+            </Link>
+          ) : null}
 
           <button
             type="button"

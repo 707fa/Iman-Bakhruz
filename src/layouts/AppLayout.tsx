@@ -111,6 +111,7 @@ export function AppLayout() {
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? currentParent?.fullName ?? "User";
   const avatar = currentStudent?.avatarUrl ?? currentTeacher?.avatarUrl ?? currentParent?.avatarUrl;
   const profileHref = session.role === "student" ? "/profile" : session.role === "teacher" ? "/teacher/profile" : "/parent/profile";
+  const supportHref = session.role === "student" ? "/student/support" : session.role === "teacher" ? "/teacher/support" : undefined;
 
   useEffect(() => {
     contentScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
@@ -224,7 +225,7 @@ export function AppLayout() {
                   <LanguageSwitcher compact mode="single" />
                 </div>
                 <ThemeToggle compact />
-                <UserMenu fullName={userName} avatarUrl={avatar} profileHref={profileHref} onLogout={logout} />
+                <UserMenu fullName={userName} avatarUrl={avatar} profileHref={profileHref} supportHref={supportHref} onLogout={logout} />
               </div>
             </div>
           </header>

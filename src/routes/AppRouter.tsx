@@ -36,6 +36,7 @@ const TeacherStudentProfilePage = lazy(() =>
 );
 const ParentDashboardPage = lazy(() => import("../pages/ParentDashboardPage").then((module) => ({ default: module.ParentDashboardPage })));
 const ParentProfilePage = lazy(() => import("../pages/ParentProfilePage").then((module) => ({ default: module.ParentProfilePage })));
+const SupportPage = lazy(() => import("../pages/SupportPage").then((module) => ({ default: module.SupportPage })));
 
 const FriendlyChatPage = lazy(() => import("../pages/FriendlyChatPage").then((module) => ({ default: module.FriendlyChatPage })));
 const ImanAiChatPage = lazy(() => import("../pages/ImanAiChatPage").then((module) => ({ default: module.ImanAiChatPage })));
@@ -92,6 +93,7 @@ export function AppRouter() {
             <Route path="/student/tools" element={<Navigate to="/student" replace />} />
             <Route path="/student/chat" element={<FriendlyChatPage />} />
             <Route path="/student/ai-chat" element={<ImanAiChatPage />} />
+            <Route path="/student/support" element={<SupportPage />} />
             <Route path="/student/profile/:id" element={<StudentPublicProfilePage />} />
             <Route path="/profile" element={<StudentProfilePage />} />
           </Route>
@@ -105,6 +107,7 @@ export function AppRouter() {
             <Route path="/teacher/top" element={<TeacherTopPage />} />
             <Route path="/teacher/tools" element={<Navigate to="/teacher" replace />} />
             <Route path="/teacher/chat" element={<FriendlyChatPage />} />
+            <Route path="/teacher/support" element={<SupportPage />} />
             <Route path="/teacher/group/:id" element={<TeacherGroupPage />} />
             <Route path="/teacher/student/:id" element={<TeacherStudentProfilePage />} />
             <Route path="/teacher/profile" element={<TeacherProfilePage />} />
