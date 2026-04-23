@@ -118,7 +118,7 @@ export function AppLayout() {
 
   return (
     <div className="relative h-dvh overflow-hidden bg-white text-charcoal dark:bg-black dark:text-zinc-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(128,0,32,0.06),transparent_38%),radial-gradient(circle_at_88%_100%,rgba(128,0,32,0.04),transparent_36%)] dark:bg-[radial-gradient(circle_at_10%_8%,rgba(128,0,32,0.16),transparent_34%),radial-gradient(circle_at_90%_100%,rgba(128,0,32,0.12),transparent_40%)]" />
+      <div className="pointer-events-none absolute inset-0 hidden sm:block bg-[radial-gradient(circle_at_12%_10%,rgba(128,0,32,0.06),transparent_38%),radial-gradient(circle_at_88%_100%,rgba(128,0,32,0.04),transparent_36%)] dark:bg-[radial-gradient(circle_at_10%_8%,rgba(128,0,32,0.16),transparent_34%),radial-gradient(circle_at_90%_100%,rgba(128,0,32,0.12),transparent_40%)]" />
 
       <div className="relative grid h-full w-full lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="scrollbar-thin hidden border-r border-burgundy-100/80 bg-white/95 px-5 py-6 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/95 lg:block lg:h-dvh lg:overflow-y-auto">
@@ -202,7 +202,7 @@ export function AppLayout() {
         </aside>
 
         <div className="relative flex h-dvh min-w-0 flex-col">
-          <header className="sticky top-0 z-40 border-b border-burgundy-100/70 bg-white/92 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/92">
+          <header className="sticky top-0 z-40 border-b border-burgundy-100/70 bg-white/95 shadow-sm backdrop-blur-0 sm:bg-white/92 sm:backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:dark:bg-zinc-950/92">
             <div className="mx-auto flex min-h-14 w-full max-w-[1320px] items-center justify-between gap-2 px-2 py-[max(0.45rem,env(safe-area-inset-top))] sm:min-h-16 sm:px-6 lg:py-2.5">
               <div className="flex min-w-0 items-center gap-2">
                 <Link
@@ -257,7 +257,7 @@ export function AppLayout() {
         </div>
       </div>
 
-      <nav className="fixed inset-x-2 bottom-[max(0.35rem,env(safe-area-inset-bottom))] z-[65] rounded-[1.35rem] border border-burgundy-100 bg-white/95 p-1.5 shadow-lift backdrop-blur lg:hidden dark:border-zinc-800 dark:bg-zinc-950/95">
+      <nav className="fixed inset-x-2 bottom-[max(0.35rem,env(safe-area-inset-bottom))] z-[65] rounded-[1.35rem] border border-burgundy-100 bg-white/98 p-1.5 shadow-lift backdrop-blur-0 lg:hidden dark:border-zinc-800 dark:bg-zinc-950/98">
         <div className="[-ms-overflow-style:none] flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {mobileQuickNav.map((item) => {
             const active = isItemActive(location.pathname, item);

@@ -28,12 +28,12 @@ export function VoiceOrb({ state, level }: VoiceOrbProps) {
   return (
     <div className="relative grid h-[20.5rem] w-[20.5rem] place-items-center sm:h-[26rem] sm:w-[26rem]">
       <motion.div
-        className="absolute inset-[-16%] rounded-full bg-violet-500/20 blur-[76px]"
+        className="absolute inset-[-12%] rounded-full bg-violet-500/15 blur-[44px] sm:inset-[-16%] sm:blur-[76px]"
         animate={reducedMotion ? undefined : { opacity: [0.18, 0.38, 0.18], scale: [0.94, 1.08, 0.94] }}
         transition={{ duration: state === "speaking" ? 1.1 : 2.4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute inset-[-2%] rounded-full border border-white/20"
+        className="absolute inset-[-2%] hidden rounded-full border border-white/20 sm:block"
         animate={
           reducedMotion
             ? undefined
@@ -50,7 +50,7 @@ export function VoiceOrb({ state, level }: VoiceOrbProps) {
         }}
       />
       <motion.div
-        className={`absolute inset-3 rounded-full bg-gradient-to-br blur-[56px] ${tint}`}
+        className={`absolute inset-3 rounded-full bg-gradient-to-br blur-[34px] sm:blur-[56px] ${tint}`}
         animate={reducedMotion ? undefined : { scale: [0.9, 1.14, 0.9], opacity: [0.34, 0.94, 0.42] }}
         transition={{ duration: state === "speaking" ? 0.95 : 2.1, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       />
