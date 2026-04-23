@@ -32,14 +32,6 @@ interface LocalSpeakingAttempt {
 const DAILY_TARGET = 20;
 const MIN_WORDS = 4;
 
-const QUICK_DRILLS = [
-  "Past Simple (did + V1)",
-  "Present Simple (do/does)",
-  "Have / Has",
-  "Articles (a/an/the)",
-  "Travel vocabulary",
-] as const;
-
 function toClock(seconds: number): string {
   const safe = Math.max(0, Math.floor(seconds));
   const mm = String(Math.floor(safe / 60)).padStart(2, "0");
@@ -319,10 +311,6 @@ export function StudentSpeakingPage() {
     }
   }
 
-  function useQuickDrill(topic: string) {
-    void generateQuestions(topic);
-  }
-
   function toggleRecording() {
     if (speech.listening) {
       speech.stop();
@@ -466,7 +454,7 @@ export function StudentSpeakingPage() {
             <Input
               value={lessonTopic}
               onChange={(event) => setLessonTopic(event.target.value)}
-              placeholder="Lesson topic (Past Simple, Travel, Daily routine...)"
+              placeholder="Any topic (travel, daily routine, did + V1, hobbies...)"
               className="h-11 rounded-2xl"
             />
             <Button onClick={() => void generateQuestions()} disabled={generatingQuestions} className="h-11 rounded-2xl px-4">
@@ -474,24 +462,10 @@ export function StudentSpeakingPage() {
               Generate 20
             </Button>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {QUICK_DRILLS.map((drill) => (
-              <button
-                key={drill}
-                type="button"
-                onClick={() => useQuickDrill(drill)}
-                className="rounded-full border border-burgundy-200 bg-white px-3 py-1.5 text-xs font-semibold text-burgundy-700 transition hover:border-burgundy-300 hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
-              >
-                {drill}
-              </button>
-            ))}
-          </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
             <Badge className="bg-burgundy-700 text-white">{t("speaking.question")}</Badge>
             <Badge variant="positive">{questionIndex + 1}/{effectiveQuestions.length || DAILY_TARGET}</Badge>
-            <Badge variant="positive">{currentQuestion?.topic || "Topic"}</Badge>
-            {teacherQuestions.length > 0 ? <Badge variant="positive">Teacher tasks: {teacherQuestions.length}</Badge> : null}
-            {taskLoading ? <Badge variant="positive">Teacher tasks loading...</Badge> : null}
+            {taskLoading ? <Badge variant="positive">Loading...</Badge> : null}
           </div>
           {questionError ? <p className="mt-2 text-xs text-burgundy-700 dark:text-burgundy-200">{questionError}</p> : null}
           <p className="mt-2 text-base font-semibold text-charcoal dark:text-zinc-100 sm:text-lg">{currentQuestion?.prompt || "No question"}</p>
