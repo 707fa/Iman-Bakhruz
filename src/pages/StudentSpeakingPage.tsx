@@ -32,6 +32,14 @@ interface LocalSpeakingAttempt {
 const DAILY_TARGET = 20;
 const MIN_WORDS = 4;
 
+const QUICK_DRILLS = [
+  "Past Simple (did + V1)",
+  "Present Simple (do/does)",
+  "Have / Has",
+  "Articles (a/an/the)",
+  "Travel vocabulary",
+] as const;
+
 function toClock(seconds: number): string {
   const safe = Math.max(0, Math.floor(seconds));
   const mm = String(Math.floor(safe / 60)).padStart(2, "0");
@@ -94,6 +102,35 @@ function buildFallbackQuestions(level: ReturnType<typeof normalizeStudentLevelFr
   }
 
   return result;
+}
+
+function mergeTeacherAndFallbackQuestions(teacherQuestions: string[], fallback: GeneratedSpeakingQuestion[]): GeneratedSpeakingQuestion[] {
+  const merged: GeneratedSpeakingQuestion[] = [];
+  const seen = new Set<string>();
+
+  for (const question of teacherQuestions) {
+    const prompt = String(question || "").trim();
+    if (!prompt) continue;
+    const key = prompt.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push({
+      id: `teacher-${merged.length + 1}`,
+      topic: "Teacher Task",
+      prompt,
+    });
+    if (merged.length >= DAILY_TARGET) return merged;
+  }
+
+  for (const item of fallback) {
+    const key = item.prompt.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+    if (merged.length >= DAILY_TARGET) break;
+  }
+
+  return merged;
 }
 
 function getHistoryKey(userId: string): string {
@@ -203,7 +240,10 @@ export function StudentSpeakingPage() {
 
   const teacherQuestions = useMemo(() => normalizeTeacherSpeakingQuestions(teacherSpeakingTasks), [teacherSpeakingTasks]);
 
-  const fallbackQuestions = useMemo(() => buildFallbackQuestions(level, lessonTopic || "General English"), [level, lessonTopic]);
+  const fallbackQuestions = useMemo(() => {
+    const base = buildFallbackQuestions(level, lessonTopic || "General English");
+    return mergeTeacherAndFallbackQuestions(teacherQuestions, base);
+  }, [level, lessonTopic, teacherQuestions]);
   const effectiveQuestions = generatedQuestions.length > 0 ? generatedQuestions : fallbackQuestions;
   const currentQuestion = effectiveQuestions[questionIndex] ?? effectiveQuestions[0] ?? null;
 
@@ -244,11 +284,15 @@ export function StudentSpeakingPage() {
     setResult(null);
   }
 
-  async function generateQuestions() {
-    const topic = lessonTopic.trim();
+  async function generateQuestions(topicInput?: string) {
+    const topic = (topicInput ?? lessonTopic).trim();
     if (!topic) {
       setQuestionError("Enter lesson topic");
       return;
+    }
+
+    if (topicInput && topicInput !== lessonTopic) {
+      setLessonTopic(topic);
     }
 
     setGeneratingQuestions(true);
@@ -273,6 +317,10 @@ export function StudentSpeakingPage() {
     } finally {
       setGeneratingQuestions(false);
     }
+  }
+
+  function useQuickDrill(topic: string) {
+    void generateQuestions(topic);
   }
 
   function toggleRecording() {
@@ -426,10 +474,23 @@ export function StudentSpeakingPage() {
               Generate 20
             </Button>
           </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {QUICK_DRILLS.map((drill) => (
+              <button
+                key={drill}
+                type="button"
+                onClick={() => useQuickDrill(drill)}
+                className="rounded-full border border-burgundy-200 bg-white px-3 py-1.5 text-xs font-semibold text-burgundy-700 transition hover:border-burgundy-300 hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+              >
+                {drill}
+              </button>
+            ))}
+          </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
             <Badge className="bg-burgundy-700 text-white">{t("speaking.question")}</Badge>
             <Badge variant="positive">{questionIndex + 1}/{effectiveQuestions.length || DAILY_TARGET}</Badge>
             <Badge variant="positive">{currentQuestion?.topic || "Topic"}</Badge>
+            {teacherQuestions.length > 0 ? <Badge variant="positive">Teacher tasks: {teacherQuestions.length}</Badge> : null}
             {taskLoading ? <Badge variant="positive">Teacher tasks loading...</Badge> : null}
           </div>
           {questionError ? <p className="mt-2 text-xs text-burgundy-700 dark:text-burgundy-200">{questionError}</p> : null}
