@@ -23,9 +23,9 @@ function isItemActive(pathname: string, item: NavItem): boolean {
 
 function navItemClass(active: boolean): string {
   if (active) {
-    return "border border-burgundy-500/70 bg-gradient-to-br from-burgundy-600 via-burgundy-700 to-burgundy-800 text-white shadow-soft";
+    return "bg-gradient-to-br from-burgundy-600 via-burgundy-700 to-burgundy-800 text-white shadow-soft";
   }
-  return "border border-transparent text-charcoal/75 hover:border-burgundy-200 hover:bg-burgundy-50/80 hover:text-charcoal dark:text-zinc-300 dark:hover:border-burgundy-900/70 dark:hover:bg-zinc-800 dark:hover:text-white";
+  return "text-charcoal/75 hover:bg-burgundy-50/80 hover:text-charcoal dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white";
 }
 
 export function AppLayout() {
@@ -121,7 +121,7 @@ export function AppLayout() {
       <div className="pointer-events-none absolute inset-0 hidden sm:block bg-[radial-gradient(circle_at_12%_10%,rgba(95,6,6,0.08),transparent_38%),radial-gradient(circle_at_88%_100%,rgba(95,6,6,0.05),transparent_36%)] dark:bg-[radial-gradient(circle_at_10%_8%,rgba(95,6,6,0.2),transparent_34%),radial-gradient(circle_at_90%_100%,rgba(95,6,6,0.16),transparent_40%)]" />
 
       <div className="relative grid h-full w-full lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="scrollbar-thin hidden border-r border-burgundy-200/70 bg-white/90 px-5 py-6 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/92 lg:block lg:h-dvh lg:overflow-y-auto">
+        <aside className="scrollbar-thin hidden border-r border-zinc-200/80 bg-white/90 px-5 py-6 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/92 lg:block lg:h-dvh lg:overflow-y-auto">
           <Link to={session.role === "student" ? "/student" : session.role === "teacher" ? "/teacher" : "/parent"}>
             <BrandLogo
               title={t("app.name")}
@@ -202,7 +202,7 @@ export function AppLayout() {
         </aside>
 
         <div className="relative flex h-dvh min-w-0 flex-col">
-          <header className="sticky top-0 z-40 border-b border-burgundy-200/60 bg-white/88 shadow-sm backdrop-blur-xl sm:bg-white/84 dark:border-zinc-800 dark:bg-zinc-950/92 sm:dark:bg-zinc-950/88">
+          <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/88 shadow-sm backdrop-blur-xl sm:bg-white/84 dark:border-zinc-800 dark:bg-zinc-950/92 sm:dark:bg-zinc-950/88">
             <div className="mx-auto flex min-h-14 w-full max-w-[1320px] items-center justify-between gap-2 px-2 py-[max(0.45rem,env(safe-area-inset-top))] sm:min-h-16 sm:px-6 lg:py-2.5">
               <div className="flex min-w-0 items-center gap-2">
                 <Link
@@ -257,7 +257,7 @@ export function AppLayout() {
         </div>
       </div>
 
-      <nav className="fixed inset-x-2 bottom-[max(0.35rem,env(safe-area-inset-bottom))] z-[65] rounded-[1.35rem] border border-burgundy-200/70 bg-white/90 p-1.5 shadow-lift backdrop-blur-xl lg:hidden dark:border-zinc-800 dark:bg-zinc-950/94">
+      <nav className="fixed inset-x-2 bottom-[max(0.35rem,env(safe-area-inset-bottom))] z-[65] rounded-[1.35rem] border border-zinc-200/80 bg-white/90 p-1.5 shadow-lift backdrop-blur-xl lg:hidden dark:border-zinc-800 dark:bg-zinc-950/94">
         <div className="[-ms-overflow-style:none] flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {mobileQuickNav.map((item) => {
             const active = isItemActive(location.pathname, item);
@@ -268,8 +268,8 @@ export function AppLayout() {
                 className={cn(
                   "flex min-h-[4rem] min-w-[4.75rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1rem] px-2 py-2 text-[10px] font-semibold transition sm:min-h-[4.25rem]",
                   active
-                    ? "border border-burgundy-500/70 bg-gradient-to-br from-burgundy-600 to-burgundy-800 text-white shadow-soft"
-                    : "border border-transparent text-charcoal/70 dark:text-zinc-300",
+                    ? "bg-gradient-to-br from-burgundy-600 to-burgundy-800 text-white shadow-soft"
+                    : "text-charcoal/70 dark:text-zinc-300",
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0 sm:h-[1.15rem] sm:w-[1.15rem]" />
