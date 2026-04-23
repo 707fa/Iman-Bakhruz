@@ -5,21 +5,21 @@
   --font-sans: "Plus Jakarta Sans", "Segoe UI", Roboto, Arial, sans-serif;
   --font-display: "Space Grotesk", "Plus Jakarta Sans", "Segoe UI", sans-serif;
 
-  --color-burgundy-50: #fbecec;
-  --color-burgundy-100: #f6d1d1;
-  --color-burgundy-200: #eca0a0;
-  --color-burgundy-300: #de6666;
-  --color-burgundy-400: #c93939;
-  --color-burgundy-500: #a81f1f;
-  --color-burgundy-600: #890f0f;
-  --color-burgundy-700: #6d0606;
-  --color-burgundy-800: #530404;
-  --color-burgundy-900: #360202;
+  --color-burgundy-50: #f8e8e8;
+  --color-burgundy-100: #f0c9c9;
+  --color-burgundy-200: #df8f8f;
+  --color-burgundy-300: #c95c5c;
+  --color-burgundy-400: #aa2f2f;
+  --color-burgundy-500: #8f1212;
+  --color-burgundy-600: #750909;
+  --color-burgundy-700: #5a0303;
+  --color-burgundy-800: #430101;
+  --color-burgundy-900: #2a0000;
 
-  --color-charcoal: #121116;
+  --color-charcoal: #0d0b10;
 
-  --shadow-soft: 0 16px 34px -24px rgba(83, 4, 4, 0.52);
-  --shadow-lift: 0 36px 74px -30px rgba(83, 4, 4, 0.65);
+  --shadow-soft: 0 16px 34px -24px rgba(67, 1, 1, 0.56);
+  --shadow-lift: 0 36px 74px -30px rgba(67, 1, 1, 0.68);
 }
 
 @layer base {
@@ -48,9 +48,9 @@
 
   .dark body {
     background-image:
-      radial-gradient(circle at 6% 8%, rgba(109, 6, 6, 0.28), transparent 34%),
-      radial-gradient(circle at 94% 0%, rgba(109, 6, 6, 0.2), transparent 36%),
-      linear-gradient(180deg, rgba(8, 8, 10, 1) 0%, rgba(13, 10, 14, 1) 100%);
+      radial-gradient(circle at 6% 8%, rgba(90, 3, 3, 0.32), transparent 34%),
+      radial-gradient(circle at 94% 0%, rgba(90, 3, 3, 0.22), transparent 36%),
+      linear-gradient(180deg, rgba(5, 5, 7, 1) 0%, rgba(9, 6, 10, 1) 100%);
   }
 
   input,
