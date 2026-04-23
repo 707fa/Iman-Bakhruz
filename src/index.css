@@ -52,6 +52,28 @@
     font: inherit;
   }
 
+  a,
+  button,
+  summary,
+  [role="button"],
+  label[for] {
+    cursor: pointer;
+  }
+
+  a,
+  button,
+  summary,
+  label[for] {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
   * {
     @apply border-burgundy-100/70 dark:border-zinc-700;
   }
