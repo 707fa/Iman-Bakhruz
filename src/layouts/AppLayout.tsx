@@ -240,7 +240,7 @@ export function AppLayout() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                   style={{ willChange: "transform, opacity" }}
                 >
                   {session.role === "student" ? (
