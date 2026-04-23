@@ -16,7 +16,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
       size={compact ? "sm" : "default"}
       variant="ghost"
       onClick={toggleTheme}
-      className="gap-2 border border-burgundy-200 bg-white/90 text-charcoal hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-100 dark:hover:bg-zinc-800"
+      className="gap-2 border border-burgundy-200/80 bg-white/88 text-charcoal shadow-soft hover:border-burgundy-300 hover:bg-burgundy-50/80 dark:border-zinc-700 dark:bg-zinc-900/88 dark:text-zinc-100 dark:hover:border-burgundy-900 dark:hover:bg-zinc-800"
       aria-label={t("ui.theme")}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

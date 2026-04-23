@@ -18,8 +18,8 @@
 
   --color-charcoal: #0d0b10;
 
-  --shadow-soft: 0 16px 34px -24px rgba(67, 1, 1, 0.56);
-  --shadow-lift: 0 36px 74px -30px rgba(67, 1, 1, 0.68);
+  --shadow-soft: 0 14px 36px -24px rgba(67, 1, 1, 0.46);
+  --shadow-lift: 0 30px 74px -30px rgba(67, 1, 1, 0.62);
 }
 
 @layer base {
@@ -40,8 +40,8 @@
   body {
     @apply bg-white font-sans text-charcoal antialiased dark:bg-black dark:text-zinc-100;
     background-image:
-      radial-gradient(circle at 8% 6%, rgba(109, 6, 6, 0.08), transparent 30%),
-      radial-gradient(circle at 100% 0%, rgba(109, 6, 6, 0.06), transparent 34%),
+      radial-gradient(circle at 8% 6%, rgba(90, 3, 3, 0.1), transparent 30%),
+      radial-gradient(circle at 100% 0%, rgba(90, 3, 3, 0.07), transparent 34%),
       linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(252, 248, 250, 1) 100%);
     overflow-x: hidden;
   }
@@ -123,7 +123,7 @@
   }
 
   .glass-panel {
-    @apply border border-white/60 bg-white/82 shadow-lift backdrop-blur-xl dark:border-burgundy-900/35 dark:bg-zinc-950/74;
+    @apply border border-white/60 bg-white/84 shadow-lift backdrop-blur-xl dark:border-burgundy-900/35 dark:bg-zinc-950/76;
   }
 
   .interactive-lift {

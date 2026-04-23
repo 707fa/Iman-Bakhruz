@@ -14,7 +14,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-burgundy-100 bg-white px-3.5 py-2 text-left text-base text-charcoal ring-offset-white placeholder:text-charcoal/45 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-burgundy-300 focus:border-burgundy-300 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate sm:h-10 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500",
+      "flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-burgundy-200/80 bg-white/96 px-3.5 py-2 text-left text-base text-charcoal ring-offset-white placeholder:text-charcoal/45 shadow-soft transition-[border-color,box-shadow,background-color] duration-200 focus:outline-none focus:ring-2 focus:ring-burgundy-300 focus:border-burgundy-400 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate sm:h-10 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-burgundy-700",
       className,
     )}
     {...props}
@@ -35,7 +35,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-burgundy-100 bg-white text-charcoal shadow-lift dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
+        "relative z-50 w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-burgundy-200/80 bg-white/98 text-charcoal shadow-lift backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-100",
         position === "popper" && "translate-y-1",
         className,
       )}
@@ -67,7 +67,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-lg py-2.5 pl-8 pr-2 text-[15px] outline-none focus:bg-burgundy-50 focus:text-burgundy-700 sm:py-2 sm:text-sm dark:focus:bg-zinc-800 dark:focus:text-white",
+      "relative flex w-full cursor-default select-none items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-lg py-2.5 pl-8 pr-2 text-[15px] outline-none focus:bg-burgundy-100/70 focus:text-burgundy-700 sm:py-2 sm:text-sm dark:focus:bg-burgundy-900/40 dark:focus:text-white",
       className,
     )}
     {...props}
@@ -104,4 +104,3 @@ export {
   SelectItem,
   SelectSeparator,
 };
-
