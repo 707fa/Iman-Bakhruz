@@ -126,6 +126,15 @@ function makeMessageId(prefix: "u" | "a"): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function buildInstantAssistantHint(level: ReturnType<typeof normalizeStudentLevelFromGroupTitle>, locale: "ru" | "uz" | "en"): string {
+  if (level === "beginner" || level === "elementary") {
+    if (locale === "uz") return "Bir soniya, javobni tez tayyorlayapman...";
+    if (locale === "en") return "One second, preparing your answer...";
+    return "Секунду, готовлю быстрый ответ...";
+  }
+  return "One second, preparing your answer...";
+}
+
 function buildVoiceMixRule(level: ReturnType<typeof normalizeStudentLevelFromGroupTitle>, locale: "ru" | "uz" | "en"): string {
   const support = locale === "en" ? "ru/uz" : locale;
   if (level === "beginner" || level === "elementary") {
@@ -387,10 +396,11 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
 
     setSending(true);
 
+    const responseRule = silentVoiceMode
+      ? buildVoiceMixRule(studentLevel, aiLanguage)
+      : "Answer fast in 2-5 short lines, simple and clear. If highlighting is needed, use natural text (no noisy symbols).";
     const textWithContext = effectiveText
-      ? `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nvoice_mode=${silentVoiceMode ? "true" : "false"}\n[/CONTEXT]\n\n${
-          silentVoiceMode ? `${buildVoiceMixRule(studentLevel, aiLanguage)}\n\nUser said:\n${effectiveText}` : effectiveText
-        }`
+      ? `[ctx] level=${studentLevel}; lang=${aiLanguage}; voice=${silentVoiceMode ? "1" : "0"} [/ctx]\n${responseRule}\n\n${effectiveText}`
       : "";
 
     const userMessage: AiChatMessage = {
@@ -415,6 +425,14 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
       setText("");
       setImageFile(null);
       setImagePreview(null);
+    }
+
+    const quickHint = buildInstantAssistantHint(studentLevel, aiLanguage);
+    let quickHintTimer: number | null = null;
+    if (shouldWriteToChat) {
+      quickHintTimer = window.setTimeout(() => {
+        updateMessageText(assistantMessage.id, quickHint);
+      }, 140);
     }
 
     try {
@@ -522,6 +540,9 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
       }
       return message;
     } finally {
+      if (quickHintTimer !== null) {
+        window.clearTimeout(quickHintTimer);
+      }
       setSending(false);
       if (shouldWriteToChat) {
         setTypingMessageId((current) => (current === assistantMessage.id ? null : current));
