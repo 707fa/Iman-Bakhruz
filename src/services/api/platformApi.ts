@@ -19,6 +19,7 @@ import type {
   PaymentTransaction,
   Parent,
   SupportTicket,
+  SupportTicketMessage,
   SupportTicketStatus,
   Teacher,
   UserRole,
@@ -418,6 +419,22 @@ function normalizeSupportTicket(raw: unknown): SupportTicket | null {
   };
 }
 
+function normalizeSupportTicketMessage(raw: unknown): SupportTicketMessage | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+  const sender = str(item.sender_type ?? item.senderType) as SupportTicketMessage["senderType"];
+  return {
+    id: str(item.id),
+    ticketId: str(item.ticket ?? item.ticket_id ?? item.ticketId),
+    senderType: sender === "teacher" || sender === "support" ? sender : "student",
+    text: str(item.text),
+    source: str(item.source) === "telegram" ? "telegram" : "web",
+    readByStudentAt: str(item.read_by_student_at ?? item.readByStudentAt) || undefined,
+    readBySupportAt: str(item.read_by_support_at ?? item.readBySupportAt) || undefined,
+    createdAt: str(item.created_at ?? item.createdAt),
+  };
+}
+
 function normalizeAiChatMessage(raw: unknown): AiChatMessage | null {
   const item = asRecord(raw);
   if (!item) return null;
@@ -792,6 +809,29 @@ export const platformApi = {
     const ticket = normalizeSupportTicket(data?.ticket ?? data);
     if (!ticket) throw new Error("Invalid support response");
     return ticket;
+  },
+
+  async getSupportTicketMessages(token: string, ticketId: string) {
+    const response = await apiRequest<unknown>(`/support/tickets/${ticketId}/messages`, {
+      method: "GET",
+      token,
+    });
+    const data = getDataObject(response);
+    return readArray<unknown>(data?.messages ?? data)
+      .map(normalizeSupportTicketMessage)
+      .filter((item): item is SupportTicketMessage => item !== null);
+  },
+
+  async sendSupportTicketMessage(token: string, ticketId: string, text: string) {
+    const response = await apiRequest<unknown>(`/support/tickets/${ticketId}/messages`, {
+      method: "POST",
+      token,
+      body: { text },
+    });
+    const data = getDataObject(response);
+    const message = normalizeSupportTicketMessage(data?.message ?? data);
+    if (!message) throw new Error("Invalid support message response");
+    return message;
   },
 
   async getAiMessages(token: string) {

@@ -159,6 +159,19 @@ export interface SupportTicket {
   updatedAt: string;
 }
 
+export type SupportMessageSenderType = "student" | "teacher" | "support";
+
+export interface SupportTicketMessage {
+  id: string;
+  ticketId: string;
+  senderType: SupportMessageSenderType;
+  text: string;
+  source: "web" | "telegram";
+  readByStudentAt?: string;
+  readBySupportAt?: string;
+  createdAt: string;
+}
+
 export interface AiChatMessage {
   id: string;
   role: "user" | "assistant";
