@@ -41,6 +41,17 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   const [ticketUpdating, setTicketUpdating] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
 
+  function mergeMessages(current: SupportTicketMessage[], incoming: SupportTicketMessage[]): SupportTicketMessage[] {
+    const byId = new Map<string, SupportTicketMessage>();
+    [...current, ...incoming].forEach((message) => {
+      if (!message.id) return;
+      byId.set(message.id, message);
+    });
+    return [...byId.values()].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  }
+
   const sortedTickets = useMemo(
     () =>
       [...tickets].sort((a, b) => {
@@ -70,7 +81,12 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       try {
         const next = await platformApi.getSupportTickets(token);
         if (!disposed) {
-          setTickets(next);
+          setTickets((prev) => {
+            const map = new Map<string, SupportTicket>();
+            prev.forEach((ticket) => map.set(ticket.id, ticket));
+            next.forEach((ticket) => map.set(ticket.id, ticket));
+            return [...map.values()];
+          });
         }
       } catch {
         if (!disposed) {
@@ -113,7 +129,10 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       try {
         const next = await platformApi.getSupportTicketMessages(token, activeTicket.id);
         if (!disposed) {
-          setMessagesByTicket((prev) => ({ ...prev, [activeTicket.id]: next }));
+          setMessagesByTicket((prev) => ({
+            ...prev,
+            [activeTicket.id]: mergeMessages(prev[activeTicket.id] ?? [], next),
+          }));
         }
       } catch {
         // keep previous messages
@@ -174,7 +193,10 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       const sent = await platformApi.sendSupportTicketMessage(token, activeTicket.id, text);
       setMessagesByTicket((prev) => ({
         ...prev,
-        [activeTicket.id]: (prev[activeTicket.id] ?? []).map((item) => (item.id === optimistic.id ? sent : item)),
+        [activeTicket.id]: mergeMessages(
+          (prev[activeTicket.id] ?? []).map((item) => (item.id === optimistic.id ? sent : item)),
+          [sent],
+        ),
       }));
     } catch {
       // keep optimistic message
