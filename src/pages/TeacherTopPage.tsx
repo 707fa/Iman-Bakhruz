@@ -6,6 +6,7 @@ import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { useAppStore } from "../hooks/useAppStore";
+import { getTeacherAccessibleGroupIds } from "../lib/teacherGroups";
 import { useUi } from "../hooks/useUi";
 import { getGlobalTop } from "../lib/ranking";
 
@@ -16,7 +17,7 @@ export function TeacherTopPage() {
 
   if (!currentTeacher) return null;
 
-  const teacherGroupIds = new Set(currentTeacher.groupIds);
+  const teacherGroupIds = getTeacherAccessibleGroupIds(state, currentTeacher);
   const teacherStudents = state.students
     .filter((student) => teacherGroupIds.has(student.groupId))
     .sort((a, b) => b.points - a.points || a.fullName.localeCompare(b.fullName));
@@ -95,4 +96,3 @@ export function TeacherTopPage() {
     </div>
   );
 }
-

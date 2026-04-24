@@ -12,6 +12,7 @@ import { Label } from "../components/ui/label";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
+import { hasTeacherGroupAccess } from "../lib/teacherGroups";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
 
@@ -56,7 +57,7 @@ export function TeacherStudentProfilePage() {
   const [isGrantingAccess, setIsGrantingAccess] = useState(false);
 
   const student = state.students.find((item) => item.id === id);
-  const hasAccess = Boolean(student && currentTeacher?.groupIds.includes(student.groupId));
+  const hasAccess = Boolean(student && currentTeacher && hasTeacherGroupAccess(state, currentTeacher, student.groupId));
   const group = student ? state.groups.find((entry) => entry.id === student.groupId) : null;
 
   useEffect(() => {
@@ -338,7 +339,6 @@ export function TeacherStudentProfilePage() {
     </div>
   );
 }
-
 
 
 

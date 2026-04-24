@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAppStore } from "../hooks/useAppStore";
 import { DATA_PROVIDER_MODE } from "../lib/env";
+import { getTeacherAccessibleGroups } from "../lib/teacherGroups";
 import { cn } from "../lib/utils";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
@@ -369,8 +370,8 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
   const currentUserId = role === "student" ? (currentStudent?.id ?? "student-anon") : (currentTeacher?.id ?? "teacher-anon");
 
   const teacherGroups = useMemo(
-    () => state.groups.filter((group) => (currentTeacher ? currentTeacher.groupIds.includes(group.id) : false)),
-    [state.groups, currentTeacher],
+    () => (currentTeacher ? getTeacherAccessibleGroups(state, currentTeacher) : []),
+    [state, currentTeacher],
   );
 
   useEffect(() => {

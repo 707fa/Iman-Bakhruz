@@ -6,6 +6,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { useAppStore } from "../hooks/useAppStore";
+import { getTeacherAccessibleGroups } from "../lib/teacherGroups";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 
@@ -17,8 +18,8 @@ export function TeacherGroupsPage() {
   const [savingGroupId, setSavingGroupId] = useState<string | null>(null);
 
   const teacherGroups = useMemo(
-    () => state.groups.filter((group) => currentTeacher?.groupIds.includes(group.id)),
-    [state.groups, currentTeacher?.groupIds],
+    () => (currentTeacher ? getTeacherAccessibleGroups(state, currentTeacher) : []),
+    [state, currentTeacher],
   );
 
   useEffect(() => {

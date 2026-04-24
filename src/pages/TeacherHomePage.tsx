@@ -7,6 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
+import { getTeacherAccessibleGroups } from "../lib/teacherGroups";
 import { useUi } from "../hooks/useUi";
 
 export function TeacherHomePage() {
@@ -15,7 +16,7 @@ export function TeacherHomePage() {
 
   if (!currentTeacher) return null;
 
-  const groups = state.groups.filter((group) => currentTeacher.groupIds.includes(group.id));
+  const groups = getTeacherAccessibleGroups(state, currentTeacher);
   const groupIds = new Set(groups.map((group) => group.id));
   const studentsCount = state.students.filter((student) => groupIds.has(student.groupId)).length;
   const ratingsCount = state.ratingLogs.filter((log) => log.teacherId === currentTeacher.id).length;

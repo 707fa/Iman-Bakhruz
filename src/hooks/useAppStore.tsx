@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
 import { initialState } from "../data/mockData";
 import { DATA_PROVIDER_MODE } from "../lib/env";
+import { getTeacherAccessibleGroupIds } from "../lib/teacherGroups";
 import { makeId, toPhone } from "../lib/utils";
 import { ApiError } from "../services/api/http";
 import { platformApi, toAppStatePayload, type AuthResponse, type RemoteStatePayload } from "../services/api/platformApi";
@@ -733,7 +734,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     }
 
     const teacher = state.teachers.find((item) => item.id === state.session?.userId);
-    if (!teacher || !teacher.groupIds.includes(groupId)) {
+    const hasGroupAccess = teacher ? getTeacherAccessibleGroupIds(state, teacher).has(groupId) : false;
+    if (!teacher || !hasGroupAccess) {
       return { ok: false, messageKey: "msg.scoreNoAccess" };
     }
 
@@ -828,7 +830,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
     const teacher = state.teachers.find((item) => item.id === state.session?.userId);
     const student = state.students.find((item) => item.id === studentId);
-    if (!teacher || !student || !teacher.groupIds.includes(student.groupId)) {
+    const hasGroupAccess = teacher && student ? getTeacherAccessibleGroupIds(state, teacher).has(student.groupId) : false;
+    if (!teacher || !student || !hasGroupAccess) {
       return { ok: false, messageKey: "msg.scoreNoAccess" };
     }
 
@@ -857,7 +860,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
     const teacher = state.teachers.find((item) => item.id === state.session?.userId);
     const group = state.groups.find((item) => item.id === groupId);
-    if (!teacher || !group || !teacher.groupIds.includes(groupId)) {
+    const hasGroupAccess = teacher ? getTeacherAccessibleGroupIds(state, teacher).has(groupId) : false;
+    if (!teacher || !group || !hasGroupAccess) {
       return { ok: false, messageKey: "msg.scoreNoAccess" };
     }
 

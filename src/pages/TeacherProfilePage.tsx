@@ -4,6 +4,7 @@ import { UserAvatar } from "../components/UserAvatar";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
+import { getTeacherAccessibleGroups } from "../lib/teacherGroups";
 import { useUi } from "../hooks/useUi";
 
 export function TeacherProfilePage() {
@@ -12,7 +13,7 @@ export function TeacherProfilePage() {
 
   if (!currentTeacher) return null;
 
-  const groups = state.groups.filter((group) => currentTeacher.groupIds.includes(group.id));
+  const groups = getTeacherAccessibleGroups(state, currentTeacher);
 
   return (
     <div className="space-y-6">
@@ -72,4 +73,3 @@ export function TeacherProfilePage() {
     </div>
   );
 }
-

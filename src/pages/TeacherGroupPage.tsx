@@ -13,6 +13,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 import { DATA_PROVIDER_MODE } from "../lib/env";
+import { hasTeacherGroupAccess } from "../lib/teacherGroups";
 import { getGroupTop } from "../lib/ranking";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
@@ -67,7 +68,7 @@ export function TeacherGroupPage() {
   if (!currentTeacher) return null;
 
   const group = state.groups.find((entry) => entry.id === id);
-  const hasAccess = !!group && currentTeacher.groupIds.includes(group.id);
+  const hasAccess = !!group && hasTeacherGroupAccess(state, currentTeacher, group.id);
 
   const students = hasAccess
     ? state.students.filter((student) => student.groupId === group.id).sort((a, b) => b.points - a.points)
@@ -739,7 +740,6 @@ export function TeacherGroupPage() {
     </div>
   );
 }
-
 
 
 

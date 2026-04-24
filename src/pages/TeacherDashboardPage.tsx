@@ -6,6 +6,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
+import { getTeacherAccessibleGroupIds } from "../lib/teacherGroups";
 import { useUi } from "../hooks/useUi";
 
 export function TeacherDashboardPage() {
@@ -14,7 +15,7 @@ export function TeacherDashboardPage() {
 
   if (!currentTeacher) return null;
 
-  const teacherGroupIds = new Set(currentTeacher.groupIds);
+  const teacherGroupIds = getTeacherAccessibleGroupIds(state, currentTeacher);
   const studentsCount = state.students.filter((student) => teacherGroupIds.has(student.groupId)).length;
   const ratingsCount = state.ratingLogs.filter((log) => log.teacherId === currentTeacher.id).length;
 
@@ -33,7 +34,7 @@ export function TeacherDashboardPage() {
               <BookOpenCheck className="h-4 w-4 text-burgundy-600 dark:text-white" />
               {t("teacher.groups")}
             </p>
-            <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{currentTeacher.groupIds.length}</p>
+            <p className="mt-2 text-3xl font-bold text-burgundy-700 dark:text-white">{teacherGroupIds.size}</p>
           </CardContent>
         </Card>
         <Card>
@@ -101,6 +102,5 @@ export function TeacherDashboardPage() {
     </div>
   );
 }
-
 
 
