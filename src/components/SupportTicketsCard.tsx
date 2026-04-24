@@ -268,21 +268,26 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                   <p className="text-xs text-charcoal/60 dark:text-zinc-400">No messages yet.</p>
                 ) : (
                   activeMessages.map((message) => {
-                    const mine = role === "student" ? message.senderType === "student" : message.senderType !== "student";
+                    const fromStudent = message.senderType === "student";
+                    const mine = role === "student" ? fromStudent : !fromStudent;
                     return (
                       <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                         <div
                           className={`max-w-[85%] rounded-2xl px-3 py-2.5 text-sm ${
-                            mine
+                            fromStudent
                               ? "bg-burgundy-700 text-white shadow-[0_10px_22px_-18px_rgba(120,0,40,0.9)]"
                               : "border border-zinc-200 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                           }`}
                         >
-                          <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${mine ? "text-white/80" : "text-charcoal/60 dark:text-zinc-400"}`}>
+                          <p
+                            className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                              fromStudent ? "text-white/80" : "text-charcoal/60 dark:text-zinc-400"
+                            }`}
+                          >
                             {senderTitle(role, message)}
                           </p>
-                          <p className={`mt-1 whitespace-pre-wrap ${mine ? "text-white" : ""}`}>{message.text}</p>
-                          <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/70" : "text-charcoal/55 dark:text-zinc-400"}`}>
+                          <p className={`mt-1 whitespace-pre-wrap ${fromStudent ? "text-white" : ""}`}>{message.text}</p>
+                          <p className={`mt-1 text-right text-[10px] ${fromStudent ? "text-white/70" : "text-charcoal/55 dark:text-zinc-400"}`}>
                             {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
