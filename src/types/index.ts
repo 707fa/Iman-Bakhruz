@@ -152,6 +152,8 @@ export interface SupportTicket {
   teacherId: string;
   teacherName: string;
   message: string;
+  teacherReply?: string;
+  teacherReplyAt?: string;
   status: SupportTicketStatus;
   createdAt: string;
   updatedAt: string;

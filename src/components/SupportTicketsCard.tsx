@@ -30,6 +30,8 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     Array<{
       id: string;
       message: string;
+      teacherReply?: string;
+      teacherReplyAt?: string;
       status: SupportTicketStatus;
       studentName: string;
       createdAt: string;
@@ -56,8 +58,13 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     };
 
     void load();
+    const intervalId = window.setInterval(() => {
+      void load();
+    }, 12000);
+
     return () => {
       disposed = true;
+      window.clearInterval(intervalId);
     };
   }, [token]);
 
@@ -142,6 +149,16 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                 <p className="mt-2 text-sm text-charcoal dark:text-zinc-100">{ticket.message}</p>
                 <p className="mt-1 text-xs text-charcoal/55 dark:text-zinc-400">{new Date(ticket.createdAt).toLocaleString()}</p>
 
+                {ticket.teacherReply ? (
+                  <div className="mt-3 rounded-xl border border-burgundy-200 bg-burgundy-50/60 px-3 py-2 text-sm dark:border-burgundy-800 dark:bg-burgundy-900/25">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-burgundy-700 dark:text-burgundy-200">Teacher reply</p>
+                    <p className="mt-1 text-charcoal dark:text-zinc-100">{ticket.teacherReply}</p>
+                    {ticket.teacherReplyAt ? (
+                      <p className="mt-1 text-[11px] text-charcoal/55 dark:text-zinc-400">{new Date(ticket.teacherReplyAt).toLocaleString()}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {role === "teacher" ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button variant="secondary" size="sm" onClick={() => void updateStatus(ticket.id, "in_progress")}>
@@ -160,4 +177,3 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     </Card>
   );
 }
-

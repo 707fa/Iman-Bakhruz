@@ -410,6 +410,8 @@ function normalizeSupportTicket(raw: unknown): SupportTicket | null {
     teacherId: str(item.teacher ?? item.teacher_id),
     teacherName: str(item.teacherName ?? item.teacher_name),
     message: str(item.message),
+    teacherReply: str(item.teacherReply ?? item.teacher_reply) || undefined,
+    teacherReplyAt: str(item.teacherReplyAt ?? item.teacher_reply_at) || undefined,
     status,
     createdAt: str(item.createdAt ?? item.created_at),
     updatedAt: str(item.updatedAt ?? item.updated_at),
@@ -758,7 +760,7 @@ export const platformApi = {
   },
 
   async getSupportTickets(token: string) {
-    const response = await apiRequest<unknown>("/support/tickets", {
+    const response = await apiRequest<unknown>("/api/support/tickets", {
       method: "GET",
       token,
     });
@@ -769,7 +771,7 @@ export const platformApi = {
   },
 
   async createSupportTicket(token: string, message: string) {
-    const response = await apiRequest<unknown>("/support/tickets", {
+    const response = await apiRequest<unknown>("/api/support/tickets", {
       method: "POST",
       token,
       body: { message },
@@ -781,7 +783,7 @@ export const platformApi = {
   },
 
   async updateSupportTicket(token: string, ticketId: string, status: SupportTicketStatus) {
-    const response = await apiRequest<unknown>(`/support/tickets/${ticketId}`, {
+    const response = await apiRequest<unknown>(`/api/support/tickets/${ticketId}`, {
       method: "PATCH",
       token,
       body: { status },
@@ -793,7 +795,7 @@ export const platformApi = {
   },
 
   async getAiMessages(token: string) {
-    const response = await apiRequest<unknown>("/chat/ai/messages", {
+    const response = await apiRequest<unknown>("/api/chat/ai/messages", {
       method: "GET",
       token,
       timeoutMs: 60000,
@@ -817,7 +819,7 @@ export const platformApi = {
       systemContext?: string;
     },
   ) {
-    const response = await apiRequest<unknown>("/chat/ai/messages", {
+    const response = await apiRequest<unknown>("/api/chat/ai/messages", {
       method: "POST",
       token,
       body: payload,
@@ -854,7 +856,7 @@ export const platformApi = {
   },
 
   async getFriendlyConversations(token: string) {
-    const response = await apiRequest<unknown>("/chat/friendly/conversations", {
+    const response = await apiRequest<unknown>("/api/chat/friendly/conversations", {
       method: "GET",
       token,
       timeoutMs: 30000,
@@ -866,7 +868,7 @@ export const platformApi = {
   },
 
   async startFriendlyConversation(token: string, targetUserId: string) {
-    const response = await apiRequest<unknown>("/chat/friendly/conversations", {
+    const response = await apiRequest<unknown>("/api/chat/friendly/conversations", {
       method: "POST",
       token,
       body: { targetUserId: Number(targetUserId) },
@@ -879,7 +881,7 @@ export const platformApi = {
   },
 
   async getFriendlyMessages(token: string, conversationId: string) {
-    const response = await apiRequest<unknown>(`/chat/friendly/conversations/${conversationId}/messages`, {
+    const response = await apiRequest<unknown>(`/api/chat/friendly/conversations/${conversationId}/messages`, {
       method: "GET",
       token,
       timeoutMs: 30000,
@@ -891,7 +893,7 @@ export const platformApi = {
   },
 
   async sendFriendlyMessage(token: string, conversationId: string, text: string) {
-    const response = await apiRequest<unknown>(`/chat/friendly/conversations/${conversationId}/messages`, {
+    const response = await apiRequest<unknown>(`/api/chat/friendly/conversations/${conversationId}/messages`, {
       method: "POST",
       token,
       body: { text },
@@ -905,7 +907,7 @@ export const platformApi = {
 
   async getTeacherHomeworkTasks(token: string, groupId?: string) {
     const query = groupId ? `?group_id=${encodeURIComponent(groupId)}` : "";
-    const response = await apiRequest<unknown>(`/teacher/homework/tasks${query}`, {
+    const response = await apiRequest<unknown>(`/api/teacher/homework/tasks${query}`, {
       method: "GET",
       token,
       timeoutMs: 30000,
@@ -920,7 +922,7 @@ export const platformApi = {
     token: string,
     payload: { groupId: string; title: string; description?: string; dueAt?: string },
   ) {
-    const response = await apiRequest<unknown>("/teacher/homework/tasks", {
+    const response = await apiRequest<unknown>("/api/teacher/homework/tasks", {
       method: "POST",
       token,
       body: {
@@ -939,7 +941,7 @@ export const platformApi = {
 
   async getTeacherSpeakingTasks(token: string, groupId?: string) {
     const query = groupId ? `?group_id=${encodeURIComponent(groupId)}` : "";
-    const response = await apiRequest<unknown>(`/teacher/speaking/tasks${query}`, {
+    const response = await apiRequest<unknown>(`/api/teacher/speaking/tasks${query}`, {
       method: "GET",
       token,
       timeoutMs: 30000,
@@ -962,7 +964,7 @@ export const platformApi = {
       dueAt?: string;
     },
   ) {
-    const response = await apiRequest<unknown>("/teacher/speaking/tasks", {
+    const response = await apiRequest<unknown>("/api/teacher/speaking/tasks", {
       method: "POST",
       token,
       body: {
@@ -983,7 +985,7 @@ export const platformApi = {
   },
 
   async getTeacherHomeworkSubmissions(token: string, taskId: string) {
-    const response = await apiRequest<unknown>(`/teacher/homework/tasks/${taskId}/submissions`, {
+    const response = await apiRequest<unknown>(`/api/teacher/homework/tasks/${taskId}/submissions`, {
       method: "GET",
       token,
       timeoutMs: 30000,
@@ -1002,7 +1004,7 @@ export const platformApi = {
     submissionId: string,
     payload: { status?: "submitted" | "reviewed"; teacherComment?: string; score?: number | null },
   ) {
-    const response = await apiRequest<unknown>(`/teacher/homework/submissions/${submissionId}`, {
+    const response = await apiRequest<unknown>(`/api/teacher/homework/submissions/${submissionId}`, {
       method: "PATCH",
       token,
       body: {
@@ -1019,7 +1021,7 @@ export const platformApi = {
   },
 
   async getStudentHomeworkTasks(token: string) {
-    const response = await apiRequest<unknown>("/student/homework/tasks", {
+    const response = await apiRequest<unknown>("/api/student/homework/tasks", {
       method: "GET",
       token,
       timeoutMs: 30000,
@@ -1031,7 +1033,7 @@ export const platformApi = {
   },
 
   async getStudentSpeakingTasks(token: string) {
-    const response = await apiRequest<unknown>("/student/speaking/tasks", {
+    const response = await apiRequest<unknown>("/api/student/speaking/tasks", {
       method: "GET",
       token,
       timeoutMs: 30000,
@@ -1043,7 +1045,7 @@ export const platformApi = {
   },
 
   async submitStudentHomework(token: string, taskId: string, answerText: string) {
-    const response = await apiRequest<unknown>(`/student/homework/tasks/${taskId}/submit`, {
+    const response = await apiRequest<unknown>(`/api/student/homework/tasks/${taskId}/submit`, {
       method: "POST",
       token,
       body: { answer_text: answerText },
