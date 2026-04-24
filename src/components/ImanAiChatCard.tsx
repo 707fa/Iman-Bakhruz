@@ -505,7 +505,7 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
       }
 
       const imageBase64 = selectedFile ? await fileToDataUrl(selectedFile) : undefined;
-      const updatedMessages = await platformApi.sendAiMessage(token!, {
+      const payload = {
         text: effectiveText || undefined,
         imageBase64,
         level: studentLevel,
@@ -513,7 +513,32 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
         groupTitle: currentGroup?.title,
         groupTime: currentGroup?.time,
         systemContext,
-      });
+      };
+
+      if (shouldWriteToChat) {
+        let streamedText = "";
+        try {
+          streamedText = await platformApi.sendAiMessageStream(token!, payload, {
+            onDelta: (chunk) => {
+              const next = `${streamedText || ""}${chunk}`;
+              streamedText = next;
+              updateMessageText(assistantMessage.id, next);
+              setTypingMessageId(assistantMessage.id);
+            },
+          });
+        } catch {
+          streamedText = "";
+        }
+
+        if (streamedText.trim()) {
+          const normalizedStreamReply = normalizeAssistantReply(streamedText);
+          updateMessageText(assistantMessage.id, normalizedStreamReply);
+          setStatusHint("Fast streaming mode");
+          return normalizedStreamReply;
+        }
+      }
+
+      const updatedMessages = await platformApi.sendAiMessage(token!, payload);
       const finalReply = normalizeAssistantReply(extractAssistantReply(updatedMessages));
       if (shouldWriteToChat) {
         await typeAssistantReply(assistantMessage.id, finalReply);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { smoothValue } from "../lib/audio";
+import { VOICE_BROWSER_FALLBACK_ENABLED } from "../lib/env";
 import { pickGatewayVoice, speakWithBestBrowserVoice } from "../lib/speech";
 import { isVoiceGatewayReady, requestVoiceTts } from "../services/api/voiceGatewayApi";
 
@@ -27,6 +28,46 @@ function toSpeechText(text: string): string {
   }
 
   return combined || normalized.slice(0, 260);
+}
+
+function splitIntoSpeechChunks(text: string, maxChunkLength = 140): string[] {
+  const normalized = toSpeechText(text);
+  if (!normalized) return [];
+  if (normalized.length <= maxChunkLength) return [normalized];
+
+  const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
+  if (sentences.length === 0) {
+    const chunks: string[] = [];
+    let idx = 0;
+    while (idx < normalized.length) {
+      chunks.push(normalized.slice(idx, idx + maxChunkLength));
+      idx += maxChunkLength;
+    }
+    return chunks;
+  }
+
+  const chunks: string[] = [];
+  let current = "";
+  for (const sentence of sentences) {
+    const candidate = current ? `${current} ${sentence}` : sentence;
+    if (candidate.length > maxChunkLength) {
+      if (current) chunks.push(current);
+      if (sentence.length > maxChunkLength) {
+        let offset = 0;
+        while (offset < sentence.length) {
+          chunks.push(sentence.slice(offset, offset + maxChunkLength));
+          offset += maxChunkLength;
+        }
+        current = "";
+      } else {
+        current = sentence;
+      }
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks;
 }
 
 interface OutputMeterSession {
@@ -142,16 +183,13 @@ export function useAudioPlayback() {
     stopMeter();
   }, [cleanupObjectUrl, stopMeter]);
 
-  const playViaGateway = useCallback(
-    async (text: string, lang: string): Promise<boolean> => {
-      if (!isVoiceGatewayReady()) return false;
-
-      const response = await requestVoiceTts({ text, lang, voice: pickGatewayVoice(lang) });
-      const audio = new Audio(response.audioSrc);
+  const playAudioSrc = useCallback(
+    async (audioSrc: string) => {
+      const audio = new Audio(audioSrc);
       audio.preload = "auto";
       audioElRef.current = audio;
-      if (response.audioSrc.startsWith("blob:")) {
-        objectUrlRef.current = response.audioSrc;
+      if (audioSrc.startsWith("blob:")) {
+        objectUrlRef.current = audioSrc;
       }
 
       await setupAudioMeter(audio);
@@ -160,9 +198,26 @@ export function useAudioPlayback() {
         audio.onended = () => resolve();
         audio.onerror = () => reject(new Error("Failed to play gateway TTS audio"));
       });
+      cleanupObjectUrl();
+    },
+    [cleanupObjectUrl, setupAudioMeter],
+  );
+
+  const playViaGateway = useCallback(
+    async (text: string, lang: string): Promise<boolean> => {
+      if (!isVoiceGatewayReady()) return false;
+
+      const chunks = splitIntoSpeechChunks(text);
+      if (chunks.length === 0) return false;
+      const voice = pickGatewayVoice(lang);
+
+      for (const chunk of chunks) {
+        const response = await requestVoiceTts({ text: chunk, lang, voice });
+        await playAudioSrc(response.audioSrc);
+      }
       return true;
     },
-    [setupAudioMeter],
+    [playAudioSrc],
   );
 
   const playViaBrowserTts = useCallback(
@@ -194,10 +249,17 @@ export function useAudioPlayback() {
           return;
         }
       } catch {
-        // If gateway fails, fallback to browser speech to avoid silent voice mode.
+        // If gateway fails, optionally fallback to browser TTS.
       }
 
-      await playViaBrowserTts(speechText, lang);
+      if (VOICE_BROWSER_FALLBACK_ENABLED) {
+        await playViaBrowserTts(speechText, lang);
+        return;
+      }
+
+      setSpeaking(false);
+      stopMeter();
+      throw new Error("Voice gateway unavailable");
     },
     [muted, playViaBrowserTts, playViaGateway, stop, stopMeter],
   );

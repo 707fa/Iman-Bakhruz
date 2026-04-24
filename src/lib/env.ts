@@ -103,7 +103,7 @@ export const AI_GATEWAY_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_AI_GA
 export const VOICE_GATEWAY_URL = normalizeOptionalUrl(voiceGatewayUrlCandidate);
 export const VOICE_GATEWAY_ENABLED = normalizeBoolean(import.meta.env.VITE_VOICE_GATEWAY_ENABLED, VOICE_GATEWAY_URL !== null);
 export const VOICE_TTS_VOICE = normalizeOptionalText(import.meta.env.VITE_VOICE_TTS_VOICE);
-export const VOICE_BROWSER_FALLBACK_ENABLED = normalizeBoolean(import.meta.env.VITE_VOICE_BROWSER_FALLBACK_ENABLED, true);
+export const VOICE_BROWSER_FALLBACK_ENABLED = normalizeBoolean(import.meta.env.VITE_VOICE_BROWSER_FALLBACK_ENABLED, false);
 export const API_HINT_TEACHER_PHONE = normalizeOptionalText(import.meta.env.VITE_API_HINT_TEACHER_PHONE);
 export const API_HINT_TEACHER_PASSWORD = normalizeOptionalText(import.meta.env.VITE_API_HINT_TEACHER_PASSWORD);
 export const API_HINT_STUDENT_PHONE = normalizeOptionalText(import.meta.env.VITE_API_HINT_STUDENT_PHONE);

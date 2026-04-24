@@ -24,6 +24,7 @@ import type {
   Teacher,
   UserRole,
 } from "../../types";
+import { API_BASE_URL } from "../../lib/env";
 import { apiRequest } from "./http";
 
 export interface AuthResponse {
@@ -417,6 +418,20 @@ function normalizeSupportTicket(raw: unknown): SupportTicket | null {
     createdAt: str(item.createdAt ?? item.created_at),
     updatedAt: str(item.updatedAt ?? item.updated_at),
   };
+}
+
+export interface AiStreamPayload {
+  text?: string;
+  imageBase64?: string;
+  level?: string;
+  language?: string;
+  groupTitle?: string;
+  groupTime?: string;
+  systemContext?: string;
+}
+
+export interface AiStreamCallbacks {
+  onDelta?: (chunk: string) => void;
 }
 
 function normalizeSupportTicketMessage(raw: unknown): SupportTicketMessage | null {
@@ -849,15 +864,7 @@ export const platformApi = {
 
   async sendAiMessage(
     token: string,
-    payload: {
-      text?: string;
-      imageBase64?: string;
-      level?: string;
-      language?: string;
-      groupTitle?: string;
-      groupTime?: string;
-      systemContext?: string;
-    },
+    payload: AiStreamPayload,
   ) {
     const response = await apiRequest<unknown>("/api/chat/ai/messages", {
       method: "POST",
@@ -869,6 +876,95 @@ export const platformApi = {
     return readArray<unknown>(data?.messages)
       .map(normalizeAiChatMessage)
       .filter((item): item is AiChatMessage => item !== null);
+  },
+
+  async sendAiMessageStream(token: string, payload: AiStreamPayload, callbacks: AiStreamCallbacks = {}) {
+    if (!API_BASE_URL) {
+      throw new Error("API base URL is not configured");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/chat/ai/messages/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok || !response.body) {
+      const fallbackText = await response.text().catch(() => "");
+      throw new Error(fallbackText || `AI stream failed (${response.status})`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    let assistantText = "";
+
+    const processBlock = (block: string) => {
+      const lines = block.split("\n");
+      let event = "message";
+      let dataLine = "";
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) continue;
+        if (line.startsWith("event:")) {
+          event = line.slice(6).trim();
+          continue;
+        }
+        if (line.startsWith("data:")) {
+          dataLine = line.slice(5).trim();
+        }
+      }
+      if (!dataLine) return null;
+
+      let payloadJson: Record<string, unknown> | null = null;
+      try {
+        payloadJson = JSON.parse(dataLine) as Record<string, unknown>;
+      } catch {
+        payloadJson = null;
+      }
+
+      if (event === "delta") {
+        const chunk = typeof payloadJson?.text === "string" ? payloadJson.text : "";
+        if (chunk) {
+          assistantText += chunk;
+          callbacks.onDelta?.(chunk);
+        }
+      }
+
+      if (event === "done") {
+        const rawAssistant = payloadJson?.assistantMessage;
+        const normalized = normalizeAiChatMessage(rawAssistant);
+        if (normalized?.text) {
+          assistantText = normalized.text;
+        }
+      }
+
+      if (event === "error") {
+        const message = typeof payloadJson?.message === "string" ? payloadJson.message : "AI stream error";
+        throw new Error(message);
+      }
+      return null;
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const blocks = buffer.split("\n\n");
+      buffer = blocks.pop() ?? "";
+      for (const block of blocks) {
+        processBlock(block);
+      }
+    }
+
+    if (buffer.trim()) {
+      processBlock(buffer);
+    }
+
+    return assistantText.trim();
   },
 
   async deactivateStudent(token: string, studentId: string) {
