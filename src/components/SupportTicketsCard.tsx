@@ -1,4 +1,4 @@
-import { Check, CheckCheck, LifeBuoy, Loader2, Send } from "lucide-react";
+import { AlertCircle, Check, CheckCheck, LifeBuoy, Loader2, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SupportTicket, SupportTicketMessage, SupportTicketStatus, UserRole } from "../types";
 import { platformApi } from "../services/api/platformApi";
@@ -12,7 +12,7 @@ interface SupportTicketsCardProps {
 }
 
 type UiSupportMessage = SupportTicketMessage & {
-  localState?: "sending";
+  localState?: "sending" | "failed";
 };
 
 function statusLabel(value: SupportTicketStatus): string {
@@ -44,7 +44,7 @@ function mergeMessages(current: UiSupportMessage[], incoming: UiSupportMessage[]
 }
 
 function messageReadByPeer(role: UserRole, message: UiSupportMessage): boolean {
-  if (message.localState === "sending") return false;
+  if (message.localState === "sending" || message.localState === "failed") return false;
   if (role === "student") return Boolean(message.readBySupportAt);
   return Boolean(message.readByStudentAt);
 }
@@ -200,6 +200,15 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
           [sent],
         ),
       }));
+    } catch {
+      if (activeTicket) {
+        setMessagesByTicket((prev) => ({
+          ...prev,
+          [activeTicket.id]: (prev[activeTicket.id] ?? []).map((item) =>
+            item.id.startsWith("local_") && item.text === text ? { ...item, localState: "failed" } : item,
+          ),
+        }));
+      }
     } finally {
       setSending(false);
     }
@@ -275,7 +284,20 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                 {loadingMessages && activeMessages.length === 0 ? (
                   <p className="text-xs text-zinc-400">Loading messages...</p>
                 ) : activeMessages.length === 0 ? (
-                  <p className="text-xs text-zinc-400">No messages yet.</p>
+                  activeTicket ? (
+                    <div className="flex justify-end transition-all duration-200">
+                      <div className="max-w-[78%] rounded-2xl rounded-br-md bg-[#6F0000] px-3 py-2.5 text-sm text-white shadow-[0_10px_22px_-18px_rgba(111,0,0,0.65)]">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70">You</p>
+                        <p className="mt-1 whitespace-pre-wrap text-white">{activeTicket.message}</p>
+                        <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-white/75">
+                          <span>{new Date(activeTicket.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                          <Check className="h-3 w-3" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-400">No messages yet.</p>
+                  )
                 ) : (
                   activeMessages.map((message) => {
                     const mine = role === "student" ? message.senderType === "student" : message.senderType !== "student";
@@ -293,7 +315,15 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                           <p className={`mt-1 whitespace-pre-wrap ${mine ? "text-white" : ""}`}>{message.text}</p>
                           <div className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-white/75" : "text-zinc-500"}`}>
                             <span>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                            {mine ? message.localState === "sending" ? <Loader2 className="h-3 w-3 animate-spin" /> : read ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" /> : null}
+                            {mine
+                              ? message.localState === "sending"
+                                ? <Loader2 className="h-3 w-3 animate-spin" />
+                                : message.localState === "failed"
+                                  ? <AlertCircle className="h-3 w-3 text-amber-200" />
+                                  : read
+                                    ? <CheckCheck className="h-3 w-3" />
+                                    : <Check className="h-3 w-3" />
+                              : null}
                           </div>
                         </div>
                       </div>

@@ -1,5 +1,5 @@
 ﻿import { Loader2, MessageCircle, Send, Users2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { UserAvatar } from "../components/UserAvatar";
@@ -110,6 +110,7 @@ export function FriendlyChatPage() {
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const messagesListRef = useRef<HTMLDivElement | null>(null);
 
   function forceRelogin() {
     clearApiToken();
@@ -424,6 +425,42 @@ export function FriendlyChatPage() {
     };
   }, [token, useLocalMode, activeConversationId, t]);
 
+  useEffect(() => {
+    if (!activeConversationId || useLocalMode || !token) return;
+    let disposed = false;
+
+    const pollMessages = async () => {
+      try {
+        const data = await platformApi.getFriendlyMessages(token, activeConversationId);
+        if (!disposed) {
+          setMessages((prev) => {
+            if (prev.length === data.length) {
+              const same = prev.every((item, index) => {
+                const next = data[index];
+                return next && item.id === next.id && item.text === next.text && item.createdAt === next.createdAt;
+              });
+              if (same) return prev;
+            }
+            return data;
+          });
+        }
+      } catch {
+        // keep previous messages
+      }
+    };
+
+    const intervalId = window.setInterval(() => void pollMessages(), 3500);
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeConversationId, token, useLocalMode]);
+
+  useEffect(() => {
+    if (!messagesListRef.current) return;
+    messagesListRef.current.scrollTop = messagesListRef.current.scrollHeight;
+  }, [messages, activeConversationId, sending]);
+
   async function handleSend() {
     if (!activeConversationId || !draft.trim() || sending || !session) return;
 
@@ -636,7 +673,7 @@ export function FriendlyChatPage() {
                   </div>
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
+                <div ref={messagesListRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
                   {loadingMessages ? (
                     <p className="inline-flex items-center gap-2 text-sm text-charcoal/65 dark:text-zinc-400">
                       <Loader2 className="h-4 w-4 animate-spin" />
