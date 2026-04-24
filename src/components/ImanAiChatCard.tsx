@@ -200,7 +200,6 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [imageViewerUrl, setImageViewerUrl] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [statusHint, setStatusHint] = useState<string | null>(null);
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -251,7 +250,6 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
     if (useGatewayMode) {
       setMessages(readLocalMessages(localStorageKey));
-      setStatusHint(null);
       setLoading(false);
       return;
     }
@@ -261,7 +259,6 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     let disposed = false;
     const load = async () => {
       setLoading(true);
-      setStatusHint(null);
       try {
         const history = await platformApi.getAiMessages(token);
         if (!disposed) setMessages(history);
@@ -347,7 +344,6 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
       const dataUrl = await fileToDataUrl(normalized);
       setImageFile(normalized);
       setImagePreview(dataUrl);
-      setStatusHint("Photo added. Click Send.");
       showToast({ message: "Photo added.", tone: "success", durationMs: 1800 });
     } catch {
       showToast({ message: "Failed to read the image.", tone: "error" });
@@ -389,7 +385,6 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
     if (!useGatewayMode && !token) return null;
 
     setSending(true);
-    setStatusHint(null);
 
     const textWithContext = effectiveText
       ? `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nvoice_mode=${silentVoiceMode ? "true" : "false"}\n[/CONTEXT]\n\n${
@@ -434,13 +429,6 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
           if (shouldWriteToChat) {
             await typeAssistantReply(assistantMessage.id, finalReply);
           }
-          setStatusHint(
-            response.provider
-              ? `AI provider: ${response.provider}${response.cached ? " (cache)" : ""}`
-              : response.cached
-                ? "AI provider: cache"
-                : null,
-          );
           return finalReply;
         } catch (gatewayError) {
           // Soft fallback: if gateway is unreachable, try existing backend AI route.
@@ -460,7 +448,6 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
               if (shouldWriteToChat) {
                 await typeAssistantReply(assistantMessage.id, finalReply);
               }
-              setStatusHint("Gateway unavailable. Switched to backend AI.");
               if (!silentVoiceMode) {
                 showToast({ message: "Gateway unavailable. Backup AI mode enabled.", tone: "info" });
               }
@@ -533,7 +520,6 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
         if (streamedText.trim()) {
           const normalizedStreamReply = normalizeAssistantReply(streamedText);
           updateMessageText(assistantMessage.id, normalizedStreamReply);
-          setStatusHint("Fast streaming mode");
           return normalizedStreamReply;
         }
       }
@@ -543,7 +529,6 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
       if (shouldWriteToChat) {
         await typeAssistantReply(assistantMessage.id, finalReply);
       }
-      setStatusHint(null);
       return finalReply;
     } catch (error) {
       if (isAuthError(error)) {
@@ -584,17 +569,6 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
           </p>
         ) : (
           <>
-            {useGatewayMode ? (
-              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300">
-                Gateway mode: queue + cache + fallback active
-              </p>
-            ) : null}
-            {statusHint ? (
-              <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs font-semibold text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-burgundy-100">
-                {statusHint}
-              </p>
-            ) : null}
-
             <div
               ref={listRef}
               className="h-80 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"

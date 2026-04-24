@@ -653,7 +653,7 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
         <CardContent className="space-y-4">
           {!canUseAi ? (
             <div className="rounded-2xl border border-burgundy-200 bg-burgundy-50 px-4 py-3 text-sm text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
-              AI API not connected. Login in API mode for fully dynamic games. Fallback rounds are active.
+              AI games are running in local mode right now.
             </div>
           ) : null}
 

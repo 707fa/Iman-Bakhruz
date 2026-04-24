@@ -167,7 +167,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
 
         {!token ? (
           <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            Support center is available in API mode.
+            Please log in to open support chat.
           </p>
         ) : null}
 
