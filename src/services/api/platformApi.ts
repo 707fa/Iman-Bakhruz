@@ -431,7 +431,8 @@ function normalizeSupportTicketMessage(raw: unknown): SupportTicketMessage | nul
   const senderType: SupportTicketMessage["senderType"] =
     senderRaw === "teacher" ? "teacher" : senderRaw === "support" ? "support" : "student";
   const id = str(item.id);
-  const ticketId = str(item.ticketId ?? item.ticket_id ?? item.ticket);
+  const ticketRef = asRecord(item.ticket);
+  const ticketId = str(item.ticketId ?? item.ticket_id ?? item.ticket ?? ticketRef?.id);
   const text = str(item.text ?? item.message);
   const createdAt = str(item.createdAt ?? item.created_at);
   if (!id || !ticketId || !text || !createdAt) return null;
@@ -840,7 +841,9 @@ export const platformApi = {
       token,
     });
     const data = getDataObject(response);
-    return readArray<unknown>(data?.messages ?? data)
+    const ticket = asRecord(data?.ticket);
+    const messagesPayload = data?.messages ?? ticket?.messages ?? data;
+    return readArray<unknown>(messagesPayload)
       .map(normalizeSupportTicketMessage)
       .filter((item): item is SupportTicketMessage => item !== null);
   },
@@ -852,9 +855,12 @@ export const platformApi = {
       body: { text },
     });
     const data = getDataObject(response);
+    const ticket = asRecord(data?.ticket);
+    const ticketMessages = readArray<unknown>(ticket?.messages);
     const message =
       normalizeSupportTicketMessage(data?.message) ??
       normalizeSupportTicketMessage(data?.result) ??
+      normalizeSupportTicketMessage(ticketMessages[ticketMessages.length - 1]) ??
       normalizeSupportTicketMessage(data);
     if (!message) throw new Error("Invalid support message response");
     return message;

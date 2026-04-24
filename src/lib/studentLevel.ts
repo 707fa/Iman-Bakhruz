@@ -35,24 +35,24 @@ export function buildImanChatContextPrompt(params: {
   groupTime?: string;
 }): string {
   const { level, locale, groupTitle, groupTime } = params;
-  const preferredLanguage = resolveAiFeedbackLanguage(level, locale);
-  const supportLanguage = preferredLanguage === "en" ? "ru/uz" : preferredLanguage;
+  const supportLanguage = locale === "uz" ? "uz" : locale === "ru" ? "ru" : "ru/uz";
 
   const languageRule = isFoundationLevel(level)
     ? [
         "Language rule:",
         "- Understand and accept user input in English, Russian, and Uzbek.",
-        "- Output ratio target for beginner/elementary:",
-        "- About 70% simple English + about 30% support language.",
-        `- Support language for this student: ${supportLanguage.toUpperCase()}.`,
-        "- Keep English words short and easy (A1/A2).",
-        "- Correct mistakes gently like a friendly tutor.",
+        "- For beginner/elementary: answer mainly in SIMPLE ENGLISH (A1/A2).",
+        `- If the user writes in RU/UZ: still answer in English, but explain only DIFFICULT words in ${supportLanguage.toUpperCase()} when needed.`,
+        "- Do NOT repeat the same sentence in two languages.",
+        "- Do NOT give full EN + RU/UZ translation of the same response.",
+        "- Keep answers short, practical, and tutor-like.",
       ].join("\n")
     : [
         "Language rule:",
         "- Understand and accept user input in English, Russian, and Uzbek.",
-        "- Output ratio target for higher levels:",
-        "- About 98% English, up to 2% support language only if needed for clarity.",
+        "- For pre-intermediate/intermediate and above: answer in English only.",
+        "- If user writes in RU/UZ, politely ask to continue in English and then provide English help.",
+        "- Do NOT translate your whole answer into RU/UZ.",
         "- Keep explanations clear, concise, and practical.",
       ].join("\n");
 
@@ -65,6 +65,7 @@ export function buildImanChatContextPrompt(params: {
     "- Keep wording clear and simple, avoid robotic phrasing.",
     "- Do not wrap whole sentences in quotes.",
     "- Avoid weird symbols, escaped characters, or noisy markdown.",
+    "- Never duplicate one answer in multiple languages.",
     `Student level: ${level}.`,
     `Student group: ${groupTitle || "Unknown group"}.`,
     `Class time: ${groupTime || "Unknown time"}.`,
