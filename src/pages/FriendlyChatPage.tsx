@@ -1,5 +1,5 @@
 ﻿import { Loader2, MessageCircle, Send, Users2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { UserAvatar } from "../components/UserAvatar";
@@ -101,6 +101,7 @@ export function FriendlyChatPage() {
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const messagesListRef = useRef<HTMLDivElement | null>(null);
 
   function forceRelogin() {
     clearApiToken();
@@ -409,6 +410,11 @@ export function FriendlyChatPage() {
     };
   }, [token, useLocalMode, activeConversationId, t]);
 
+  useEffect(() => {
+    if (!messagesListRef.current) return;
+    messagesListRef.current.scrollTop = messagesListRef.current.scrollHeight;
+  }, [messages, sending]);
+
   async function handleSend() {
     if (!activeConversationId || !draft.trim() || sending || !session) return;
 
@@ -472,8 +478,38 @@ export function FriendlyChatPage() {
     }
 
     try {
+      const optimisticMessage: FriendlyChatMessage = {
+        id: createMessageId(),
+        senderId: session.userId,
+        senderName:
+          session.role === "teacher"
+            ? currentTeacher?.fullName ?? "Teacher"
+            : currentStudent?.fullName ?? "Student",
+        senderRole: session.role,
+        text,
+        createdAt: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, optimisticMessage]);
+      setConversations((prev) =>
+        prev.map((item) =>
+          item.id === activeConversationId
+            ? {
+                ...item,
+                updatedAt: optimisticMessage.createdAt,
+                lastMessage: {
+                  id: optimisticMessage.id,
+                  text: optimisticMessage.text,
+                  senderId: optimisticMessage.senderId,
+                  createdAt: optimisticMessage.createdAt,
+                },
+              }
+            : item,
+        ),
+      );
+
       const sent = await platformApi.sendFriendlyMessage(token, activeConversationId, text);
-      setMessages((prev) => [...prev, sent]);
+      setMessages((prev) => prev.map((item) => (item.id === optimisticMessage.id ? sent : item)));
       setConversations((prev) =>
         prev.map((item) =>
           item.id === activeConversationId
@@ -604,7 +640,7 @@ export function FriendlyChatPage() {
                   <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{activeConversation.peer.fullName}</p>
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
+                <div ref={messagesListRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
                   {loadingMessages ? (
                     <p className="inline-flex items-center gap-2 text-sm text-charcoal/65 dark:text-zinc-400">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -673,6 +709,5 @@ export function FriendlyChatPage() {
     </div>
   );
 }
-
 
 

@@ -1,6 +1,7 @@
 import { LifeBuoy, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SupportTicket, SupportTicketStatus, UserRole } from "../types";
+import { useAppStore } from "../hooks/useAppStore";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
 import { Button } from "./ui/button";
@@ -9,6 +10,23 @@ import { Input } from "./ui/input";
 
 interface SupportTicketsCardProps {
   role: UserRole;
+}
+
+function readLocalSupportTickets(storageKey: string): SupportTicket[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(storageKey);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as SupportTicket[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalSupportTickets(storageKey: string, tickets: SupportTicket[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(storageKey, JSON.stringify(tickets.slice(-300)));
 }
 
 function statusLabel(value: SupportTicketStatus): string {
@@ -24,12 +42,15 @@ function statusClass(value: SupportTicketStatus): string {
 }
 
 export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
+  const { state } = useAppStore();
   const token = getApiToken();
   const [draft, setDraft] = useState("");
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const sessionUserId = state.session?.userId ?? "guest";
+  const supportStorageKey = useMemo(() => `support-chat-v2:${sessionUserId}`, [sessionUserId]);
 
   const sortedTickets = useMemo(
     () =>
@@ -54,9 +75,22 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       setLoading(true);
       try {
         const response = await platformApi.getSupportTickets(token);
-        if (!disposed) setTickets(response);
+        if (!disposed) {
+          const local = readLocalSupportTickets(supportStorageKey);
+          const merged = [...response];
+          const seen = new Set(response.map((item) => item.id));
+          for (const localTicket of local) {
+            if (!seen.has(localTicket.id)) {
+              merged.push(localTicket);
+            }
+          }
+          setTickets(merged);
+          writeLocalSupportTickets(supportStorageKey, merged);
+        }
       } catch {
-        if (!disposed) setTickets([]);
+        if (!disposed) {
+          setTickets(readLocalSupportTickets(supportStorageKey));
+        }
       } finally {
         if (!disposed) setLoading(false);
       }
@@ -71,7 +105,11 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       disposed = true;
       window.clearInterval(intervalId);
     };
-  }, [token]);
+  }, [token, supportStorageKey]);
+
+  useEffect(() => {
+    writeLocalSupportTickets(supportStorageKey, tickets);
+  }, [supportStorageKey, tickets]);
 
   useEffect(() => {
     if (!activeTicket) return;
@@ -85,13 +123,30 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
 
   async function createTicket() {
     if (!token || role !== "student" || !draft.trim()) return;
+    const text = draft.trim();
+    const now = new Date().toISOString();
+    const optimisticTicket: SupportTicket = {
+      id: `local_${Date.now()}`,
+      studentId: sessionUserId,
+      studentName: "You",
+      teacherId: "",
+      teacherName: "",
+      message: text,
+      status: "open",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    setTickets((prev) => [...prev, optimisticTicket]);
+    setDraft("");
+    setExpandedTicketId(optimisticTicket.id);
+
     try {
-      const created = await platformApi.createSupportTicket(token, draft.trim());
-      setTickets((prev) => [...prev, created]);
-      setDraft("");
+      const created = await platformApi.createSupportTicket(token, text);
+      setTickets((prev) => prev.map((item) => (item.id === optimisticTicket.id ? created : item)));
       setExpandedTicketId(created.id);
     } catch {
-      // Keep text on error
+      // keep optimistic local message when backend is slow/unavailable
     }
   }
 
@@ -199,7 +254,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                           </p>
                         </div>
                         <div className={`max-w-[85%] ${mine ? "ml-auto" : "mr-auto"} text-[11px] text-charcoal/55 dark:text-zinc-400`}>
-                          Support status: {statusLabel(ticket.status)}
+                          Support status: {statusLabel(ticket.status)} {ticket.id.startsWith("local_") ? "• syncing..." : ""}
                         </div>
                       </div>
                     );
