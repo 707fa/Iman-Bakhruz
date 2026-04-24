@@ -1,5 +1,5 @@
 import { LifeBuoy, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SupportTicket, SupportTicketMessage, SupportTicketStatus, UserRole } from "../types";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
@@ -48,6 +48,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   const [messagesByTicket, setMessagesByTicket] = useState<Record<string, SupportTicketMessage[]>>({});
   const [draftByTicket, setDraftByTicket] = useState<Record<string, string>>({});
   const [loadingTicketMessages, setLoadingTicketMessages] = useState<Record<string, boolean>>({});
+  const messagesViewportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -57,9 +58,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       setLoading(true);
       try {
         const response = await platformApi.getSupportTickets(token);
-        if (!disposed) {
-          setTickets(response);
-        }
+        if (!disposed) setTickets(response);
       } catch {
         if (!disposed) setTickets([]);
       } finally {
@@ -116,6 +115,11 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       window.clearInterval(intervalId);
     };
   }, [token, expandedTicketId]);
+
+  useEffect(() => {
+    if (!messagesViewportRef.current) return;
+    messagesViewportRef.current.scrollTop = messagesViewportRef.current.scrollHeight;
+  }, [expandedTicketId, messagesByTicket]);
 
   async function createTicket() {
     if (!token || role !== "student" || !newTicketMessage.trim()) return;
@@ -236,18 +240,21 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                 const ticketCanSend = activeTicket.status !== "closed";
 
                 return (
-                  <div className="space-y-3">
+                  <div className="grid min-h-[32rem] grid-rows-[auto_minmax(0,1fr)_auto] gap-3">
                     <div className="flex items-center justify-between gap-2 border-b border-burgundy-100 pb-2 dark:border-zinc-700">
                       <div>
                         <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">
-                          Ticket #{activeTicket.id} {role === "teacher" ? `• ${activeTicket.studentName}` : ""}
+                          Ticket #{activeTicket.id} {role === "teacher" ? ` • ${activeTicket.studentName}` : ""}
                         </p>
                         <p className="text-xs text-charcoal/60 dark:text-zinc-400">{new Date(activeTicket.createdAt).toLocaleString()}</p>
                       </div>
                       <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusClass(activeTicket.status)}`}>{statusLabel(activeTicket.status)}</span>
                     </div>
 
-                    <div className="max-h-[26rem] min-h-[20rem] space-y-2 overflow-y-auto rounded-xl border border-burgundy-100 bg-white/85 p-2 dark:border-zinc-700 dark:bg-zinc-950/60">
+                    <div
+                      ref={messagesViewportRef}
+                      className="space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-950/70"
+                    >
                       {isMessagesLoading ? (
                         <p className="px-2 py-1 text-xs text-charcoal/60 dark:text-zinc-400">Loading messages...</p>
                       ) : messages.length === 0 ? (
@@ -259,15 +266,17 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                           return (
                             <div
                               key={item.id}
-                              className={`max-w-[82%] rounded-xl border px-3 py-2 text-sm ${
+                              className={`max-w-[84%] rounded-2xl px-3 py-2.5 text-sm ${
                                 mine
-                                  ? "ml-auto border-burgundy-300 bg-burgundy-50 dark:border-burgundy-700 dark:bg-burgundy-900/25"
-                                  : "mr-auto border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+                                  ? "ml-auto bg-burgundy-700 text-white shadow-[0_10px_22px_-18px_rgba(120,0,40,0.9)]"
+                                  : "mr-auto border border-zinc-200 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                               }`}
                             >
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">{senderTitle(role, item)}</p>
-                              <p className="mt-1 whitespace-pre-wrap text-charcoal dark:text-zinc-100">{item.text}</p>
-                              <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-charcoal/55 dark:text-zinc-400">
+                              <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${mine ? "text-white/80" : "text-charcoal/60 dark:text-zinc-400"}`}>
+                                {senderTitle(role, item)}
+                              </p>
+                              <p className={`mt-1 whitespace-pre-wrap ${mine ? "text-white" : ""}`}>{item.text}</p>
+                              <div className={`mt-1 flex items-center justify-between gap-2 text-[10px] ${mine ? "text-white/70" : "text-charcoal/55 dark:text-zinc-400"}`}>
                                 <span>{new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                                 {seen ? <span>{seen}</span> : null}
                               </div>
@@ -278,22 +287,30 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                     </div>
 
                     {ticketCanSend ? (
-                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                        <Input
-                          value={draft}
-                          onChange={(event) => setDraftByTicket((prev) => ({ ...prev, [activeTicket.id]: event.target.value }))}
-                          placeholder="Write a message..."
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              void sendMessage(activeTicket);
-                            }
-                          }}
-                        />
-                        <Button onClick={() => void sendMessage(activeTicket)} disabled={!draft.trim()}>
-                          <Send className="mr-2 h-4 w-4" />
-                          Send
-                        </Button>
+                      <div className="rounded-2xl border border-burgundy-200/80 bg-white/95 p-2 shadow-[0_14px_30px_-22px_rgba(80,0,20,0.6)] dark:border-zinc-700 dark:bg-zinc-950/95">
+                        <div className="flex items-end gap-2">
+                          <textarea
+                            value={draft}
+                            onChange={(event) => setDraftByTicket((prev) => ({ ...prev, [activeTicket.id]: event.target.value }))}
+                            placeholder="Write a message..."
+                            rows={1}
+                            className="max-h-36 min-h-[44px] flex-1 resize-y rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal outline-none transition placeholder:text-charcoal/45 focus:border-burgundy-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" && !event.shiftKey) {
+                                event.preventDefault();
+                                void sendMessage(activeTicket);
+                              }
+                            }}
+                          />
+                          <Button
+                            onClick={() => void sendMessage(activeTicket)}
+                            disabled={!draft.trim()}
+                            className="h-11 w-11 shrink-0 rounded-full p-0"
+                            aria-label="Send support message"
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <p className="text-xs text-charcoal/60 dark:text-zinc-400">This ticket is closed.</p>
