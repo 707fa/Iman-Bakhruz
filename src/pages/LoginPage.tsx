@@ -90,7 +90,7 @@ export function LoginPage() {
             <CardHeader className="space-y-2">
               <CardTitle className="text-2xl font-bold sm:text-3xl">{t("auth.loginTitle")}</CardTitle>
               <CardDescription>{t("auth.loginSubtitle")}</CardDescription>
-              <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
+              <p className="rounded-xl bg-burgundy-100/65 px-3 py-2 text-xs font-semibold text-burgundy-800 ring-1 ring-burgundy-700/30 dark:bg-burgundy-900/25 dark:text-burgundy-100 dark:ring-burgundy-700/25">
                 {t("promo.top5WeeklyFree")}
               </p>
             </CardHeader>
@@ -134,9 +134,13 @@ export function LoginPage() {
                   />
                 </div>
 
-                <Button type="submit" className="h-11 w-full rounded-2xl" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  className="h-11 w-full rounded-2xl bg-gradient-to-b from-burgundy-700 via-burgundy-800 to-burgundy-900 text-white shadow-soft hover:from-burgundy-600 hover:via-burgundy-700 hover:to-burgundy-800"
+                  disabled={isSubmitting}
+                >
                   <LogIn className="mr-2 h-4 w-4" />
-                  {isSubmitting ? `${t("auth.loginButton")}...` : t("auth.loginButton")}
+                  {isSubmitting ? "Входим..." : t("auth.loginButton")}
                 </Button>
               </form>
 
@@ -147,9 +151,9 @@ export function LoginPage() {
                 </Link>
               </p>
               <p className="mt-2 text-center text-sm text-charcoal/65 dark:text-zinc-400">
-                For parents:{" "}
+                Для родителей:{" "}
                 <Link to="/register/parent" className="font-semibold text-charcoal hover:text-black dark:text-white dark:hover:text-zinc-200">
-                  separate registration form
+                  отдельная регистрация
                 </Link>
               </p>
             </CardContent>
