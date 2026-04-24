@@ -295,21 +295,21 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                     return (
                       <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                         <div
-                          className={`max-w-[85%] rounded-2xl px-3 py-2.5 text-sm ${
-                            fromStudent
-                              ? "bg-white text-zinc-900 shadow-[0_10px_22px_-18px_rgba(255,255,255,0.35)]"
+                          className={`max-w-[78%] rounded-2xl px-3 py-2.5 text-sm ${
+                            mine
+                              ? "rounded-br-md bg-[#6F0000] text-white shadow-[0_10px_22px_-18px_rgba(111,0,0,0.65)]"
                               : "border border-zinc-800 bg-zinc-900 text-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
                           }`}
                         >
                           <p
                             className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${
-                              fromStudent ? "text-zinc-500" : "text-zinc-400"
+                              mine ? "text-white/70" : "text-zinc-400"
                             }`}
                           >
                             {senderTitle(role, message)}
                           </p>
-                          <p className={`mt-1 whitespace-pre-wrap ${fromStudent ? "text-zinc-900" : ""}`}>{message.text}</p>
-                          <p className={`mt-1 text-right text-[10px] ${fromStudent ? "text-zinc-500" : "text-zinc-500 dark:text-zinc-500"}`}>
+                          <p className={`mt-1 whitespace-pre-wrap ${mine ? "text-white" : ""}`}>{message.text}</p>
+                          <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/70" : "text-zinc-500 dark:text-zinc-500"}`}>
                             {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>

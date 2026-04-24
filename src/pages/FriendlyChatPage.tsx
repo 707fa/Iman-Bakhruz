@@ -655,9 +655,9 @@ export function FriendlyChatPage() {
                         <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                           <div
                             className={[
-                              "max-w-[85%] rounded-2xl px-3 py-2.5 text-sm shadow-[0_16px_32px_-26px_rgba(0,0,0,0.65)]",
+                              "max-w-[78%] rounded-2xl px-3 py-2.5 text-sm shadow-[0_16px_32px_-26px_rgba(0,0,0,0.65)]",
                               mine
-                                ? "bg-[#6F0000] text-white"
+                                ? "rounded-br-md bg-[#6F0000] text-white"
                                 : "border border-zinc-800 bg-zinc-900 text-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100",
                             ].join(" ")}
                           >
