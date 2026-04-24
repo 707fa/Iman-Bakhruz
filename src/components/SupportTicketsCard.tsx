@@ -29,6 +29,25 @@ function writeLocalSupportTickets(storageKey: string, tickets: SupportTicket[]) 
   window.localStorage.setItem(storageKey, JSON.stringify(tickets.slice(-300)));
 }
 
+function mergeTicketsStable(...groups: SupportTicket[][]): SupportTicket[] {
+  const map = new Map<string, SupportTicket>();
+  for (const group of groups) {
+    for (const ticket of group) {
+      const existing = map.get(ticket.id);
+      if (!existing) {
+        map.set(ticket.id, ticket);
+        continue;
+      }
+      const existingUpdated = new Date(existing.updatedAt || existing.createdAt).getTime();
+      const nextUpdated = new Date(ticket.updatedAt || ticket.createdAt).getTime();
+      if (nextUpdated >= existingUpdated) {
+        map.set(ticket.id, ticket);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
 function statusLabel(value: SupportTicketStatus): string {
   if (value === "in_progress") return "In progress";
   if (value === "closed") return "Closed";
@@ -77,19 +96,15 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
         const response = await platformApi.getSupportTickets(token);
         if (!disposed) {
           const local = readLocalSupportTickets(supportStorageKey);
-          const merged = [...response];
-          const seen = new Set(response.map((item) => item.id));
-          for (const localTicket of local) {
-            if (!seen.has(localTicket.id)) {
-              merged.push(localTicket);
-            }
-          }
-          setTickets(merged);
-          writeLocalSupportTickets(supportStorageKey, merged);
+          setTickets((prev) => {
+            const merged = mergeTicketsStable(prev, local, response);
+            writeLocalSupportTickets(supportStorageKey, merged);
+            return merged;
+          });
         }
       } catch {
         if (!disposed) {
-          setTickets(readLocalSupportTickets(supportStorageKey));
+          setTickets((prev) => mergeTicketsStable(prev, readLocalSupportTickets(supportStorageKey)));
         }
       } finally {
         if (!disposed) setLoading(false);
