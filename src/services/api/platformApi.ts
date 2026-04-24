@@ -563,6 +563,7 @@ export const platformApi = {
     const response = await apiRequest<unknown>("/auth/login", {
       method: "POST",
       body: payload,
+      timeoutMs: 7000,
     });
     return normalizeAuthResponse(response);
   },
