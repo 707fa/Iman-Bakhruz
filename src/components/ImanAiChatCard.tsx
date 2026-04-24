@@ -13,6 +13,7 @@ import { clearApiToken, getApiToken } from "../services/tokenStorage";
 import { platformApi } from "../services/api/platformApi";
 import { aiGatewayCheckHomework, mapAiGatewayErrorToMessage } from "../services/api/aiGatewayApi";
 import { VoiceScreen } from "./voice/VoiceScreen";
+import { ChatFormattedText } from "./ui/ChatFormattedText";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
@@ -248,8 +249,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   useEffect(() => {
     if (!canUseApi) return;
 
+    setMessages(readLocalMessages(localStorageKey));
+
     if (useGatewayMode) {
-      setMessages(readLocalMessages(localStorageKey));
       setLoading(false);
       return;
     }
@@ -575,10 +577,11 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
                           {mine ? "You" : "Iman AI"}
                         </div>
                         {message.text ? (
-                          <p className="whitespace-pre-wrap break-words">
-                            {message.text}
-                            {typingMessageId === message.id ? <span className="ml-0.5 inline-block animate-pulse">|</span> : null}
-                          </p>
+                          <ChatFormattedText
+                            text={message.text}
+                            className="whitespace-pre-wrap break-words"
+                            showCursor={typingMessageId === message.id}
+                          />
                         ) : message.role === "assistant" && typingMessageId === message.id ? (
                           <div className="inline-flex items-center gap-2 text-sm">
                             <Loader2 className="h-4 w-4 animate-spin" />

@@ -864,7 +864,7 @@ export const platformApi = {
     const response = await apiRequest<unknown>("/chat/ai/messages", {
       method: "GET",
       token,
-      timeoutMs: 60000,
+      timeoutMs: 15000,
     });
     const data = getDataObject(response);
     const conversation = asRecord(data?.conversation);
@@ -889,7 +889,7 @@ export const platformApi = {
       method: "POST",
       token,
       body: payload,
-      timeoutMs: 90000,
+      timeoutMs: 35000,
     });
     const data = getDataObject(response);
     return readArray<unknown>(data?.messages)
