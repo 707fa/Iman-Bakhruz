@@ -12,6 +12,9 @@ export interface ProgressSnapshot {
   weeklyXp: number;
   level: number;
   streakDays: number;
+  gameWins?: number;
+  gamesPlayed?: number;
+  gameBonusPoints?: number;
 }
 
 export interface Group {
