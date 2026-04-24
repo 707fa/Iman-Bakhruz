@@ -111,7 +111,7 @@ export function TeacherHomePage() {
             <Sparkles className="h-4 w-4 text-charcoal dark:text-white" />
             {t("teacher.quickActions")}
           </p>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Link to="/teacher/groups">
               <Button variant="secondary" className="w-full justify-between">
                 {t("nav.teacherGroups")}
@@ -130,6 +130,14 @@ export function TeacherHomePage() {
                 <span className="inline-flex items-center gap-2">
                   <MessageCircle className="h-4 w-4" />
                   {t("nav.friendly")}
+                </span>
+              </Button>
+            </Link>
+            <Link to="/teacher/ai-chat">
+              <Button className="w-full justify-between">
+                <span className="inline-flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  {t("nav.aiChat")}
                 </span>
               </Button>
             </Link>

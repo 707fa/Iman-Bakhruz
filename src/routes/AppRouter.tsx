@@ -107,6 +107,7 @@ export function AppRouter() {
             <Route path="/teacher/top" element={<TeacherTopPage />} />
             <Route path="/teacher/tools" element={<Navigate to="/teacher" replace />} />
             <Route path="/teacher/chat" element={<FriendlyChatPage />} />
+            <Route path="/teacher/ai-chat" element={<ImanAiChatPage />} />
             <Route path="/teacher/support" element={<SupportPage />} />
             <Route path="/teacher/group/:id" element={<TeacherGroupPage />} />
             <Route path="/teacher/student/:id" element={<TeacherStudentProfilePage />} />

@@ -63,6 +63,7 @@ export function AppLayout() {
     ],
     teacher: [
       { label: t("nav.friendly"), href: "/teacher/chat", icon: MessageCircle },
+      { label: t("nav.aiChat"), href: "/teacher/ai-chat", icon: MessageCircle },
     ],
     parent: [],
   };
