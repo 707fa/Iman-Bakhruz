@@ -400,19 +400,26 @@ function normalizeGrammarTopic(raw: unknown): GrammarTopic | null {
 function normalizeSupportTicket(raw: unknown): SupportTicket | null {
   const item = asRecord(raw);
   if (!item) return null;
+  const student = asRecord(item.student);
+  const teacher = asRecord(item.teacher);
   const statusValue = str(item.status) as SupportTicketStatus;
   const status: SupportTicketStatus =
     statusValue === "in_progress" || statusValue === "closed" ? statusValue : "open";
+  const id = str(item.id ?? item.ticket_id ?? item.request_id);
+  const message = str(item.message ?? item.problem ?? item.text ?? item.content);
+  const createdAt = str(item.createdAt ?? item.created_at ?? item.created);
+  const updatedAt = str(item.updatedAt ?? item.updated_at ?? item.updated ?? createdAt);
+  if (!id || !message || !createdAt) return null;
   return {
-    id: str(item.id),
-    studentId: str(item.student ?? item.student_id),
-    studentName: str(item.studentName ?? item.student_name),
-    teacherId: str(item.teacher ?? item.teacher_id),
-    teacherName: str(item.teacherName ?? item.teacher_name),
-    message: str(item.message),
+    id,
+    studentId: str(item.studentId ?? item.student_id ?? item.student ?? student?.id),
+    studentName: str(item.studentName ?? item.student_name ?? student?.full_name ?? student?.fullName),
+    teacherId: str(item.teacherId ?? item.teacher_id ?? item.teacher ?? teacher?.id),
+    teacherName: str(item.teacherName ?? item.teacher_name ?? teacher?.full_name ?? teacher?.fullName),
+    message,
     status,
-    createdAt: str(item.createdAt ?? item.created_at),
-    updatedAt: str(item.updatedAt ?? item.updated_at),
+    createdAt,
+    updatedAt,
   };
 }
 
@@ -763,7 +770,13 @@ export const platformApi = {
       token,
     });
     const data = getDataObject(response);
-    return readArray<unknown>(data?.tickets ?? data)
+    const list =
+      readArray<unknown>(data?.tickets) ??
+      readArray<unknown>(data?.requests) ??
+      readArray<unknown>(data?.results) ??
+      readArray<unknown>(data?.items);
+    const fallbackList = Array.isArray(list) && list.length > 0 ? list : readArray<unknown>(data?.tickets ?? data?.requests ?? data?.results ?? data?.items ?? data);
+    return fallbackList
       .map(normalizeSupportTicket)
       .filter((item): item is SupportTicket => item !== null);
   },
@@ -772,10 +785,14 @@ export const platformApi = {
     const response = await apiRequest<unknown>("/support/tickets", {
       method: "POST",
       token,
-      body: { message },
+      body: { message, problem: message, text: message },
     });
     const data = getDataObject(response);
-    const ticket = normalizeSupportTicket(data?.ticket ?? data);
+    const ticket =
+      normalizeSupportTicket(data?.ticket) ??
+      normalizeSupportTicket(data?.request) ??
+      normalizeSupportTicket(data?.result) ??
+      normalizeSupportTicket(data);
     if (!ticket) throw new Error("Invalid support response");
     return ticket;
   },
