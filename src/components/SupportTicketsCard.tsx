@@ -1,7 +1,6 @@
 import { LifeBuoy, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SupportTicket, SupportTicketStatus, UserRole } from "../types";
-import { useAppStore } from "../hooks/useAppStore";
+import type { SupportTicket, SupportTicketMessage, SupportTicketStatus, UserRole } from "../types";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
 import { Button } from "./ui/button";
@@ -10,42 +9,6 @@ import { Input } from "./ui/input";
 
 interface SupportTicketsCardProps {
   role: UserRole;
-}
-
-function readLocalSupportTickets(storageKey: string): SupportTicket[] {
-  if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(storageKey);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as SupportTicket[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeLocalSupportTickets(storageKey: string, tickets: SupportTicket[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(storageKey, JSON.stringify(tickets.slice(-300)));
-}
-
-function mergeTicketsStable(...groups: SupportTicket[][]): SupportTicket[] {
-  const map = new Map<string, SupportTicket>();
-  for (const group of groups) {
-    for (const ticket of group) {
-      const existing = map.get(ticket.id);
-      if (!existing) {
-        map.set(ticket.id, ticket);
-        continue;
-      }
-      const existingUpdated = new Date(existing.updatedAt || existing.createdAt).getTime();
-      const nextUpdated = new Date(ticket.updatedAt || ticket.createdAt).getTime();
-      if (nextUpdated >= existingUpdated) {
-        map.set(ticket.id, ticket);
-      }
-    }
-  }
-  return Array.from(map.values());
 }
 
 function statusLabel(value: SupportTicketStatus): string {
@@ -60,118 +23,174 @@ function statusClass(value: SupportTicketStatus): string {
   return "bg-burgundy-100 text-burgundy-700 dark:bg-burgundy-900/35 dark:text-white";
 }
 
+function senderTitle(role: UserRole, message: SupportTicketMessage): string {
+  if (message.senderType === "student") return role === "student" ? "You" : "Student";
+  if (message.senderType === "teacher") return "Teacher";
+  return "Support";
+}
+
 export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
-  const { state } = useAppStore();
   const token = getApiToken();
   const [draft, setDraft] = useState("");
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
-  const listRef = useRef<HTMLDivElement | null>(null);
-  const sessionUserId = state.session?.userId ?? "guest";
-  const supportStorageKey = useMemo(() => `support-chat-v2:${sessionUserId}`, [sessionUserId]);
+  const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
+  const [messagesByTicket, setMessagesByTicket] = useState<Record<string, SupportTicketMessage[]>>({});
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [ticketUpdating, setTicketUpdating] = useState(false);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
 
   const sortedTickets = useMemo(
     () =>
       [...tickets].sort((a, b) => {
-        const aTime = new Date(a.createdAt).getTime();
-        const bTime = new Date(b.createdAt).getTime();
-        return aTime - bTime;
+        const aTime = new Date(a.updatedAt || a.createdAt).getTime();
+        const bTime = new Date(b.updatedAt || b.createdAt).getTime();
+        return bTime - aTime;
       }),
     [tickets],
   );
 
   const activeTicket = useMemo(
-    () => sortedTickets.find((ticket) => ticket.id === expandedTicketId) ?? sortedTickets[sortedTickets.length - 1] ?? null,
-    [expandedTicketId, sortedTickets],
+    () => sortedTickets.find((ticket) => ticket.id === activeTicketId) ?? sortedTickets[0] ?? null,
+    [sortedTickets, activeTicketId],
+  );
+
+  const activeMessages = useMemo(
+    () => (activeTicket ? messagesByTicket[activeTicket.id] ?? [] : []),
+    [activeTicket, messagesByTicket],
   );
 
   useEffect(() => {
     if (!token) return;
     let disposed = false;
 
-    const load = async () => {
-      setLoading(true);
+    const loadTickets = async () => {
+      setLoadingTickets(true);
       try {
-        const response = await platformApi.getSupportTickets(token);
+        const next = await platformApi.getSupportTickets(token);
         if (!disposed) {
-          const local = readLocalSupportTickets(supportStorageKey);
-          setTickets((prev) => {
-            const merged = mergeTicketsStable(prev, local, response);
-            writeLocalSupportTickets(supportStorageKey, merged);
-            return merged;
-          });
+          setTickets(next);
         }
       } catch {
         if (!disposed) {
-          setTickets((prev) => mergeTicketsStable(prev, readLocalSupportTickets(supportStorageKey)));
+          setTickets((prev) => prev);
         }
       } finally {
-        if (!disposed) setLoading(false);
+        if (!disposed) {
+          setLoadingTickets(false);
+        }
       }
     };
 
-    void load();
+    void loadTickets();
     const intervalId = window.setInterval(() => {
-      void load();
-    }, 10000);
+      void loadTickets();
+    }, 6000);
 
     return () => {
       disposed = true;
       window.clearInterval(intervalId);
     };
-  }, [token, supportStorageKey]);
+  }, [token]);
 
   useEffect(() => {
-    writeLocalSupportTickets(supportStorageKey, tickets);
-  }, [supportStorageKey, tickets]);
+    if (!activeTicket && sortedTickets.length === 0) {
+      setActiveTicketId(null);
+      return;
+    }
+    if (!activeTicket && sortedTickets.length > 0) {
+      setActiveTicketId(sortedTickets[0].id);
+    }
+  }, [activeTicket, sortedTickets]);
 
   useEffect(() => {
-    if (!activeTicket) return;
-    setExpandedTicketId(activeTicket.id);
-  }, [activeTicket?.id]);
+    if (!token || !activeTicket) return;
+    let disposed = false;
 
-  useEffect(() => {
-    if (!listRef.current) return;
-    listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [sortedTickets, loading]);
-
-  async function createTicket() {
-    if (!token || role !== "student" || !draft.trim()) return;
-    const text = draft.trim();
-    const now = new Date().toISOString();
-    const optimisticTicket: SupportTicket = {
-      id: `local_${Date.now()}`,
-      studentId: sessionUserId,
-      studentName: "You",
-      teacherId: "",
-      teacherName: "",
-      message: text,
-      status: "open",
-      createdAt: now,
-      updatedAt: now,
+    const loadMessages = async () => {
+      setLoadingMessages(true);
+      try {
+        const next = await platformApi.getSupportTicketMessages(token, activeTicket.id);
+        if (!disposed) {
+          setMessagesByTicket((prev) => ({ ...prev, [activeTicket.id]: next }));
+        }
+      } catch {
+        // keep previous messages
+      } finally {
+        if (!disposed) {
+          setLoadingMessages(false);
+        }
+      }
     };
 
-    setTickets((prev) => [...prev, optimisticTicket]);
-    setDraft("");
-    setExpandedTicketId(optimisticTicket.id);
+    void loadMessages();
+    const intervalId = window.setInterval(() => {
+      void loadMessages();
+    }, 4000);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [token, activeTicket?.id]);
+
+  useEffect(() => {
+    if (!viewportRef.current) return;
+    viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
+  }, [activeMessages, activeTicket?.id]);
+
+  async function handleSend() {
+    if (!token || !draft.trim() || sending) return;
+    const text = draft.trim();
+    setSending(true);
 
     try {
-      const created = await platformApi.createSupportTicket(token, text);
-      setTickets((prev) => prev.map((item) => (item.id === optimisticTicket.id ? created : item)));
-      setExpandedTicketId(created.id);
+      if (!activeTicket) {
+        const created = await platformApi.createSupportTicket(token, text);
+        setTickets((prev) => [created, ...prev]);
+        setActiveTicketId(created.id);
+        const createdMessages = await platformApi.getSupportTicketMessages(token, created.id);
+        setMessagesByTicket((prev) => ({ ...prev, [created.id]: createdMessages }));
+        setDraft("");
+        return;
+      }
+
+      const optimistic: SupportTicketMessage = {
+        id: `local_${Date.now()}`,
+        ticketId: activeTicket.id,
+        senderType: "student",
+        text,
+        source: "web",
+        createdAt: new Date().toISOString(),
+      };
+
+      setMessagesByTicket((prev) => ({
+        ...prev,
+        [activeTicket.id]: [...(prev[activeTicket.id] ?? []), optimistic],
+      }));
+      setDraft("");
+
+      const sent = await platformApi.sendSupportTicketMessage(token, activeTicket.id, text);
+      setMessagesByTicket((prev) => ({
+        ...prev,
+        [activeTicket.id]: (prev[activeTicket.id] ?? []).map((item) => (item.id === optimistic.id ? sent : item)),
+      }));
     } catch {
-      // keep optimistic local message when backend is slow/unavailable
+      // keep optimistic message
+    } finally {
+      setSending(false);
     }
   }
 
-  async function updateStatus(ticketId: string, status: SupportTicketStatus) {
-    if (!token || role !== "teacher") return;
+  async function handleStatusChange(status: SupportTicketStatus) {
+    if (!token || !activeTicket || role !== "teacher" || ticketUpdating) return;
+    setTicketUpdating(true);
     try {
-      const updated = await platformApi.updateSupportTicket(token, ticketId, status);
-      setTickets((prev) => prev.map((ticket) => (ticket.id === updated.id ? updated : ticket)));
-    } catch {
-      // No-op
+      const updated = await platformApi.updateSupportTicket(token, activeTicket.id, status);
+      setTickets((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    } finally {
+      setTicketUpdating(false);
     }
   }
 
@@ -188,42 +207,41 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
           <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             Please log in to open support chat.
           </p>
-        ) : null}
-
-        {!token ? null : (
+        ) : (
           <div className="grid gap-3 lg:grid-cols-[17rem_minmax(0,1fr)]">
             <aside className="rounded-2xl border border-burgundy-100 bg-white/75 p-2 dark:border-zinc-700 dark:bg-zinc-900/70">
               <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">Dialogs</p>
               <div className="space-y-2">
-                {sortedTickets.length === 0 ? (
+                {loadingTickets && sortedTickets.length === 0 ? (
+                  <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-xs text-charcoal/60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                    Loading dialogs...
+                  </p>
+                ) : sortedTickets.length === 0 ? (
                   <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-xs text-charcoal/60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
                     No dialogs yet.
                   </p>
                 ) : (
-                  sortedTickets
-                    .slice()
-                    .reverse()
-                    .map((ticket) => {
-                      const isActive = ticket.id === activeTicket?.id;
-                      return (
-                        <button
-                          key={ticket.id}
-                          type="button"
-                          onClick={() => setExpandedTicketId(ticket.id)}
-                          className={`w-full rounded-xl border px-3 py-2 text-left transition ${
-                            isActive
-                              ? "border-burgundy-300 bg-burgundy-50 dark:border-burgundy-700 dark:bg-burgundy-900/35"
-                              : "border-burgundy-100 bg-white hover:border-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-xs font-semibold text-charcoal dark:text-zinc-100">#{ticket.id}</p>
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass(ticket.status)}`}>{statusLabel(ticket.status)}</span>
-                          </div>
-                          <p className="mt-1 line-clamp-2 text-xs text-charcoal/70 dark:text-zinc-300">{ticket.message}</p>
-                        </button>
-                      );
-                    })
+                  sortedTickets.map((ticket) => {
+                    const isActive = ticket.id === activeTicket?.id;
+                    return (
+                      <button
+                        key={ticket.id}
+                        type="button"
+                        onClick={() => setActiveTicketId(ticket.id)}
+                        className={`w-full rounded-xl border px-3 py-2 text-left transition ${
+                          isActive
+                            ? "border-burgundy-300 bg-burgundy-50 dark:border-burgundy-700 dark:bg-burgundy-900/35"
+                            : "border-burgundy-100 bg-white hover:border-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-charcoal dark:text-zinc-100">#{ticket.id}</p>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass(ticket.status)}`}>{statusLabel(ticket.status)}</span>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs text-charcoal/70 dark:text-zinc-300">{ticket.message}</p>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </aside>
@@ -243,33 +261,30 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                 ) : null}
               </div>
 
-              <div ref={listRef} className="space-y-3 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-950/70">
-                {loading ? (
-                  <p className="text-xs text-charcoal/60 dark:text-zinc-400">Loading dialog...</p>
-                ) : sortedTickets.length === 0 ? (
+              <div ref={viewportRef} className="space-y-3 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-950/70">
+                {loadingMessages && activeMessages.length === 0 ? (
+                  <p className="text-xs text-charcoal/60 dark:text-zinc-400">Loading messages...</p>
+                ) : activeMessages.length === 0 ? (
                   <p className="text-xs text-charcoal/60 dark:text-zinc-400">No messages yet.</p>
                 ) : (
-                  sortedTickets.map((ticket) => {
-                    const mine = role === "student";
+                  activeMessages.map((message) => {
+                    const mine = role === "student" ? message.senderType === "student" : message.senderType !== "student";
                     return (
-                      <div key={ticket.id} className="space-y-1">
+                      <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                         <div
                           className={`max-w-[85%] rounded-2xl px-3 py-2.5 text-sm ${
                             mine
-                              ? "ml-auto bg-burgundy-700 text-white shadow-[0_10px_22px_-18px_rgba(120,0,40,0.9)]"
-                              : "mr-auto border border-zinc-200 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                              ? "bg-burgundy-700 text-white shadow-[0_10px_22px_-18px_rgba(120,0,40,0.9)]"
+                              : "border border-zinc-200 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                           }`}
                         >
                           <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${mine ? "text-white/80" : "text-charcoal/60 dark:text-zinc-400"}`}>
-                            {mine ? "You" : ticket.studentName || "Student"}
+                            {senderTitle(role, message)}
                           </p>
-                          <p className={`mt-1 whitespace-pre-wrap ${mine ? "text-white" : ""}`}>{ticket.message}</p>
+                          <p className={`mt-1 whitespace-pre-wrap ${mine ? "text-white" : ""}`}>{message.text}</p>
                           <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/70" : "text-charcoal/55 dark:text-zinc-400"}`}>
-                            {new Date(ticket.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </p>
-                        </div>
-                        <div className={`max-w-[85%] ${mine ? "ml-auto" : "mr-auto"} text-[11px] text-charcoal/55 dark:text-zinc-400`}>
-                          Support status: {statusLabel(ticket.status)} {ticket.id.startsWith("local_") ? "• syncing..." : ""}
                         </div>
                       </div>
                     );
@@ -277,7 +292,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                 )}
               </div>
 
-              {role === "student" ? (
+              {role === "student" || role === "teacher" ? (
                 <div className="rounded-2xl border border-burgundy-200/80 bg-white/95 p-2 shadow-[0_14px_30px_-22px_rgba(80,0,20,0.6)] dark:border-zinc-700 dark:bg-zinc-950/95">
                   <div className="flex items-center gap-2">
                     <Input
@@ -288,13 +303,13 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                           event.preventDefault();
-                          void createTicket();
+                          void handleSend();
                         }
                       }}
                     />
                     <Button
-                      onClick={() => void createTicket()}
-                      disabled={!draft.trim()}
+                      onClick={() => void handleSend()}
+                      disabled={!draft.trim() || sending}
                       className="h-11 w-11 shrink-0 rounded-full p-0"
                       aria-label="Send support message"
                     >
@@ -302,18 +317,18 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                     </Button>
                   </div>
                 </div>
-              ) : activeTicket ? (
+              ) : null}
+
+              {role === "teacher" && activeTicket ? (
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => void updateStatus(activeTicket.id, "in_progress")}>
+                  <Button variant="secondary" size="sm" onClick={() => void handleStatusChange("in_progress")} disabled={ticketUpdating}>
                     In progress
                   </Button>
-                  <Button variant="positive" size="sm" onClick={() => void updateStatus(activeTicket.id, "closed")}>
+                  <Button variant="positive" size="sm" onClick={() => void handleStatusChange("closed")} disabled={ticketUpdating}>
                     Close
                   </Button>
                 </div>
-              ) : (
-                <p className="text-xs text-charcoal/60 dark:text-zinc-400">Select dialog to manage status.</p>
-              )}
+              ) : null}
             </section>
           </div>
         )}
