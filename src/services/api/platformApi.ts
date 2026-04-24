@@ -401,50 +401,19 @@ function normalizeGrammarTopic(raw: unknown): GrammarTopic | null {
 function normalizeSupportTicket(raw: unknown): SupportTicket | null {
   const item = asRecord(raw);
   if (!item) return null;
-  const student = asRecord(item.student);
-  const teacher = asRecord(item.teacher);
   const statusValue = str(item.status) as SupportTicketStatus;
   const status: SupportTicketStatus =
     statusValue === "in_progress" || statusValue === "closed" ? statusValue : "open";
-  const id = str(item.id ?? item.ticket_id ?? item.request_id);
-  const message = str(item.message ?? item.problem ?? item.text ?? item.content);
-  const createdAt = str(item.createdAt ?? item.created_at ?? item.created);
-  const updatedAt = str(item.updatedAt ?? item.updated_at ?? item.updated ?? createdAt);
-  if (!id || !message || !createdAt) return null;
   return {
-    id,
-    studentId: str(item.studentId ?? item.student_id ?? item.student ?? student?.id),
-    studentName: str(item.studentName ?? item.student_name ?? student?.full_name ?? student?.fullName),
-    teacherId: str(item.teacherId ?? item.teacher_id ?? item.teacher ?? teacher?.id),
-    teacherName: str(item.teacherName ?? item.teacher_name ?? teacher?.full_name ?? teacher?.fullName),
-    message,
+    id: str(item.id),
+    studentId: str(item.student ?? item.student_id),
+    studentName: str(item.studentName ?? item.student_name),
+    teacherId: str(item.teacher ?? item.teacher_id),
+    teacherName: str(item.teacherName ?? item.teacher_name),
+    message: str(item.message),
     status,
-    createdAt,
-    updatedAt,
-  };
-}
-
-function normalizeSupportTicketMessage(raw: unknown): SupportTicketMessage | null {
-  const item = asRecord(raw);
-  if (!item) return null;
-  const senderRaw = str(item.senderType ?? item.sender_type);
-  const senderType: SupportTicketMessage["senderType"] =
-    senderRaw === "teacher" ? "teacher" : senderRaw === "support" ? "support" : "student";
-  const id = str(item.id);
-  const ticketRef = asRecord(item.ticket);
-  const ticketId = str(item.ticketId ?? item.ticket_id ?? item.ticket ?? ticketRef?.id);
-  const text = str(item.text ?? item.message);
-  const createdAt = str(item.createdAt ?? item.created_at);
-  if (!id || !ticketId || !text || !createdAt) return null;
-  return {
-    id,
-    ticketId,
-    senderType,
-    text,
-    source: str(item.source) || "web",
-    readByStudentAt: str(item.readByStudentAt ?? item.read_by_student_at) || undefined,
-    readBySupportAt: str(item.readBySupportAt ?? item.read_by_support_at) || undefined,
-    createdAt,
+    createdAt: str(item.createdAt ?? item.created_at),
+    updatedAt: str(item.updatedAt ?? item.updated_at),
   };
 }
 
@@ -475,6 +444,8 @@ function normalizeFriendlyConversation(raw: unknown): FriendlyConversation | nul
       fullName: str(peer.fullName ?? peer.full_name),
       role: normalizeRole(peer.role),
       avatarUrl: str(peer.avatarUrl ?? peer.avatar) || undefined,
+      isOnline: peer.isOnline !== undefined ? Boolean(peer.isOnline) : peer.is_online !== undefined ? Boolean(peer.is_online) : undefined,
+      lastSeenAt: str(peer.lastSeenAt ?? peer.last_seen_at) || undefined,
     },
     lastMessage: last
       ? {
@@ -484,6 +455,33 @@ function normalizeFriendlyConversation(raw: unknown): FriendlyConversation | nul
           createdAt: str(last.createdAt ?? last.created_at),
         }
       : undefined,
+  };
+}
+
+function normalizeSupportTicketMessage(raw: unknown): SupportTicketMessage | null {
+  const item = asRecord(raw);
+  if (!item) return null;
+
+  const senderRaw = str(item.senderType ?? item.sender_type);
+  const senderType: SupportTicketMessage["senderType"] =
+    senderRaw === "teacher" ? "teacher" : senderRaw === "support" ? "support" : "student";
+  const id = str(item.id);
+  const ticketRef = asRecord(item.ticket);
+  const ticketId = str(item.ticketId ?? item.ticket_id ?? item.ticket ?? ticketRef?.id);
+  const text = str(item.text ?? item.message ?? item.content);
+  const createdAt = str(item.createdAt ?? item.created_at);
+
+  if (!id || !ticketId || !text || !createdAt) return null;
+
+  return {
+    id,
+    ticketId,
+    senderType,
+    text,
+    source: str(item.source) || "web",
+    readByStudentAt: str(item.readByStudentAt ?? item.read_by_student_at) || undefined,
+    readBySupportAt: str(item.readBySupportAt ?? item.read_by_support_at) || undefined,
+    createdAt,
   };
 }
 
@@ -564,7 +562,6 @@ export const platformApi = {
     const response = await apiRequest<unknown>("/auth/login", {
       method: "POST",
       body: payload,
-      timeoutMs: 7000,
     });
     return normalizeAuthResponse(response);
   },
@@ -796,13 +793,7 @@ export const platformApi = {
       token,
     });
     const data = getDataObject(response);
-    const list =
-      readArray<unknown>(data?.tickets) ??
-      readArray<unknown>(data?.requests) ??
-      readArray<unknown>(data?.results) ??
-      readArray<unknown>(data?.items);
-    const fallbackList = Array.isArray(list) && list.length > 0 ? list : readArray<unknown>(data?.tickets ?? data?.requests ?? data?.results ?? data?.items ?? data);
-    return fallbackList
+    return readArray<unknown>(data?.tickets ?? data)
       .map(normalizeSupportTicket)
       .filter((item): item is SupportTicket => item !== null);
   },
@@ -811,14 +802,10 @@ export const platformApi = {
     const response = await apiRequest<unknown>("/support/tickets", {
       method: "POST",
       token,
-      body: { message, problem: message, text: message },
+      body: { message },
     });
     const data = getDataObject(response);
-    const ticket =
-      normalizeSupportTicket(data?.ticket) ??
-      normalizeSupportTicket(data?.request) ??
-      normalizeSupportTicket(data?.result) ??
-      normalizeSupportTicket(data);
+    const ticket = normalizeSupportTicket(data?.ticket ?? data);
     if (!ticket) throw new Error("Invalid support response");
     return ticket;
   },
@@ -839,11 +826,10 @@ export const platformApi = {
     const response = await apiRequest<unknown>(`/support/tickets/${ticketId}/messages`, {
       method: "GET",
       token,
+      timeoutMs: 30000,
     });
     const data = getDataObject(response);
-    const ticket = asRecord(data?.ticket);
-    const messagesPayload = data?.messages ?? ticket?.messages ?? data;
-    return readArray<unknown>(messagesPayload)
+    return readArray<unknown>(data?.messages ?? data)
       .map(normalizeSupportTicketMessage)
       .filter((item): item is SupportTicketMessage => item !== null);
   },
@@ -853,15 +839,10 @@ export const platformApi = {
       method: "POST",
       token,
       body: { text },
+      timeoutMs: 30000,
     });
     const data = getDataObject(response);
-    const ticket = asRecord(data?.ticket);
-    const ticketMessages = readArray<unknown>(ticket?.messages);
-    const message =
-      normalizeSupportTicketMessage(data?.message) ??
-      normalizeSupportTicketMessage(data?.result) ??
-      normalizeSupportTicketMessage(ticketMessages[ticketMessages.length - 1]) ??
-      normalizeSupportTicketMessage(data);
+    const message = normalizeSupportTicketMessage(data?.message ?? data);
     if (!message) throw new Error("Invalid support message response");
     return message;
   },
@@ -870,7 +851,7 @@ export const platformApi = {
     const response = await apiRequest<unknown>("/chat/ai/messages", {
       method: "GET",
       token,
-      timeoutMs: 15000,
+      timeoutMs: 60000,
     });
     const data = getDataObject(response);
     const conversation = asRecord(data?.conversation);
@@ -895,7 +876,7 @@ export const platformApi = {
       method: "POST",
       token,
       body: payload,
-      timeoutMs: 35000,
+      timeoutMs: 90000,
     });
     const data = getDataObject(response);
     return readArray<unknown>(data?.messages)

@@ -12,9 +12,6 @@ export interface ProgressSnapshot {
   weeklyXp: number;
   level: number;
   streakDays: number;
-  gameWins?: number;
-  gamesPlayed?: number;
-  gameBonusPoints?: number;
 }
 
 export interface Group {
@@ -157,17 +154,17 @@ export interface SupportTicket {
   updatedAt: string;
 }
 
-export type SupportTicketSenderType = "student" | "teacher" | "support";
+export type SupportSenderType = "student" | "teacher" | "support";
 
 export interface SupportTicketMessage {
   id: string;
   ticketId: string;
-  senderType: SupportTicketSenderType;
+  senderType: SupportSenderType;
   text: string;
-  source: "web" | "telegram" | string;
+  source: string;
+  createdAt: string;
   readByStudentAt?: string;
   readBySupportAt?: string;
-  createdAt: string;
 }
 
 export interface AiChatMessage {
@@ -183,6 +180,8 @@ export interface FriendlyChatPeer {
   fullName: string;
   role: UserRole;
   avatarUrl?: string;
+  isOnline?: boolean;
+  lastSeenAt?: string;
 }
 
 export interface FriendlyConversation {

@@ -7,8 +7,7 @@ const WRAP_QUOTES: Array<[string, string]> = [
 
 function stripWrappingQuotes(value: string): string {
   let text = value.trim();
-  for (let index = 0; index < WRAP_QUOTES.length; index += 1) {
-    const [left, right] = WRAP_QUOTES[index];
+  for (const [left, right] of WRAP_QUOTES) {
     if (text.startsWith(left) && text.endsWith(right) && text.length > 1) {
       text = text.slice(left.length, text.length - right.length).trim();
     }
@@ -31,13 +30,26 @@ export function normalizeAssistantReply(raw: string): string {
     .replace(/^IMAN AI:\s*/i, "")
     .replace(/^ASSISTANT:\s*/i, "")
     .replace(/^BOT:\s*/i, "")
-    .trim();
-
-  // Keep content readable in chat/voice and remove noisy markdown wrappers.
-  text = text
     .replace(/```/g, "")
-    .replace(/^\s*[-*]\s+/gm, "- ")
+    .replace(/^\s*[-*]\s+/gm, "• ")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
     .trim();
 
-  return text || "I am here to help you with English. Please ask your question again.";
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const unique: string[] = [];
+  for (const line of lines) {
+    const normalized = line.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    const duplicate = unique.some(
+      (prev) => prev.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim() === normalized,
+    );
+    if (!duplicate) unique.push(line);
+  }
+
+  return unique.join("\n").trim() || "I am here to help you with English. Please ask your question again.";
 }
+

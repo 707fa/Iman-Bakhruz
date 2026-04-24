@@ -1,5 +1,5 @@
 ﻿import { Loader2, MessageCircle, Send, Users2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { UserAvatar } from "../components/UserAvatar";
@@ -33,6 +33,8 @@ interface ChatPeer {
   fullName: string;
   role: UserRole;
   avatarUrl?: string;
+  isOnline?: boolean;
+  lastSeenAt?: string;
 }
 
 function isConversation(item: FriendlyConversation | null): item is FriendlyConversation {
@@ -43,6 +45,13 @@ function toReadableTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function isRecentlyActive(value?: string): boolean {
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return false;
+  return Date.now() - timestamp <= 3 * 60 * 1000;
 }
 
 function readLocalFriendlyState(): LocalFriendlyState {
@@ -101,7 +110,6 @@ export function FriendlyChatPage() {
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const messagesListRef = useRef<HTMLDivElement | null>(null);
 
   function forceRelogin() {
     clearApiToken();
@@ -146,6 +154,8 @@ export function FriendlyChatPage() {
           fullName: student.fullName,
           role: "student" as const,
           avatarUrl: student.avatarUrl,
+          isOnline: Boolean((student as unknown as Record<string, unknown>).isOnline ?? (student as unknown as Record<string, unknown>).is_online),
+          lastSeenAt: String((student as unknown as Record<string, unknown>).lastSeenAt ?? (student as unknown as Record<string, unknown>).last_seen_at ?? ""),
         }));
     }
 
@@ -156,6 +166,8 @@ export function FriendlyChatPage() {
         fullName: student.fullName,
         role: "student" as const,
         avatarUrl: student.avatarUrl,
+        isOnline: Boolean((student as unknown as Record<string, unknown>).isOnline ?? (student as unknown as Record<string, unknown>).is_online),
+        lastSeenAt: String((student as unknown as Record<string, unknown>).lastSeenAt ?? (student as unknown as Record<string, unknown>).last_seen_at ?? ""),
       }));
 
     const teacherId = currentTeacherId;
@@ -168,6 +180,8 @@ export function FriendlyChatPage() {
         fullName: teacher.fullName,
         role: "teacher" as const,
         avatarUrl: teacher.avatarUrl,
+        isOnline: Boolean((teacher as unknown as Record<string, unknown>).isOnline ?? (teacher as unknown as Record<string, unknown>).is_online),
+        lastSeenAt: String((teacher as unknown as Record<string, unknown>).lastSeenAt ?? (teacher as unknown as Record<string, unknown>).last_seen_at ?? ""),
       },
       ...studentPeers,
     ];
@@ -410,11 +424,6 @@ export function FriendlyChatPage() {
     };
   }, [token, useLocalMode, activeConversationId, t]);
 
-  useEffect(() => {
-    if (!messagesListRef.current) return;
-    messagesListRef.current.scrollTop = messagesListRef.current.scrollHeight;
-  }, [messages, sending]);
-
   async function handleSend() {
     if (!activeConversationId || !draft.trim() || sending || !session) return;
 
@@ -478,38 +487,8 @@ export function FriendlyChatPage() {
     }
 
     try {
-      const optimisticMessage: FriendlyChatMessage = {
-        id: createMessageId(),
-        senderId: session.userId,
-        senderName:
-          session.role === "teacher"
-            ? currentTeacher?.fullName ?? "Teacher"
-            : currentStudent?.fullName ?? "Student",
-        senderRole: session.role,
-        text,
-        createdAt: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, optimisticMessage]);
-      setConversations((prev) =>
-        prev.map((item) =>
-          item.id === activeConversationId
-            ? {
-                ...item,
-                updatedAt: optimisticMessage.createdAt,
-                lastMessage: {
-                  id: optimisticMessage.id,
-                  text: optimisticMessage.text,
-                  senderId: optimisticMessage.senderId,
-                  createdAt: optimisticMessage.createdAt,
-                },
-              }
-            : item,
-        ),
-      );
-
       const sent = await platformApi.sendFriendlyMessage(token, activeConversationId, text);
-      setMessages((prev) => prev.map((item) => (item.id === optimisticMessage.id ? sent : item)));
+      setMessages((prev) => [...prev, sent]);
       setConversations((prev) =>
         prev.map((item) =>
           item.id === activeConversationId
@@ -556,7 +535,7 @@ export function FriendlyChatPage() {
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.45fr]">
         <Card>
           <CardHeader>
             <CardTitle>{t("chat.title")}</CardTitle>
@@ -580,18 +559,24 @@ export function FriendlyChatPage() {
                     type="button"
                     onClick={() => setActiveConversationId(conversation.id)}
                     className={[
-                      "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
+                      "flex w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left transition",
                       active
-                        ? "border-[#8a1c1c] bg-[#250909] dark:border-[#8a1c1c] dark:bg-[#250909]"
-                        : "border-zinc-800 bg-zinc-950 hover:border-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700",
+                        ? "border-burgundy-300 bg-burgundy-50 dark:border-burgundy-700 dark:bg-burgundy-900/30"
+                        : "border-burgundy-100 bg-white hover:border-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-burgundy-700",
                     ].join(" ")}
                   >
                     <UserAvatar fullName={conversation.peer.fullName} avatarUrl={conversation.peer.avatarUrl} size="sm" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-zinc-100">{conversation.peer.fullName}</p>
-                      <p className="truncate text-xs text-zinc-400">{conversation.lastMessage?.text ?? t("chat.empty")}</p>
+                      <p className="truncate text-sm font-semibold text-charcoal dark:text-zinc-100">{conversation.peer.fullName}</p>
+                      <p className="mb-0.5 flex items-center gap-1 text-[11px] text-charcoal/55 dark:text-zinc-400">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${conversation.peer.isOnline || isRecentlyActive(conversation.peer.lastSeenAt || conversation.updatedAt) ? "bg-emerald-500" : "bg-zinc-500"}`}
+                        />
+                        {conversation.peer.isOnline || isRecentlyActive(conversation.peer.lastSeenAt || conversation.updatedAt) ? "online" : "offline"}
+                      </p>
+                      <p className="truncate text-xs text-charcoal/55 dark:text-zinc-400">{conversation.lastMessage?.text ?? t("chat.empty")}</p>
                     </div>
-                    <span className="text-[10px] text-zinc-500">{toReadableTime(conversation.updatedAt)}</span>
+                    <span className="text-[10px] text-charcoal/50 dark:text-zinc-500">{toReadableTime(conversation.updatedAt)}</span>
                   </button>
                 );
               })
@@ -608,12 +593,15 @@ export function FriendlyChatPage() {
                     key={peer.id}
                     type="button"
                     onClick={() => void startConversationWithTarget(peer.id)}
-                    className="flex w-full items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-left transition hover:border-zinc-700 hover:bg-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+                    className="flex w-full items-center gap-2 rounded-xl border border-burgundy-100 bg-white px-2.5 py-2 text-left transition hover:border-burgundy-300 hover:bg-burgundy-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-burgundy-700"
                   >
                     <UserAvatar fullName={peer.fullName} avatarUrl={peer.avatarUrl} size="sm" />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-zinc-100">{peer.fullName}</p>
-                      <p className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">{peer.role}</p>
+                      <p className="truncate text-sm font-semibold text-charcoal dark:text-zinc-100">{peer.fullName}</p>
+                      <p className="flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-charcoal/50 dark:text-zinc-500">
+                        <span className={`h-1.5 w-1.5 rounded-full ${peer.isOnline || isRecentlyActive(peer.lastSeenAt) ? "bg-emerald-500" : "bg-zinc-500"}`} />
+                        {peer.role}
+                      </p>
                     </div>
                   </button>
                 ))}
@@ -628,26 +616,34 @@ export function FriendlyChatPage() {
         </Card>
 
         <Card>
-          <CardContent className="flex h-[64dvh] min-h-[360px] flex-col gap-3 p-3 sm:h-[72vh] sm:min-h-[440px] sm:p-4">
+          <CardContent className="flex h-[62dvh] min-h-[340px] flex-col gap-3 p-3 sm:h-[70vh] sm:min-h-[420px] sm:p-4">
             {!activeConversation ? (
-              <div className="grid flex-1 place-items-center rounded-2xl border border-zinc-800 bg-zinc-950 text-sm text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+              <div className="grid flex-1 place-items-center rounded-2xl border border-burgundy-100 bg-white text-sm text-charcoal/65 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
                 {t("chat.select")}
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="flex items-center gap-2 rounded-2xl border border-burgundy-100 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
                   <UserAvatar fullName={activeConversation.peer.fullName} avatarUrl={activeConversation.peer.avatarUrl} size="sm" />
-                  <p className="text-sm font-semibold text-zinc-100">{activeConversation.peer.fullName}</p>
+                  <div>
+                    <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{activeConversation.peer.fullName}</p>
+                    <p className="flex items-center gap-1 text-[11px] text-charcoal/55 dark:text-zinc-400">
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${activeConversation.peer.isOnline || isRecentlyActive(activeConversation.peer.lastSeenAt || activeConversation.updatedAt) ? "bg-emerald-500" : "bg-zinc-500"}`}
+                      />
+                      {activeConversation.peer.isOnline || isRecentlyActive(activeConversation.peer.lastSeenAt || activeConversation.updatedAt) ? "online" : "offline"}
+                    </p>
+                  </div>
                 </div>
 
-                <div ref={messagesListRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-3 dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950">
                   {loadingMessages ? (
-                    <p className="inline-flex items-center gap-2 text-sm text-zinc-400">
+                    <p className="inline-flex items-center gap-2 text-sm text-charcoal/65 dark:text-zinc-400">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       {t("chat.loading")}
                     </p>
                   ) : messages.length === 0 ? (
-                    <p className="text-sm text-zinc-400">{t("chat.empty")}</p>
+                    <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("chat.empty")}</p>
                   ) : (
                     messages.map((message) => {
                       const mine = String(message.senderId) === String(session?.userId);
@@ -655,14 +651,14 @@ export function FriendlyChatPage() {
                         <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                           <div
                             className={[
-                              "max-w-[78%] rounded-2xl px-3 py-2.5 text-sm shadow-[0_16px_32px_-26px_rgba(0,0,0,0.65)]",
+                              "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
                               mine
-                                ? "rounded-br-md bg-[#6F0000] text-white"
-                                : "border border-zinc-800 bg-zinc-900 text-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100",
+                                ? "bg-burgundy-700 text-white"
+                                : "border border-burgundy-100 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
                             ].join(" ")}
                           >
                             <p className="whitespace-pre-wrap break-words">{message.text}</p>
-                            <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/70" : "text-zinc-500 dark:text-zinc-500"}`}>
+                            <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/70" : "text-charcoal/50 dark:text-zinc-400"}`}>
                               {toReadableTime(message.createdAt)}
                             </p>
                           </div>
@@ -672,12 +668,11 @@ export function FriendlyChatPage() {
                   )}
                 </div>
 
-                <div className="grid gap-2 rounded-2xl border border-zinc-800 bg-zinc-950 p-2 sm:grid-cols-[1fr_auto]">
+                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                   <Input
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     placeholder={t("chat.placeholder")}
-                    className="border-0 bg-transparent text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-0"
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
@@ -685,7 +680,7 @@ export function FriendlyChatPage() {
                       }
                     }}
                   />
-                  <Button onClick={() => void handleSend()} disabled={sending || !draft.trim()} className="bg-[#6F0000] text-white hover:bg-[#820000]">
+                  <Button onClick={() => void handleSend()} disabled={sending || !draft.trim()}>
                     {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                     {t("chat.send")}
                   </Button>
@@ -710,5 +705,6 @@ export function FriendlyChatPage() {
     </div>
   );
 }
+
 
 
