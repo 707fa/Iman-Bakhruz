@@ -20,7 +20,7 @@ export function PageHeader({ title, subtitle, action, className }: PageHeaderPro
       <div className="pointer-events-none absolute -bottom-24 left-10 h-40 w-40 rounded-full bg-amber-100/60 blur-3xl dark:bg-white/5" />
       <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 space-y-2.5">
-          <div className="inline-flex items-center gap-2 rounded-full border border-burgundy-100 bg-burgundy-50/80 px-3 py-1 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="inline-flex select-none items-center gap-2 rounded-full border border-burgundy-100 bg-burgundy-50/80 px-3 py-1 dark:border-zinc-800 dark:bg-zinc-900">
             <span className="h-2 w-2 rounded-full bg-burgundy-700 shadow-[0_0_0_4px_rgba(128,0,32,0.12)]" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-burgundy-700 dark:text-burgundy-200">Workspace</span>
           </div>

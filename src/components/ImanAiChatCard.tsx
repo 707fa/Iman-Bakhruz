@@ -587,9 +587,9 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
                     <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                       <div
                         className={[
-                          "max-w-[90%] rounded-2xl px-3 py-2.5 text-sm shadow-[0_16px_32px_-26px_rgba(0,0,0,0.6)]",
+                          "max-w-[78%] rounded-2xl px-3 py-2.5 text-sm shadow-[0_16px_32px_-26px_rgba(0,0,0,0.6)]",
                           mine
-                            ? "bg-[#6F0000] text-white"
+                            ? "rounded-br-md bg-[#6F0000] text-white"
                             : "border border-zinc-800/95 bg-zinc-900/95 text-zinc-100",
                         ].join(" ")}
                       >
