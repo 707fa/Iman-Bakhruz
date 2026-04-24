@@ -231,15 +231,15 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
           </p>
         ) : (
           <div className="grid gap-3 lg:grid-cols-[17rem_minmax(0,1fr)]">
-            <aside className="rounded-2xl border border-burgundy-100 bg-white/75 p-2 dark:border-zinc-700 dark:bg-zinc-900/70">
-              <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">Dialogs</p>
+            <aside className="rounded-2xl border border-zinc-800 bg-zinc-950/90 p-2 dark:border-zinc-800 dark:bg-zinc-950/90">
+              <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-400">Dialogs</p>
               <div className="space-y-2">
                 {loadingTickets && sortedTickets.length === 0 ? (
-                  <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-xs text-charcoal/60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                  <p className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-400">
                     Loading dialogs...
                   </p>
                 ) : sortedTickets.length === 0 ? (
-                  <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-xs text-charcoal/60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                  <p className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-400">
                     No dialogs yet.
                   </p>
                 ) : (
@@ -250,17 +250,17 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                         key={ticket.id}
                         type="button"
                         onClick={() => setActiveTicketId(ticket.id)}
-                        className={`w-full rounded-xl border px-3 py-2 text-left transition ${
+                        className={`w-full rounded-xl border px-3 py-2.5 text-left transition ${
                           isActive
-                            ? "border-burgundy-300 bg-burgundy-50 dark:border-burgundy-700 dark:bg-burgundy-900/35"
-                            : "border-burgundy-100 bg-white hover:border-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900"
+                            ? "border-[#8a1c1c] bg-[#250909] dark:border-[#8a1c1c] dark:bg-[#250909]"
+                            : "border-zinc-800 bg-zinc-900 hover:border-zinc-700 dark:border-zinc-800 dark:bg-zinc-900"
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold text-charcoal dark:text-zinc-100">#{ticket.id}</p>
+                          <p className="text-xs font-semibold text-zinc-100">#{ticket.id}</p>
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass(ticket.status)}`}>{statusLabel(ticket.status)}</span>
                         </div>
-                        <p className="mt-1 line-clamp-2 text-xs text-charcoal/70 dark:text-zinc-300">{ticket.message}</p>
+                        <p className="mt-1 line-clamp-2 text-xs text-zinc-300">{ticket.message}</p>
                       </button>
                     );
                   })
@@ -268,13 +268,13 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
               </div>
             </aside>
 
-            <section className="grid min-h-[32rem] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 rounded-2xl border border-burgundy-100 bg-white/75 p-3 dark:border-zinc-700 dark:bg-zinc-900/70">
-              <div className="flex items-center justify-between gap-2 border-b border-burgundy-100 pb-2 dark:border-zinc-700">
+            <section className="grid min-h-[32rem] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/90 p-3 dark:border-zinc-800 dark:bg-zinc-950/90">
+              <div className="flex items-center justify-between gap-2 border-b border-zinc-800 pb-2 dark:border-zinc-800">
                 <div>
-                  <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">
+                  <p className="text-sm font-semibold text-zinc-100">
                     {role === "teacher" ? "Teacher Support Inbox" : "My Support Chat"}
                   </p>
-                  <p className="text-xs text-charcoal/60 dark:text-zinc-400">
+                  <p className="text-xs text-zinc-400">
                     {activeTicket ? new Date(activeTicket.createdAt).toLocaleString() : "Start conversation with support"}
                   </p>
                 </div>
@@ -283,11 +283,11 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                 ) : null}
               </div>
 
-              <div ref={viewportRef} className="space-y-3 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-950/70">
+              <div ref={viewportRef} className="space-y-3 overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-3 dark:border-zinc-800 dark:bg-zinc-950">
                 {loadingMessages && activeMessages.length === 0 ? (
-                  <p className="text-xs text-charcoal/60 dark:text-zinc-400">Loading messages...</p>
+                  <p className="text-xs text-zinc-400">Loading messages...</p>
                 ) : activeMessages.length === 0 ? (
-                  <p className="text-xs text-charcoal/60 dark:text-zinc-400">No messages yet.</p>
+                  <p className="text-xs text-zinc-400">No messages yet.</p>
                 ) : (
                   activeMessages.map((message) => {
                     const fromStudent = message.senderType === "student";
@@ -297,19 +297,19 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                         <div
                           className={`max-w-[85%] rounded-2xl px-3 py-2.5 text-sm ${
                             fromStudent
-                              ? "bg-burgundy-700 text-white shadow-[0_10px_22px_-18px_rgba(120,0,40,0.9)]"
-                              : "border border-zinc-200 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                              ? "bg-white text-zinc-900 shadow-[0_10px_22px_-18px_rgba(255,255,255,0.35)]"
+                              : "border border-zinc-800 bg-zinc-900 text-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
                           }`}
                         >
                           <p
                             className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${
-                              fromStudent ? "text-white/80" : "text-charcoal/60 dark:text-zinc-400"
+                              fromStudent ? "text-zinc-500" : "text-zinc-400"
                             }`}
                           >
                             {senderTitle(role, message)}
                           </p>
-                          <p className={`mt-1 whitespace-pre-wrap ${fromStudent ? "text-white" : ""}`}>{message.text}</p>
-                          <p className={`mt-1 text-right text-[10px] ${fromStudent ? "text-white/70" : "text-charcoal/55 dark:text-zinc-400"}`}>
+                          <p className={`mt-1 whitespace-pre-wrap ${fromStudent ? "text-zinc-900" : ""}`}>{message.text}</p>
+                          <p className={`mt-1 text-right text-[10px] ${fromStudent ? "text-zinc-500" : "text-zinc-500 dark:text-zinc-500"}`}>
                             {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
@@ -320,13 +320,13 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
               </div>
 
               {role === "student" || role === "teacher" ? (
-                <div className="rounded-2xl border border-burgundy-200/80 bg-white/95 p-2 shadow-[0_14px_30px_-22px_rgba(80,0,20,0.6)] dark:border-zinc-700 dark:bg-zinc-950/95">
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-2 shadow-[0_14px_30px_-22px_rgba(0,0,0,0.65)] dark:border-zinc-800 dark:bg-zinc-950">
                   <div className="flex items-center gap-2">
                     <Input
                       value={draft}
                       onChange={(event) => setDraft(event.target.value)}
                       placeholder="Write your message to support..."
-                      className="h-11 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                      className="h-11 border-0 bg-transparent text-zinc-100 shadow-none placeholder:text-zinc-500 focus-visible:ring-0"
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                           event.preventDefault();
@@ -337,7 +337,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                     <Button
                       onClick={() => void handleSend()}
                       disabled={!draft.trim() || sending}
-                      className="h-11 w-11 shrink-0 rounded-full p-0"
+                      className="h-11 w-11 shrink-0 rounded-full border-0 bg-[#6F0000] p-0 text-white hover:bg-[#820000]"
                       aria-label="Send support message"
                     >
                       <Send className="h-4 w-4" />

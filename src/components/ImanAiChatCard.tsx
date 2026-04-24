@@ -569,15 +569,15 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
           <>
             <div
               ref={listRef}
-              className="h-80 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+              className="h-[58dvh] min-h-[340px] space-y-2 overflow-y-auto rounded-[1.6rem] border border-zinc-800/90 bg-zinc-950/95 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:h-[62dvh]"
             >
               {loading ? (
-                <div className="flex items-center gap-2 text-sm text-charcoal/65 dark:text-zinc-400">
+                <div className="flex items-center gap-2 text-sm text-zinc-400">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading chat...
                 </div>
               ) : messages.length === 0 ? (
-                <p className="text-sm text-charcoal/65 dark:text-zinc-400">
+                <p className="text-sm text-zinc-400">
                   Start chat. You can send a text question or homework photo.
                 </p>
               ) : (
@@ -587,13 +587,13 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
                     <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                       <div
                         className={[
-                          "max-w-[90%] rounded-2xl px-3 py-2 text-sm",
+                          "max-w-[90%] rounded-2xl px-3 py-2.5 text-sm shadow-[0_16px_32px_-26px_rgba(0,0,0,0.6)]",
                           mine
-                            ? "bg-burgundy-700 text-white"
-                            : "border border-burgundy-100 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100",
+                            ? "bg-[#6F0000] text-white"
+                            : "border border-zinc-800/95 bg-zinc-900/95 text-zinc-100",
                         ].join(" ")}
                       >
-                        <div className={`mb-1 inline-flex items-center gap-1 text-xs ${mine ? "text-white/75" : "text-charcoal/55 dark:text-zinc-400"}`}>
+                        <div className={`mb-1 inline-flex items-center gap-1 text-[11px] ${mine ? "text-white/75" : "text-zinc-400"}`}>
                           {mine ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
                           {mine ? "You" : "Iman AI"}
                         </div>
@@ -619,7 +619,7 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
                             <img src={message.imageUrl} alt="Homework" className="max-h-52 rounded-xl border border-white/20 object-contain transition hover:opacity-95" />
                           </button>
                         ) : null}
-                        <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/75" : "text-charcoal/50 dark:text-zinc-400"}`}>
+                        <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/75" : "text-zinc-500"}`}>
                           {toReadableTime(message.createdAt)}
                         </p>
                       </div>
@@ -629,8 +629,8 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
               )}
               {sending && !typingMessageId && !voice.open ? (
                 <div className="flex justify-start">
-                  <div className="max-w-[90%] rounded-2xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100">
-                    <div className="mb-1 inline-flex items-center gap-1 text-xs text-charcoal/55 dark:text-zinc-400">
+                  <div className="max-w-[90%] rounded-2xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100">
+                    <div className="mb-1 inline-flex items-center gap-1 text-xs text-zinc-400">
                       <Bot className="h-3.5 w-3.5" />
                       Iman AI
                     </div>
@@ -644,7 +644,7 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
             </div>
 
             {imagePreview ? (
-              <div className="rounded-2xl border border-burgundy-100 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-950">
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/95 p-2">
                 <div className="relative inline-flex">
                   <img src={imagePreview} alt="Selected homework" className="max-h-48 rounded-xl object-contain" />
                   <button
@@ -659,13 +659,13 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-charcoal/60 dark:text-zinc-400">
+                <p className="mt-1 text-xs text-zinc-400">
                   {imageFile?.name ?? "Pasted image"} {imageFile ? `(${Math.max(1, Math.round(imageFile.size / 1024))} KB)` : ""}
                 </p>
               </div>
             ) : null}
 
-            <div className="rounded-[1.65rem] border border-burgundy-200/80 bg-white/95 p-1.5 shadow-[0_16px_36px_-24px_rgba(80,0,20,0.55)] backdrop-blur dark:border-zinc-700 dark:bg-zinc-950/95">
+            <div className="rounded-[1.65rem] border border-zinc-800 bg-zinc-950/95 p-1.5 shadow-[0_18px_38px_-26px_rgba(0,0,0,0.75)] backdrop-blur">
               <div className="flex items-center gap-1.5">
                 <input
                   id={imageInputId}
@@ -682,7 +682,7 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
                 />
                 <label
                   htmlFor={imageInputId}
-                  className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-burgundy-200/80 bg-burgundy-50 text-burgundy-700 transition hover:scale-[1.02] hover:bg-burgundy-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                  className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-200 transition hover:scale-[1.02] hover:bg-zinc-800"
                   aria-label="Attach photo"
                   onClick={(event) => {
                     event.preventDefault();
@@ -696,7 +696,7 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
                   value={text}
                   onChange={(event) => setText(event.target.value)}
                   placeholder="Write to Iman Chat..."
-                  className="h-11 min-w-0 border-0 bg-transparent px-2.5 shadow-none focus-visible:ring-0"
+                  className="h-11 min-w-0 border-0 bg-transparent px-2.5 text-zinc-100 shadow-none placeholder:text-zinc-500 focus-visible:ring-0"
                   onPaste={(event) => {
                     const items = event.clipboardData?.items;
                     if (!items || items.length === 0) return;
@@ -723,7 +723,7 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
                       voice.toggleMic();
                     }
                   }}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-burgundy-300/75 bg-burgundy-100 text-burgundy-700 transition hover:scale-[1.02] hover:bg-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-200 transition hover:scale-[1.02] hover:bg-zinc-800"
                   aria-label="Open voice mode"
                 >
                   <Mic className="h-5 w-5" />
@@ -733,7 +733,7 @@ function extractAssistantReply(messagesList: AiChatMessage[], fallback = ""): st
                   type="button"
                   onClick={() => void handleSend()}
                   disabled={!canSend || sending}
-                  className="h-11 w-11 shrink-0 rounded-full p-0"
+                  className="h-11 w-11 shrink-0 rounded-full border-0 bg-[#6F0000] p-0 text-white hover:bg-[#820000]"
                   aria-label="Send message"
                 >
                   {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
