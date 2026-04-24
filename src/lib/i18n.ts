@@ -72,7 +72,7 @@ const RU: Dictionary = {
   "landing.feature2Text": "Учитель выставляет баллы, и результат обновляется сразу.",
   "landing.feature3Title": "Удобно с телефона",
   "landing.feature3Text": "Сайт адаптирован под смартфон, планшет и компьютер.",
-  "promo.top5WeeklyFree": "Top 5 получают полный доступ бесплатно на 1 месяц (пока находятся в Top 5).",
+  "promo.top5WeeklyFree": "Top 1 получает полный доступ бесплатно на 1 месяц (пока находится в Top 1).",
 
   "auth.heroTitle": "Единая система рейтинга учеников",
   "auth.heroSubtitle": "Современные кабинеты для учеников и преподавателей с прозрачным учетом прогресса по группам и по всей школе.",
@@ -412,7 +412,7 @@ const UZ: Dictionary = {
   "landing.feature2Text": "O'qituvchi ball qo'yadi va natija darhol yangilanadi.",
   "landing.feature3Title": "Telefonda qulay",
   "landing.feature3Text": "Sayt telefon, planshet va kompyuterga moslashtirilgan.",
-  "promo.top5WeeklyFree": "Top 5 o'quvchilar 1 oy bepul to'liq kirish oladi (Top 5 da bo'lsa).",
+  "promo.top5WeeklyFree": "Top 1 o'quvchi 1 oy bepul to'liq kirish oladi (Top 1 da bo'lsa).",
 
   "auth.heroTitle": "O'quvchilar reytingining yagona tizimi",
   "auth.heroSubtitle": "O'quvchi va o'qituvchilar uchun zamonaviy kabinetlar, guruhlar bo'yicha va umumiy natijalarni shaffof ko'rsatish.",
@@ -749,7 +749,7 @@ const EN: Dictionary = {
   "landing.feature2Text": "Teacher updates points and results refresh instantly.",
   "landing.feature3Title": "Mobile friendly",
   "landing.feature3Text": "Fully adapted for phone, tablet, and desktop.",
-  "promo.top5WeeklyFree": "Top 5 students get full access free for 1 month (while they stay in Top 5).",
+  "promo.top5WeeklyFree": "Top 1 student gets full access free for 1 month (while staying in Top 1).",
 
   "auth.heroTitle": "Unified Student Ranking System",
   "auth.heroSubtitle": "Modern dashboards for students and teachers with transparent progress tracking by group and globally.",
