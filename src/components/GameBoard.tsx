@@ -98,11 +98,11 @@ export function GameBoard({
   const publicStatusLabel = publicAnswer?.isCorrect ? "Correct" : "Incorrect";
 
   return (
-    <div className="min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(128,0,32,0.34),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(20,184,166,0.18),transparent_28%),linear-gradient(135deg,#07070a,#12121a_48%,#050507)] px-2 py-3 text-white sm:px-6 sm:py-4 lg:px-8">
-      <div className="mx-auto grid max-w-7xl gap-4 xl:grid-cols-[1fr_360px]">
-        <main className="relative min-h-[calc(100dvh-1.25rem)] overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.055] p-3 shadow-[0_28px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:min-h-[calc(100dvh-2rem)] sm:rounded-[2.2rem] sm:p-7">
+    <div className="min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(128,0,32,0.34),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(20,184,166,0.18),transparent_28%),linear-gradient(135deg,#07070a,#12121a_48%,#050507)] px-2 py-2 text-white sm:px-6 sm:py-4 lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-3 xl:grid-cols-[1fr_360px]">
+        <main className="relative min-h-[calc(100dvh-0.95rem)] overflow-hidden rounded-[1.3rem] border border-white/10 bg-white/[0.055] p-2.5 shadow-[0_28px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:min-h-[calc(100dvh-2rem)] sm:rounded-[2.2rem] sm:p-7">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.1),transparent_32%,rgba(255,255,255,0.035))]" />
-          <div className="relative flex min-h-[calc(100dvh-5.5rem)] flex-col items-center justify-start gap-4 pb-[calc(11rem+env(safe-area-inset-bottom))] sm:min-h-[calc(100dvh-5rem)] sm:justify-center sm:gap-5 sm:pb-[calc(9.5rem+env(safe-area-inset-bottom))]">
+          <div className="relative flex min-h-[calc(100dvh-4.75rem)] flex-col items-center justify-start gap-3 pb-[calc(9.2rem+env(safe-area-inset-bottom))] sm:min-h-[calc(100dvh-5rem)] sm:justify-center sm:gap-5 sm:pb-[calc(9.5rem+env(safe-area-inset-bottom))]">
             <div className="w-full text-center">
               <p className="text-xs font-black uppercase tracking-[0.25em] text-white/40">Ketka classic</p>
               <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-5xl">
@@ -126,7 +126,7 @@ export function GameBoard({
               </div>
             </div>
 
-            <div className="flex w-full max-w-2xl items-center justify-between rounded-3xl border border-white/10 bg-black/24 p-3 backdrop-blur-xl">
+            <div className="flex w-full max-w-2xl items-center justify-between rounded-2xl border border-white/10 bg-black/24 p-2.5 backdrop-blur-xl sm:rounded-3xl sm:p-3">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">Table bank</p>
                 <p className="mt-1 text-lg font-black">{tablePileCount} card{tablePileCount === 1 ? "" : "s"}</p>
@@ -135,7 +135,7 @@ export function GameBoard({
                 {Array.from({ length: Math.min(tablePileCount + 1, 5) }).map((_, index) => (
                   <div
                     key={index}
-                    className="h-12 w-9 rounded-lg border border-amber-900/20 bg-[linear-gradient(135deg,#fff4cf,#fffdf3_46%,#e8d29a)] shadow-lg"
+                    className="h-10 w-7 rounded-md border border-amber-900/20 bg-[linear-gradient(135deg,#fff4cf,#fffdf3_46%,#e8d29a)] shadow-lg sm:h-12 sm:w-9 sm:rounded-lg"
                     style={{ transform: `rotate(${index * 5 - 8}deg)` }}
                   />
                 ))}
@@ -146,7 +146,7 @@ export function GameBoard({
               {visibleCard ? (
                 <motion.div
                   key={visibleCard.id}
-                  className="flex w-full justify-center px-1 sm:px-0"
+                  className="flex w-full justify-center px-0.5 sm:px-0"
                   initial={{ opacity: 0, x: 120, y: 18, rotateZ: 9, scale: 0.88 }}
                   animate={{ opacity: 1, x: 0, y: 0, rotateZ: 0, scale: 1 }}
                   exit={{ opacity: 0, x: 220, y: -85, rotateZ: 18, scale: 0.62 }}
@@ -168,7 +168,7 @@ export function GameBoard({
             </AnimatePresence>
 
             {visibleCard ? (
-              <section className="fixed inset-x-2 bottom-[max(0.55rem,env(safe-area-inset-bottom))] z-30 mx-auto w-auto max-w-2xl rounded-[1.45rem] border border-white/10 bg-black/70 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:sticky sm:bottom-2 sm:inset-x-auto sm:w-full sm:rounded-[1.7rem] sm:bg-black/35 sm:p-4">
+              <section className="fixed inset-x-1.5 bottom-[max(0.45rem,env(safe-area-inset-bottom))] z-30 mx-auto w-auto max-w-2xl rounded-[1.1rem] border border-white/10 bg-black/75 p-2.5 shadow-[0_18px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:sticky sm:bottom-2 sm:inset-x-auto sm:w-full sm:rounded-[1.7rem] sm:bg-black/35 sm:p-4">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/45">Control panel</p>
@@ -202,7 +202,7 @@ export function GameBoard({
                     type="button"
                     onClick={submitToAi}
                     disabled={!canAnswer || !answer.trim()}
-                    className="col-span-2 inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.13em] text-zinc-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-45 sm:col-span-1"
+                    className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-4 py-2.5 text-xs font-black uppercase tracking-[0.13em] text-zinc-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-45 sm:col-span-1 sm:min-h-12 sm:px-5 sm:py-3 sm:text-sm"
                   >
                     <Bot className="mr-2 h-4 w-4" />
                     AI check
@@ -211,7 +211,7 @@ export function GameBoard({
                     type="button"
                     onClick={() => manualSubmit(true)}
                     disabled={!canAnswer}
-                    className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-emerald-300/30 bg-emerald-400/15 px-4 py-3 text-sm font-black text-emerald-100 transition hover:bg-emerald-400/25 disabled:opacity-45"
+                    className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-emerald-300/30 bg-emerald-400/15 px-3 py-2.5 text-xs font-black text-emerald-100 transition hover:bg-emerald-400/25 disabled:opacity-45 sm:min-h-12 sm:px-4 sm:py-3 sm:text-sm"
                   >
                     <CheckCircle2 className="mr-2 h-4 w-4" />
                     OK
@@ -220,7 +220,7 @@ export function GameBoard({
                     type="button"
                     onClick={() => manualSubmit(false)}
                     disabled={!canAnswer}
-                    className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-red-300/25 bg-red-500/15 px-4 py-3 text-sm font-black text-red-100 transition hover:bg-red-500/25 disabled:opacity-45"
+                    className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-red-300/25 bg-red-500/15 px-3 py-2.5 text-xs font-black text-red-100 transition hover:bg-red-500/25 disabled:opacity-45 sm:min-h-12 sm:px-4 sm:py-3 sm:text-sm"
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Fail

@@ -49,7 +49,7 @@ export function Card({ card, word, translation, hint, hintText, hintEmoji, onFli
       type="button"
       aria-pressed={isFlipped}
       onClick={toggleFlip}
-      className={`group relative ${compact ? "h-44 max-w-xs" : "h-64 max-w-sm"} w-full cursor-pointer select-none [perspective:1600px]`}
+      className={`group relative ${compact ? "h-40 max-w-[16.5rem] sm:h-44 sm:max-w-xs" : "h-[16.5rem] max-w-[18.5rem] sm:h-64 sm:max-w-sm"} w-full cursor-pointer select-none [perspective:1600px]`}
       initial={{ opacity: 0, y: 24, rotateZ: -2 }}
       animate={{ opacity: 1, y: 0, rotateZ: 0 }}
       exit={{ opacity: 0, x: 180, y: -32, rotateZ: 14, scale: 0.72 }}
@@ -72,7 +72,7 @@ export function Card({ card, word, translation, hint, hintText, hintEmoji, onFli
 
           <div className="mt-auto">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-950/40">English word</p>
-            <h2 className={`${compact ? "text-3xl" : "text-5xl"} mt-2 break-words font-black tracking-tight text-zinc-950`}>
+            <h2 className={`${compact ? "text-3xl" : "text-4xl sm:text-5xl"} mt-2 break-words font-black tracking-tight text-zinc-950`}>
               {cardWord || "word"}
             </h2>
           </div>
@@ -93,7 +93,7 @@ export function Card({ card, word, translation, hint, hintText, hintEmoji, onFli
 
           <div className="my-auto">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-950/40">Russian</p>
-            <h2 className={`${compact ? "text-3xl" : "text-5xl"} mt-2 break-words font-black tracking-tight text-zinc-950`}>
+            <h2 className={`${compact ? "text-3xl" : "text-4xl sm:text-5xl"} mt-2 break-words font-black tracking-tight text-zinc-950`}>
               {cardTranslation || "перевод"}
             </h2>
           </div>
@@ -112,7 +112,7 @@ function PaperFace({ accent, children }: { accent: "front" | "back"; children: R
 
   return (
     <div
-      className={`absolute inset-0 flex flex-col overflow-hidden rounded-[1.85rem] border p-5 text-left shadow-[0_26px_70px_rgba(0,0,0,0.34)] [backface-visibility:hidden] ${
+      className={`absolute inset-0 flex flex-col overflow-hidden rounded-[1.35rem] border p-4 text-left shadow-[0_26px_70px_rgba(0,0,0,0.34)] [backface-visibility:hidden] sm:rounded-[1.85rem] sm:p-5 ${
         back
           ? "border-emerald-900/15 bg-[linear-gradient(135deg,#d7f4de,#f8fff9_48%,#b8e6c2)] [transform:rotateY(180deg)]"
           : "border-amber-900/15 bg-[linear-gradient(135deg,#fff4cf,#fffdf3_46%,#e8d29a)]"

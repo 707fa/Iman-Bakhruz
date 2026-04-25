@@ -194,6 +194,7 @@ export function MultiplayerKetka({ viewMode = "all" }: { viewMode?: KetkaViewMod
   const [speedIndex, setSpeedIndex] = useState(0);
   const [speedScore, setSpeedScore] = useState(0);
   const [mobileSetupTab, setMobileSetupTab] = useState<"create" | "deck" | "invite">("deck");
+  const [autoStartTick, setAutoStartTick] = useState(0);
 
   useEffect(() => {
     saveDeck(deck);
@@ -237,6 +238,7 @@ export function MultiplayerKetka({ viewMode = "all" }: { viewMode?: KetkaViewMod
       setInvites((current) =>
         current.map((invite) => (invite.inviteId === payload.inviteId || invite.studentId === payload.toStudentId ? { ...invite, status: "accepted" } : invite)),
       );
+      setAutoStartTick((current) => current + 1);
       setNotice(`${payload.toStudentName} accepted your Ketka invite.`);
     };
 
@@ -285,6 +287,68 @@ export function MultiplayerKetka({ viewMode = "all" }: { viewMode?: KetkaViewMod
   const activeCard = currentPlayer?.cards[0] ?? null;
   const canStart = acceptedInvites.length >= 1 && acceptedInvites.length <= 3 && deck.length > 0;
 
+  useEffect(() => {
+    if (autoStartTick === 0) return;
+    if (acceptedInvites.length === 0 || acceptedInvites.length > 3) return;
+    if (!deck.length) return;
+    startKetkaWithAccepted(acceptedInvites);
+  }, [autoStartTick, acceptedInvites, deck.length]);
+
+  function buildKetkaSnapshot(acceptedList: GameInvite[]): KetkaMatchSnapshot | null {
+    if (!deck.length || acceptedList.length === 0) return null;
+
+    const me: LocalPlayer = {
+      playerId: currentStudent?.id ?? "me",
+      playerName: currentStudent?.fullName ?? "Me",
+      cards: shuffle(deck).map((card) => ({ ...card, id: `me-${card.id}` })),
+      deckSize: deck.length,
+      score: 0,
+      isHuman: true,
+      isConnected: true,
+      groupId: currentStudent?.groupId,
+    };
+
+    const opponents = acceptedList.map((invite) => {
+      const student = classmates.find((item) => item.id === invite.studentId);
+      const name = student?.fullName ?? invite.fromStudentName ?? "Player";
+      const cards = cloneDeckForOpponent(deck, name);
+      return {
+        playerId: invite.studentId,
+        playerName: name,
+        cards,
+        deckSize: cards.length,
+        score: 0,
+        isConnected: true,
+        groupId: student?.groupId ?? currentStudent?.groupId,
+      };
+    });
+
+    return {
+      players: [me, ...opponents],
+      currentPlayerIndex: 0,
+      tablePile: [],
+      winnerName: "",
+      winnerId: "",
+    };
+  }
+
+  function startKetkaWithAccepted(acceptedList: GameInvite[]) {
+    const snapshot = buildKetkaSnapshot(acceptedList);
+    if (!snapshot) return;
+
+    if (viewMode === "setup") {
+      navigate("/student/games/ketka-play", { state: { ketkaMatch: snapshot } });
+      return;
+    }
+
+    setPlayers(snapshot.players);
+    setWinnerName(snapshot.winnerName);
+    setWinnerId(snapshot.winnerId);
+    setTablePile(snapshot.tablePile);
+    setLastAnswer(null);
+    setCurrentPlayerIndex(snapshot.currentPlayerIndex);
+  }
+
   function addCard() {
     if (!form.word.trim() || !form.translation.trim()) return;
     setDeck((current) => [
@@ -328,6 +392,9 @@ export function MultiplayerKetka({ viewMode = "all" }: { viewMode?: KetkaViewMod
 
   function answerInvite(studentId: string, status: InviteStatus) {
     setInvites((current) => current.map((invite) => (invite.studentId === studentId ? { ...invite, status } : invite)));
+    if (status === "accepted") {
+      setAutoStartTick((current) => current + 1);
+    }
   }
 
   function respondIncomingInvite(invite: GameInvite, accepted: boolean) {
@@ -340,55 +407,23 @@ export function MultiplayerKetka({ viewMode = "all" }: { viewMode?: KetkaViewMod
       }
       setIncomingInvites((current) => current.filter((item) => item.inviteId !== invite.inviteId));
       setNotice(accepted ? `You accepted ${invite.fromStudentName}'s invite.` : `You declined ${invite.fromStudentName}'s invite.`);
+      if (accepted) {
+        setInvites([
+          {
+            studentId: invite.fromStudentId ?? invite.studentId,
+            fromStudentId: invite.fromStudentId,
+            fromStudentName: invite.fromStudentName,
+            inviteId: invite.inviteId,
+            status: "accepted",
+          },
+        ]);
+        setAutoStartTick((current) => current + 1);
+      }
     });
   }
 
   function startKetka() {
-    const me: LocalPlayer = {
-      playerId: currentStudent?.id ?? "me",
-      playerName: currentStudent?.fullName ?? "Me",
-      cards: shuffle(deck).map((card) => ({ ...card, id: `me-${card.id}` })),
-      deckSize: deck.length,
-      score: 0,
-      isHuman: true,
-      isConnected: true,
-      groupId: currentStudent?.groupId,
-    };
-
-    const opponents = acceptedInvites.map((invite) => {
-      const student = onlineClassmates.find((item) => item.id === invite.studentId);
-      const name = student?.fullName ?? "Player";
-      const cards = cloneDeckForOpponent(deck, name);
-      return {
-        playerId: invite.studentId,
-        playerName: name,
-        cards,
-        deckSize: cards.length,
-        score: 0,
-        isConnected: true,
-        groupId: student?.groupId,
-      };
-    });
-
-    const snapshot: KetkaMatchSnapshot = {
-      players: [me, ...opponents],
-      currentPlayerIndex: 0,
-      tablePile: [],
-      winnerName: "",
-      winnerId: "",
-    };
-
-    if (viewMode === "setup") {
-      navigate("/student/games/ketka-play", { state: { ketkaMatch: snapshot } });
-      return;
-    }
-
-    setPlayers(snapshot.players);
-    setWinnerName(snapshot.winnerName);
-    setWinnerId(snapshot.winnerId);
-    setTablePile(snapshot.tablePile);
-    setLastAnswer(null);
-    setCurrentPlayerIndex(snapshot.currentPlayerIndex);
+    startKetkaWithAccepted(acceptedInvites);
   }
 
   function resetMatch() {
