@@ -391,15 +391,15 @@ export function StudentSpeakingPage() {
   const dailyDone = Math.min(history.length, DAILY_TARGET);
 
   const questionSection = (
-    <Card className="rounded-2xl">
-      <CardContent className="space-y-3 p-3 sm:p-4">
+    <Card className="overflow-hidden rounded-[1.75rem] border-burgundy-100/70 bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.12),transparent_48%),linear-gradient(180deg,#ffffff,#faf8f8)] dark:border-zinc-800 dark:bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.18),transparent_48%),linear-gradient(180deg,#121214,#0b0b0d)]">
+      <CardContent className="space-y-4 p-4 sm:p-5">
         <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
           <Input
             value={lessonTopic}
             onChange={(event) => setLessonTopic(event.target.value)}
             placeholder="РўРµРјР° СѓСЂРѕРєР° (РЅР°РїСЂРёРјРµСЂ: Past Simple, Daily routine, Travel)"
           />
-          <Button onClick={() => void generateQuestions()} disabled={generatingQuestions} className="h-10 px-4">
+          <Button onClick={() => void generateQuestions()} disabled={generatingQuestions} className="h-11 rounded-full px-5">
             {generatingQuestions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
             AI 20 РІРѕРїСЂРѕСЃРѕРІ
           </Button>
@@ -411,8 +411,10 @@ export function StudentSpeakingPage() {
           <Badge variant="positive">{currentQuestion?.topic || "Topic"}</Badge>
           {taskLoading ? <Badge variant="positive">Teacher tasks loading...</Badge> : null}
         </div>
-        <p className="text-base font-semibold text-charcoal dark:text-zinc-100 sm:text-lg">{currentQuestion?.prompt || "No question"}</p>
-        <Button variant="secondary" onClick={listenQuestion} className="h-9 text-sm">
+        <div className="rounded-2xl border border-burgundy-100/80 bg-white/85 p-3.5 dark:border-zinc-700 dark:bg-zinc-900/75">
+          <p className="text-base font-semibold text-charcoal dark:text-zinc-100 sm:text-lg">{currentQuestion?.prompt || "No question"}</p>
+        </div>
+        <Button variant="secondary" onClick={listenQuestion} className="h-11 rounded-full px-4 text-sm sm:px-5">
           <Volume2 className="mr-2 h-4 w-4" />
           {t("speaking.listenQuestion")}
         </Button>
@@ -421,7 +423,7 @@ export function StudentSpeakingPage() {
   );
 
   const recordingSection = (
-    <Card className="rounded-2xl">
+    <Card className="overflow-hidden rounded-[1.75rem] border-burgundy-100/70 bg-[radial-gradient(circle_at_top,rgba(111,0,0,0.12),transparent_52%),linear-gradient(180deg,#ffffff,#f7f5f5)] dark:border-zinc-800 dark:bg-[radial-gradient(circle_at_top,rgba(111,0,0,0.22),transparent_52%),linear-gradient(180deg,#121214,#08080b)]">
       <CardHeader className="pb-2">
         <CardTitle className="inline-flex items-center gap-2 text-lg">
           <Mic className="h-5 w-5 text-burgundy-700 dark:text-white" />
@@ -432,33 +434,43 @@ export function StudentSpeakingPage() {
           <Badge variant="positive">{t("speaking.timer")}: {toClock(recordingSeconds)}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         {!speech.supported ? (
           <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
             {t("speaking.unsupported")}
           </p>
         ) : null}
 
-        <div className="flex flex-col items-center gap-3 py-1">
-          <Button
+        <div className="relative flex flex-col items-center gap-3 py-1">
+          <span
+            className={`pointer-events-none absolute h-36 w-36 rounded-full bg-burgundy-500/20 blur-2xl transition duration-500 ${
+              speech.listening ? "scale-125 opacity-100" : "scale-95 opacity-60"
+            }`}
+          />
+          <button
+            type="button"
             onClick={toggleRecording}
             disabled={status === "processing"}
-            className="h-28 w-28 rounded-full text-sm shadow-soft"
-            variant={speech.listening ? "secondary" : "default"}
+            aria-label={speech.listening ? t("speaking.stopRecording") : t("speaking.startRecording")}
+            className={`relative z-10 flex h-28 w-28 items-center justify-center rounded-full border text-white shadow-soft transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-burgundy-300/50 ${
+              speech.listening
+                ? "border-burgundy-300 bg-gradient-to-br from-burgundy-700 to-burgundy-900"
+                : "border-zinc-300 bg-gradient-to-br from-zinc-900 to-black dark:border-zinc-700"
+            } ${status === "processing" ? "opacity-80" : "hover:scale-[1.03] active:scale-95"} `}
           >
-            {status === "processing" ? <Loader2 className="h-6 w-6 animate-spin" /> : <Mic className="h-7 w-7" />}
-          </Button>
+            {status === "processing" ? <Loader2 className="h-7 w-7 animate-spin" /> : <Mic className="h-8 w-8" />}
+          </button>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/65 dark:text-zinc-400">
             {status === "processing" ? "AI checking..." : speech.listening ? t("speaking.stopRecording") : t("speaking.startRecording")}
           </p>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
-          <Button variant="secondary" onClick={resetAttempt} className="h-10 text-sm">
+          <Button variant="secondary" onClick={resetAttempt} className="h-11 rounded-full text-sm">
             <RotateCcw className="mr-2 h-4 w-4" />
             {t("speaking.retry")}
           </Button>
-          <Button variant="secondary" onClick={goNextQuestion} className="h-10 text-sm">
+          <Button variant="secondary" onClick={goNextQuestion} className="h-11 rounded-full text-sm">
             <Sparkles className="mr-2 h-4 w-4" />
             {t("speaking.nextQuestion")}
           </Button>
@@ -541,10 +553,10 @@ export function StudentSpeakingPage() {
 
       <div className="lg:hidden">
         <Tabs value={mobileSection} onValueChange={(value) => setMobileSection(value as "practice" | "analysis" | "history")}>
-          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1">
-            <TabsTrigger className="px-2 py-2 text-xs" value="practice">Practice</TabsTrigger>
-            <TabsTrigger className="px-2 py-2 text-xs" value="analysis">Analysis</TabsTrigger>
-            <TabsTrigger className="px-2 py-2 text-xs" value="history">History</TabsTrigger>
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-2xl border border-burgundy-100 bg-white/90 p-1 dark:border-zinc-800 dark:bg-zinc-900/90">
+            <TabsTrigger className="rounded-xl px-2 py-2 text-xs data-[state=active]:bg-burgundy-700 data-[state=active]:text-white" value="practice">Practice</TabsTrigger>
+            <TabsTrigger className="rounded-xl px-2 py-2 text-xs data-[state=active]:bg-burgundy-700 data-[state=active]:text-white" value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger className="rounded-xl px-2 py-2 text-xs data-[state=active]:bg-burgundy-700 data-[state=active]:text-white" value="history">History</TabsTrigger>
           </TabsList>
           <TabsContent value="practice" className="space-y-4">
             {questionSection}
