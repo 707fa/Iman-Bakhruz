@@ -38,9 +38,9 @@ export function TeacherSpotlightCard({ teacherId }: TeacherSpotlightCardProps) {
   if (!teacher) return null;
 
   return (
-    <Card className="overflow-hidden border-burgundy-200/80">
+    <Card className="overflow-hidden border-burgundy-200/70 bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.1),transparent_46%),linear-gradient(180deg,#ffffff,#faf8f8)] dark:border-zinc-800 dark:bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.16),transparent_46%),linear-gradient(180deg,#121214,#09090b)]">
       <CardContent className="p-0">
-        <div className="border-b border-burgundy-100 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950 sm:px-5">
+        <div className="border-b border-burgundy-100/80 bg-white/85 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950/80 sm:px-5">
           <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("home.teacherInfoTitle")}</p>
           <p className="mt-1 text-sm text-charcoal/70 dark:text-zinc-300">{t("home.teacherInfoSubtitle")}</p>
         </div>
@@ -55,21 +55,21 @@ export function TeacherSpotlightCard({ teacherId }: TeacherSpotlightCardProps) {
           </div>
 
           <div className="grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="rounded-2xl border border-burgundy-100/80 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-900/80">
               <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">
                 <BookOpenCheck className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
                 {t("home.teacherGroups")}
               </p>
               <p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{teacherGroups.length}</p>
             </div>
-            <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="rounded-2xl border border-burgundy-100/80 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-900/80">
               <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">
                 <Users2 className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
                 {t("home.teacherStudents")}
               </p>
               <p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{teacherStudents.length}</p>
             </div>
-            <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="rounded-2xl border border-burgundy-100/80 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-900/80">
               <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">
                 <ClipboardList className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
                 {t("home.teacherRatings")}
