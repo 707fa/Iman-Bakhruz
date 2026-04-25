@@ -1,4 +1,5 @@
 import { Brain, Loader2, Mic, RotateCcw, Sparkles, Volume2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
@@ -149,6 +150,7 @@ export function StudentSpeakingPage() {
   const [lessonTopic, setLessonTopic] = useState("");
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedSpeakingQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [questionAnimSeed, setQuestionAnimSeed] = useState(0);
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
   const [questionError, setQuestionError] = useState<string | null>(null);
 
@@ -332,16 +334,16 @@ export function StudentSpeakingPage() {
     window.speechSynthesis.speak(utterance);
   }
 
-  function goNextQuestion() {
-    if (!result || result.score < PASS_SCORE) {
-      showToast({ message: `Answer is not accepted yet. Reach ${PASS_SCORE}+ and try again.`, tone: "error" });
+  function goToNextQuestionAfterSuccess() {
+    const next = questionIndex + 1;
+    if (next >= effectiveQuestions.length) {
+      showToast({ message: "Great! You completed all questions for this set.", tone: "success" });
+      resetAttempt();
       return;
     }
 
-    setQuestionIndex((prev) => {
-      const next = prev + 1;
-      return next >= effectiveQuestions.length ? prev : next;
-    });
+    setQuestionIndex(next);
+    setQuestionAnimSeed((prev) => prev + 1);
     resetAttempt();
   }
 
@@ -376,7 +378,10 @@ export function StudentSpeakingPage() {
       if (analysis.score < PASS_SCORE) {
         showToast({ message: `Not enough score (${analysis.score}). Please try this question again.`, tone: "error" });
       } else {
-        showToast({ message: "Great. Answer accepted, now go to next question.", tone: "success" });
+        showToast({ message: "Great. Answer accepted.", tone: "success" });
+        window.setTimeout(() => {
+          goToNextQuestionAfterSuccess();
+        }, 520);
       }
 
       const nextHistory: LocalSpeakingAttempt[] = [
@@ -423,7 +428,18 @@ export function StudentSpeakingPage() {
           {taskLoading ? <Badge variant="positive">Teacher tasks loading...</Badge> : null}
         </div>
         <div className="rounded-2xl border border-burgundy-100/80 bg-white/85 p-3.5 dark:border-zinc-700 dark:bg-zinc-900/75">
-          <p className="text-base font-semibold text-charcoal dark:text-zinc-100 sm:text-lg">{currentQuestion?.prompt || "No question"}</p>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`${currentQuestion?.id || "q"}-${questionIndex}-${questionAnimSeed}`}
+              initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -10, filter: "blur(6px)" }}
+              transition={{ duration: 0.34, ease: "easeOut" }}
+              className="text-base font-semibold text-charcoal dark:text-zinc-100 sm:text-lg"
+            >
+              {currentQuestion?.prompt || "No question"}
+            </motion.p>
+          </AnimatePresence>
         </div>
         <Button variant="secondary" onClick={listenQuestion} className="h-11 rounded-full px-4 text-sm sm:px-5">
           <Volume2 className="mr-2 h-4 w-4" />
@@ -476,23 +492,14 @@ export function StudentSpeakingPage() {
           </p>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2">
           <Button variant="secondary" onClick={resetAttempt} className="h-11 rounded-full text-sm">
             <RotateCcw className="mr-2 h-4 w-4" />
             {t("speaking.retry")}
           </Button>
-          <Button
-            variant="secondary"
-            onClick={goNextQuestion}
-            disabled={!result || result.score < PASS_SCORE}
-            className="h-11 rounded-full text-sm"
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            {t("speaking.nextQuestion")}
-          </Button>
         </div>
         <p className="text-xs font-semibold text-charcoal/70 dark:text-zinc-300">
-          Passing score: {PASS_SCORE}+. You cannot skip this question.
+          Passing score: {PASS_SCORE}+. Next question opens automatically after correct answer.
         </p>
       </CardContent>
     </Card>
