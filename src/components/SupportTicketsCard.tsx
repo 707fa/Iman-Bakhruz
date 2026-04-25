@@ -263,7 +263,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                           <p className="text-xs font-semibold text-zinc-100">#{ticket.id}</p>
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass(ticket.status)}`}>{statusLabel(ticket.status)}</span>
                         </div>
-                        <p className="mt-1 line-clamp-2 text-xs text-zinc-300">{ticket.message}</p>
+                        <p className="mt-1 line-clamp-2 break-words [overflow-wrap:anywhere] text-xs text-zinc-300">{ticket.message}</p>
                       </button>
                     );
                   })
@@ -280,7 +280,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                 {activeTicket ? <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusClass(activeTicket.status)}`}>{statusLabel(activeTicket.status)}</span> : null}
               </div>
 
-              <div ref={viewportRef} className="space-y-3 overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
+              <div ref={viewportRef} className="space-y-3 overflow-x-hidden overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
                 {loadingMessages && activeMessages.length === 0 ? (
                   <p className="text-xs text-zinc-400">Loading messages...</p>
                 ) : activeMessages.length === 0 ? (
@@ -288,7 +288,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                     <div className="flex justify-end transition-all duration-200">
                       <div className="max-w-[78%] rounded-2xl rounded-br-md bg-[#6F0000] px-3 py-2.5 text-sm text-white shadow-[0_10px_22px_-18px_rgba(111,0,0,0.65)]">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70">You</p>
-                        <p className="mt-1 whitespace-pre-wrap text-white">{activeTicket.message}</p>
+                        <p className="mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white">{activeTicket.message}</p>
                         <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-white/75">
                           <span>{new Date(activeTicket.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           <Check className="h-3 w-3" />
@@ -312,7 +312,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                           }`}
                         >
                           <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${mine ? "text-white/70" : "text-zinc-400"}`}>{senderTitle(role, message)}</p>
-                          <p className={`mt-1 whitespace-pre-wrap ${mine ? "text-white" : ""}`}>{message.text}</p>
+                          <p className={`mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${mine ? "text-white" : ""}`}>{message.text}</p>
                           <div className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-white/75" : "text-zinc-500"}`}>
                             <span>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             {mine
