@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 import { UserAvatar } from "./UserAvatar";
-import { Card, CardContent } from "./ui/card";
 
 interface TeacherSpotlightCardProps {
   teacherId: string;
@@ -38,65 +37,60 @@ export function TeacherSpotlightCard({ teacherId }: TeacherSpotlightCardProps) {
   if (!teacher) return null;
 
   return (
-    <Card className="overflow-hidden border-burgundy-200/70 bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.1),transparent_46%),linear-gradient(180deg,#ffffff,#faf8f8)] dark:border-zinc-800 dark:bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.16),transparent_46%),linear-gradient(180deg,#121214,#09090b)]">
-      <CardContent className="p-0">
-        <div className="border-b border-burgundy-100/80 bg-white/85 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950/80 sm:px-5">
-          <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("home.teacherInfoTitle")}</p>
-          <p className="mt-1 text-sm text-charcoal/70 dark:text-zinc-300">{t("home.teacherInfoSubtitle")}</p>
-        </div>
+    <section className="rounded-[1.8rem] bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.16),transparent_42%),linear-gradient(145deg,#1d0508,#140306_52%,#0d0203)] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.34)] sm:p-5">
+      <div className="border-b border-white/10 pb-4">
+        <p className="text-xs uppercase tracking-[0.12em] text-white/60">{t("home.teacherInfoTitle")}</p>
+        <p className="mt-1 text-sm text-white/80">{t("home.teacherInfoSubtitle")}</p>
+      </div>
 
-        <div className="space-y-4 p-4 sm:p-5">
-          <div className="flex items-center gap-3">
-            <UserAvatar fullName={teacher.fullName} avatarUrl={teacher.avatarUrl} />
-            <div>
-              <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{teacher.fullName}</p>
-              <p className="text-xs text-charcoal/60 dark:text-zinc-400">{t("role.teacher")}</p>
-            </div>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div className="rounded-2xl border border-burgundy-100/80 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-900/80">
-              <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">
-                <BookOpenCheck className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
-                {t("home.teacherGroups")}
-              </p>
-              <p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{teacherGroups.length}</p>
-            </div>
-            <div className="rounded-2xl border border-burgundy-100/80 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-900/80">
-              <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">
-                <Users2 className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
-                {t("home.teacherStudents")}
-              </p>
-              <p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{teacherStudents.length}</p>
-            </div>
-            <div className="rounded-2xl border border-burgundy-100/80 bg-white/90 p-3 dark:border-zinc-700 dark:bg-zinc-900/80">
-              <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">
-                <ClipboardList className="h-3.5 w-3.5 text-burgundy-600 dark:text-white" />
-                {t("home.teacherRatings")}
-              </p>
-              <p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{ratingsCount}</p>
-            </div>
-          </div>
-
+      <div className="space-y-4 pt-4">
+        <div className="flex items-center gap-3">
+          <UserAvatar fullName={teacher.fullName} avatarUrl={teacher.avatarUrl} />
           <div>
-            <p className="inline-flex items-center gap-2 text-sm font-semibold text-charcoal dark:text-zinc-100">
-              <Award className="h-4 w-4 text-burgundy-700 dark:text-white" />
-              {t("home.teacherAwards")}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {awards.map((award) => (
-                <span
-                  key={award}
-                  className="inline-flex rounded-full border border-burgundy-200 bg-burgundy-50 px-3 py-1 text-xs font-semibold text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-900/30 dark:text-white"
-                >
-                  {award}
-                </span>
-              ))}
-            </div>
+            <p className="text-base font-semibold">{teacher.fullName}</p>
+            <p className="text-xs text-white/60">{t("role.teacher")}</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="rounded-2xl bg-black/30 p-3">
+            <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-white/65">
+              <BookOpenCheck className="h-3.5 w-3.5 text-white" />
+              {t("home.teacherGroups")}
+            </p>
+            <p className="mt-1 text-xl font-bold">{teacherGroups.length}</p>
+          </div>
+          <div className="rounded-2xl bg-black/30 p-3">
+            <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-white/65">
+              <Users2 className="h-3.5 w-3.5 text-white" />
+              {t("home.teacherStudents")}
+            </p>
+            <p className="mt-1 text-xl font-bold">{teacherStudents.length}</p>
+          </div>
+          <div className="rounded-2xl bg-black/30 p-3">
+            <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-white/65">
+              <ClipboardList className="h-3.5 w-3.5 text-white" />
+              {t("home.teacherRatings")}
+            </p>
+            <p className="mt-1 text-xl font-bold">{ratingsCount}</p>
+          </div>
+        </div>
+
+        <div>
+          <p className="inline-flex items-center gap-2 text-sm font-semibold">
+            <Award className="h-4 w-4 text-white" />
+            {t("home.teacherAwards")}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {awards.map((award) => (
+              <span key={award} className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                {award}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
