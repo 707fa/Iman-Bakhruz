@@ -2,7 +2,7 @@ import { AlertCircle, Check, CheckCheck, LifeBuoy, Loader2, Send } from "lucide-
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SupportTicket, SupportTicketMessage, SupportTicketStatus, UserRole } from "../types";
 import { platformApi } from "../services/api/platformApi";
-import { getApiToken } from "../services/tokenStorage";
+import { getApiToken, getSessionUserId } from "../services/tokenStorage";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
@@ -13,6 +13,60 @@ interface SupportTicketsCardProps {
 type UiSupportMessage = SupportTicketMessage & {
   localState?: "sending" | "failed";
 };
+
+interface SupportChatCacheState {
+  activeTicketId: string | null;
+  draft: string;
+  tickets: SupportTicket[];
+  messagesByTicket: Record<string, UiSupportMessage[]>;
+}
+
+const SUPPORT_CACHE_LIMIT_PER_TICKET = 120;
+
+function getSupportCacheKey(role: UserRole, userId: string): string {
+  return `support-chat-cache-v2:${role}:${userId || "guest"}`;
+}
+
+function readSupportCache(cacheKey: string): SupportChatCacheState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SupportChatCacheState> | null;
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      activeTicketId: typeof parsed.activeTicketId === "string" ? parsed.activeTicketId : null,
+      draft: typeof parsed.draft === "string" ? parsed.draft : "",
+      tickets: Array.isArray(parsed.tickets) ? (parsed.tickets as SupportTicket[]) : [],
+      messagesByTicket:
+        parsed.messagesByTicket && typeof parsed.messagesByTicket === "object"
+          ? (parsed.messagesByTicket as Record<string, UiSupportMessage[]>)
+          : {},
+    };
+  } catch {
+    return null;
+  }
+}
+
+function trimMessagesForCache(messagesByTicket: Record<string, UiSupportMessage[]>): Record<string, UiSupportMessage[]> {
+  const next: Record<string, UiSupportMessage[]> = {};
+  Object.entries(messagesByTicket).forEach(([ticketId, messages]) => {
+    next[ticketId] = Array.isArray(messages) ? messages.slice(-SUPPORT_CACHE_LIMIT_PER_TICKET) : [];
+  });
+  return next;
+}
+
+function writeSupportCache(cacheKey: string, state: SupportChatCacheState) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    cacheKey,
+    JSON.stringify({
+      ...state,
+      messagesByTicket: trimMessagesForCache(state.messagesByTicket),
+      tickets: state.tickets.slice(0, 50),
+    }),
+  );
+}
 
 function statusLabel(value: SupportTicketStatus): string {
   if (value === "in_progress") return "In progress";
@@ -50,6 +104,9 @@ function messageReadByPeer(role: UserRole, message: UiSupportMessage): boolean {
 
 export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   const token = getApiToken();
+  const userId = getSessionUserId() || "guest";
+  const cacheKey = useMemo(() => getSupportCacheKey(role, userId), [role, userId]);
+  const hydratedRef = useRef(false);
   const [draft, setDraft] = useState("");
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
@@ -62,6 +119,31 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const draftRef = useRef<HTMLTextAreaElement | null>(null);
   const latestIncomingIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    const cached = readSupportCache(cacheKey);
+    if (!cached) {
+      hydratedRef.current = true;
+      return;
+    }
+
+    setDraft(cached.draft);
+    setTickets(cached.tickets);
+    setMessagesByTicket(cached.messagesByTicket);
+    setActiveTicketId(cached.activeTicketId);
+    hydratedRef.current = true;
+  }, [cacheKey]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    writeSupportCache(cacheKey, {
+      activeTicketId,
+      draft,
+      tickets,
+      messagesByTicket,
+    });
+  }, [cacheKey, activeTicketId, draft, tickets, messagesByTicket]);
 
   const sortedTickets = useMemo(
     () =>
