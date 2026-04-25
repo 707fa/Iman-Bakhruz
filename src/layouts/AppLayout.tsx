@@ -207,10 +207,13 @@ export function AppLayout() {
             <span className="absolute right-3 top-3 rounded-full bg-zinc-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
               Soon
             </span>
-            <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100">Study</p>
+            <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100">{t("menu.studySoonTitle")}</p>
+            <div className="hidden">
             <p className="mt-1 text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
               Скоро добавим. Скоро сайт будет приложением.
             </p>
+            </div>
+            <p className="mt-1 text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">{t("menu.studySoonText")}</p>
           </div>
         </aside>
 
