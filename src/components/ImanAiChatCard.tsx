@@ -252,6 +252,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
   const voice = useVoiceAssistant({
     lang: aiLanguage === "ru" ? "ru-RU" : aiLanguage === "uz" ? "uz-UZ" : "en-US",
+    outputLang: "en-US",
     onExchange: voiceExchange,
     onError: (message) => showToast({ message, tone: "error" }),
   });

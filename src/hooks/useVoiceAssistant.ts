@@ -39,6 +39,7 @@ declare global {
 
 interface UseVoiceAssistantOptions {
   lang: string;
+  outputLang?: string;
   onExchange?: (userText: string) => Promise<string>;
   onError?: (message: string) => void;
 }
@@ -53,7 +54,7 @@ function mockReply(userText: string): string {
   return `Great, I heard you. Let's practice this in better English together.`;
 }
 
-export function useVoiceAssistant({ lang, onExchange, onError }: UseVoiceAssistantOptions) {
+export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: UseVoiceAssistantOptions) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState<VoiceTranscriptItem[]>([]);
@@ -110,10 +111,10 @@ export function useVoiceAssistant({ lang, onExchange, onError }: UseVoiceAssista
       }
       setState("speaking");
       try {
-        await audio.play(assistantText, lang);
+        await audio.play(assistantText, outputLang || lang);
       } catch {
         setState("idle");
-        onError?.("Voice service had an issue. Switched to safe mode.");
+        onError?.("Neural voice is unavailable right now. Please retry in a few seconds.");
         return;
       }
       setState("idle");
@@ -127,7 +128,7 @@ export function useVoiceAssistant({ lang, onExchange, onError }: UseVoiceAssista
         }
       }
     },
-    [audio, lang, onExchange, open],
+    [audio, lang, onExchange, open, outputLang],
   );
 
   const startListening = useCallback(async () => {
