@@ -23,9 +23,9 @@ function isItemActive(pathname: string, item: NavItem): boolean {
 
 function navItemClass(active: boolean): string {
   if (active) {
-    return "bg-gradient-to-br from-burgundy-600 via-burgundy-700 to-burgundy-800 text-white shadow-soft";
+    return "bg-burgundy-700 text-white shadow-soft";
   }
-  return "text-charcoal/75 hover:bg-burgundy-50/80 hover:text-charcoal dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white";
+  return "text-charcoal/75 hover:bg-zinc-100 hover:text-charcoal dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white";
 }
 
 export function AppLayout() {
@@ -120,8 +120,6 @@ export function AppLayout() {
 
   return (
     <div className="relative h-dvh overflow-hidden bg-white text-charcoal dark:bg-black dark:text-zinc-100">
-      <div className="pointer-events-none absolute inset-0 hidden sm:block bg-[radial-gradient(circle_at_12%_10%,rgba(95,6,6,0.08),transparent_38%),radial-gradient(circle_at_88%_100%,rgba(95,6,6,0.05),transparent_36%)] dark:bg-[radial-gradient(circle_at_10%_8%,rgba(95,6,6,0.2),transparent_34%),radial-gradient(circle_at_90%_100%,rgba(95,6,6,0.16),transparent_40%)]" />
-
       <div className="relative grid h-full w-full lg:grid-cols-[264px_minmax(0,1fr)]">
         <aside className="scrollbar-thin hidden border-r border-zinc-200/80 bg-white/90 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/92 lg:block lg:h-dvh lg:overflow-y-auto">
           <Link to={session.role === "student" ? "/student" : session.role === "teacher" ? "/teacher" : "/parent"}>
@@ -135,12 +133,10 @@ export function AppLayout() {
             />
           </Link>
 
-          <div className="mt-4 rounded-2xl border border-burgundy-500/70 bg-gradient-to-br from-burgundy-600 via-burgundy-700 to-burgundy-900 p-3.5 text-white shadow-lift">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/80">{t("app.workspace")}</p>
-            <p className="mt-1 text-base font-semibold">
+          <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-xs font-semibold text-charcoal/70 dark:text-zinc-300">
               {session.role === "teacher" ? t("role.teacher") : session.role === "parent" ? t("nav.parent") : t("role.student")}
             </p>
-            <p className="mt-1 text-xs text-white/80">{t("app.workspaceDescription")}</p>
           </div>
 
           <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">{t("menu.navigation")}</p>
@@ -202,15 +198,7 @@ export function AppLayout() {
             </>
           ) : null}
 
-          <div className="relative mt-4 overflow-hidden rounded-2xl bg-zinc-100/90 p-3 ring-1 ring-zinc-300/70 dark:bg-zinc-900/80 dark:ring-zinc-700">
-            <span className="absolute right-3 top-3 rounded-full bg-zinc-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
-              Soon
-            </span>
-            <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100">Study</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-              Скоро добавим. Скоро сайт будет приложением.
-            </p>
-          </div>
+          
         </aside>
 
         <div className="relative flex h-dvh min-w-0 flex-col">
@@ -249,10 +237,10 @@ export function AppLayout() {
               <AnimatePresence mode="sync" initial={false}>
                 <motion.div
                   key={`${location.pathname}${location.search}`}
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.24, ease: "easeOut" }}
                   style={{ willChange: "transform, opacity" }}
                 >
                   {session.role === "student" ? (
@@ -280,7 +268,7 @@ export function AppLayout() {
                 className={cn(
                   "flex min-h-[3.4rem] min-w-[4.2rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[0.95rem] px-1.5 py-1.5 text-[10px] font-semibold transition sm:min-h-[3.8rem]",
                   active
-                    ? "bg-gradient-to-br from-burgundy-600 to-burgundy-800 text-white shadow-soft"
+                    ? "bg-burgundy-700 text-white shadow-soft"
                     : "text-charcoal/70 dark:text-zinc-300",
                 )}
               >
