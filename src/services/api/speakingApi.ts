@@ -131,6 +131,89 @@ function fallbackAnalysisFromText(rawText: string, transcript: string): Speaking
   };
 }
 
+function normalizeSentence(text: string): string {
+  const clean = String(text || "").trim().replace(/\s+/g, " ");
+  if (!clean) return "";
+  const withCapital = clean.charAt(0).toUpperCase() + clean.slice(1);
+  return /[.!?]$/.test(withCapital) ? withCapital : `${withCapital}.`;
+}
+
+function tokenize(text: string): string[] {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 1);
+}
+
+function average(...values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((acc, value) => acc + value, 0) / values.length;
+}
+
+function clampScore(value: number): number {
+  return normalizeScore(Math.round(value), 0);
+}
+
+function buildHeuristicAnalysis(payload: SpeakingCheckPayload): SpeakingAnalysisResult {
+  const transcript = String(payload.transcript || "").trim();
+  const question = String(payload.question || "").trim();
+  const words = tokenize(transcript);
+  const uniqueWords = new Set(words);
+  const wordCount = words.length;
+  const uniqueRatio = wordCount > 0 ? uniqueWords.size / wordCount : 0;
+
+  const hasEndingPunctuation = /[.!?]$/.test(transcript);
+  const hasCommonVerb = /\b(am|is|are|was|were|have|has|had|do|does|did|go|goes|went|will|can|should|would|like|want|study|learn)\b/i.test(
+    transcript,
+  );
+
+  const questionTokens = new Set(tokenize(question).filter((item) => item.length >= 4));
+  const overlapCount = [...questionTokens].filter((token) => uniqueWords.has(token)).length;
+  const relevance = questionTokens.size > 0 ? overlapCount / questionTokens.size : 0.5;
+
+  const grammarScore = clampScore(38 + (hasEndingPunctuation ? 10 : 0) + (hasCommonVerb ? 12 : 0) + Math.min(20, wordCount * 1.1));
+  const fluencyScore = clampScore(35 + Math.min(45, wordCount * 1.6));
+  const vocabularyScore = clampScore(35 + uniqueRatio * 45 + Math.min(15, wordCount / 3));
+  const relevanceScore = clampScore(35 + relevance * 65);
+  const score = clampScore(average(grammarScore, fluencyScore, vocabularyScore, relevanceScore));
+
+  const mistakes: Array<{ original: string; corrected: string; reason: string }> = [];
+  if (!hasEndingPunctuation && transcript) {
+    mistakes.push({
+      original: transcript,
+      corrected: normalizeSentence(transcript),
+      reason: "Add ending punctuation for a complete sentence.",
+    });
+  }
+  if (!hasCommonVerb && transcript) {
+    mistakes.push({
+      original: transcript,
+      corrected: `${normalizeSentence(transcript)} I use full sentences with verbs.`,
+      reason: "Try to include a clear verb in each sentence.",
+    });
+  }
+
+  return {
+    score,
+    grammarScore,
+    fluencyScore,
+    vocabularyScore,
+    transcript,
+    correctedAnswer: normalizeSentence(transcript),
+    mistakes,
+    feedback:
+      score >= 70
+        ? "Good answer. Keep your structure clear and add one extra detail to sound more natural."
+        : "Connection fallback check used. Improve with longer full sentences, clear verbs, and one concrete example.",
+    modelAnswer: question
+      ? `A strong sample answer: ${normalizeSentence(`In my opinion, ${question.toLowerCase()} because it helps me communicate clearly in real situations`)}`
+      : "A strong sample answer: I organize my ideas, give one clear example, and finish with a short conclusion.",
+    levelEstimate: String(payload.level || "estimated"),
+  };
+}
+
 function buildPlatformAiSpeakingPrompt(payload: SpeakingCheckPayload): string {
   return [
     "You are an expert English speaking evaluator for ESL students.",
@@ -344,6 +427,9 @@ export async function checkSpeakingAnswer(payload: SpeakingCheckPayload): Promis
   } catch (fallbackError) {
     if (fallbackError instanceof ApiError && [401, 402, 403].includes(fallbackError.status)) {
       throw fallbackError;
+    }
+    if (transcript) {
+      return buildHeuristicAnalysis({ ...payload, question, transcript });
     }
     throw fallbackError ?? lastError ?? new Error("Speaking endpoint is unavailable");
   }
