@@ -1,5 +1,5 @@
-import { Brain, Loader2, Mic, RotateCcw, Sparkles, Volume2, Wand2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Brain, Loader2, Mic, RotateCcw, Sparkles, Volume2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -153,9 +153,10 @@ export function StudentSpeakingPage() {
 
   const [status, setStatus] = useState<SpeakingStatus>("idle");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [manualTranscript, setManualTranscript] = useState("");
   const [result, setResult] = useState<SpeakingAnalysisResult | null>(null);
   const [mobileSection, setMobileSection] = useState<"practice" | "analysis" | "history">("practice");
+  const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
+  const wasListeningRef = useRef(false);
 
   const [history, setHistory] = useState<LocalSpeakingAttempt[]>(() => readHistory(currentStudent?.id || "guest"));
 
@@ -207,19 +208,25 @@ export function StudentSpeakingPage() {
   const currentQuestion = effectiveQuestions[questionIndex] ?? effectiveQuestions[0] ?? null;
 
   useEffect(() => {
-    if (!speech.transcript) return;
-    setManualTranscript(speech.transcript);
-  }, [speech.transcript]);
-
-  useEffect(() => {
     if (speech.listening) {
       setStatus("listening");
+      wasListeningRef.current = true;
       return;
     }
-    if (status === "listening") {
+    if (status === "listening" || wasListeningRef.current) {
       setStatus("idle");
+      wasListeningRef.current = false;
     }
   }, [speech.listening, status]);
+
+  useEffect(() => {
+    if (!pendingAutoAnalyze || speech.listening) return;
+    setPendingAutoAnalyze(false);
+    const timer = window.setTimeout(() => {
+      void analyzeAnswer();
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [pendingAutoAnalyze, speech.listening, speech.transcript]);
 
   useEffect(() => {
     if (!speech.error) return;
@@ -239,8 +246,8 @@ export function StudentSpeakingPage() {
     speech.reset();
     setStatus("idle");
     setRecordingSeconds(0);
-    setManualTranscript("");
     setResult(null);
+    setPendingAutoAnalyze(false);
   }
 
   async function generateQuestions() {
@@ -276,13 +283,14 @@ export function StudentSpeakingPage() {
 
   function toggleRecording() {
     if (speech.listening) {
+      setPendingAutoAnalyze(true);
       speech.stop();
       return;
     }
 
     setResult(null);
     setRecordingSeconds(0);
-    setManualTranscript("");
+    setPendingAutoAnalyze(false);
 
     if (!speech.supported) {
       showToast({ message: t("speaking.error.unavailable"), tone: "error" });
@@ -334,7 +342,7 @@ export function StudentSpeakingPage() {
   async function analyzeAnswer() {
     if (!currentQuestion) return;
 
-    const transcript = manualTranscript.trim();
+    const transcript = speech.transcript.trim();
     if (!transcript) {
       showToast({ message: t("speaking.error.emptyTranscript"), tone: "error" });
       return;
@@ -431,49 +439,21 @@ export function StudentSpeakingPage() {
           </p>
         ) : null}
 
-        <Button
-          onClick={toggleRecording}
-          disabled={status === "processing"}
-          className="h-10 w-full text-sm"
-          variant={speech.listening ? "secondary" : "default"}
-        >
-          {speech.listening ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {t("speaking.stopRecording")}
-            </>
-          ) : (
-            <>
-              <Mic className="mr-2 h-4 w-4" />
-              {t("speaking.startRecording")}
-            </>
-          )}
-        </Button>
-
-        <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-charcoal/65 dark:text-zinc-400">
-            {t("speaking.transcript")}
+        <div className="flex flex-col items-center gap-3 py-1">
+          <Button
+            onClick={toggleRecording}
+            disabled={status === "processing"}
+            className="h-28 w-28 rounded-full text-sm shadow-soft"
+            variant={speech.listening ? "secondary" : "default"}
+          >
+            {status === "processing" ? <Loader2 className="h-6 w-6 animate-spin" /> : <Mic className="h-7 w-7" />}
+          </Button>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/65 dark:text-zinc-400">
+            {status === "processing" ? "AI checking..." : speech.listening ? t("speaking.stopRecording") : t("speaking.startRecording")}
           </p>
-          <textarea
-            value={manualTranscript}
-            onChange={(event) => setManualTranscript(event.target.value)}
-            rows={4}
-            className="w-full resize-y rounded-xl border border-burgundy-100 bg-white p-2.5 text-sm text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
-            placeholder={t("speaking.transcriptPlaceholder")}
-          />
         </div>
 
-        {speech.interimTranscript ? (
-          <p className="text-xs text-charcoal/65 dark:text-zinc-400">
-            {t("speaking.interim")}: {speech.interimTranscript}
-          </p>
-        ) : null}
-
-        <div className="grid gap-2 sm:grid-cols-3">
-          <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"} className="h-10 text-sm">
-            {status === "processing" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-            {t("speaking.analyze")}
-          </Button>
+        <div className="grid gap-2 sm:grid-cols-2">
           <Button variant="secondary" onClick={resetAttempt} className="h-10 text-sm">
             <RotateCcw className="mr-2 h-4 w-4" />
             {t("speaking.retry")}
