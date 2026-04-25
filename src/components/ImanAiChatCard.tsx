@@ -261,14 +261,19 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   });
 
   useEffect(() => {
-    if (!canUseApi) return;
+    // Always restore local chat first so refresh/close keeps conversation visible immediately.
+    setMessages(
+      readLocalMessages(localStorageKey).map((item) =>
+        item.role === "assistant" ? { ...item, text: normalizeAssistantReply(item.text) } : item,
+      ),
+    );
+
+    if (!canUseApi) {
+      setLoading(false);
+      return;
+    }
 
     if (useGatewayMode) {
-      setMessages(
-        readLocalMessages(localStorageKey).map((item) =>
-          item.role === "assistant" ? { ...item, text: normalizeAssistantReply(item.text) } : item,
-        ),
-      );
       setStatusHint(null);
       setLoading(false);
       return;
@@ -293,7 +298,6 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             return;
           }
           showToast({ message: mapBackendAiErrorToMessage(error), tone: "error" });
-          setMessages([]);
         }
       } finally {
         if (!disposed) setLoading(false);
@@ -307,9 +311,8 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   }, [canUseApi, token, useGatewayMode, localStorageKey, showToast]);
 
   useEffect(() => {
-    if (!useGatewayMode) return;
     writeLocalMessages(localStorageKey, messages);
-  }, [useGatewayMode, localStorageKey, messages]);
+  }, [localStorageKey, messages]);
 
   useEffect(() => {
     if (!listRef.current) return;

@@ -28,6 +28,13 @@ interface LocalFriendlyState {
   messages: Record<string, FriendlyChatMessage[]>;
 }
 
+interface FriendlyUiCacheState {
+  activeConversationId: string | null;
+  draft: string;
+  conversations: FriendlyConversation[];
+  messagesByConversation: Record<string, FriendlyChatMessage[]>;
+}
+
 interface ChatPeer {
   id: string;
   fullName: string;
@@ -78,6 +85,48 @@ function writeLocalFriendlyState(state: LocalFriendlyState) {
   window.localStorage.setItem(FRIENDLY_CHAT_STORAGE_KEY, JSON.stringify(state));
 }
 
+function getFriendlyUiCacheKey(userId: string): string {
+  return `friendly-chat-ui-v1:${userId || "guest"}`;
+}
+
+function readFriendlyUiCache(cacheKey: string): FriendlyUiCacheState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<FriendlyUiCacheState>;
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      activeConversationId: typeof parsed.activeConversationId === "string" ? parsed.activeConversationId : null,
+      draft: typeof parsed.draft === "string" ? parsed.draft : "",
+      conversations: Array.isArray(parsed.conversations) ? (parsed.conversations as FriendlyConversation[]) : [],
+      messagesByConversation:
+        parsed.messagesByConversation && typeof parsed.messagesByConversation === "object"
+          ? (parsed.messagesByConversation as Record<string, FriendlyChatMessage[]>)
+          : {},
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeFriendlyUiCache(cacheKey: string, state: FriendlyUiCacheState) {
+  if (typeof window === "undefined") return;
+  const trimmedMessages: Record<string, FriendlyChatMessage[]> = {};
+  Object.entries(state.messagesByConversation).forEach(([conversationId, items]) => {
+    trimmedMessages[conversationId] = Array.isArray(items) ? items.slice(-120) : [];
+  });
+
+  window.localStorage.setItem(
+    cacheKey,
+    JSON.stringify({
+      ...state,
+      conversations: state.conversations.slice(0, 60),
+      messagesByConversation: trimmedMessages,
+    }),
+  );
+}
+
 function buildLocalConversationId(user1: string, user2: string): string {
   const sorted = [String(user1), String(user2)].sort((a, b) => a.localeCompare(b));
   return `local_${sorted[0]}_${sorted[1]}`;
@@ -98,6 +147,8 @@ export function FriendlyChatPage() {
 
   const token = getApiToken();
   const session = state.session;
+  const cacheKey = useMemo(() => getFriendlyUiCacheKey(session?.userId ?? "guest"), [session?.userId]);
+  const cacheHydratedRef = useRef(false);
   const canUseApi = DATA_PROVIDER_MODE === "api" && Boolean(token);
 
   const [useLocalMode, setUseLocalMode] = useState(!canUseApi);
@@ -110,7 +161,35 @@ export function FriendlyChatPage() {
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [messagesByConversation, setMessagesByConversation] = useState<Record<string, FriendlyChatMessage[]>>({});
   const messagesListRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (cacheHydratedRef.current) return;
+    const cached = readFriendlyUiCache(cacheKey);
+    if (!cached) {
+      cacheHydratedRef.current = true;
+      return;
+    }
+    setDraft(cached.draft);
+    setActiveConversationId(cached.activeConversationId);
+    setConversations(cached.conversations);
+    setMessagesByConversation(cached.messagesByConversation);
+    if (cached.activeConversationId) {
+      setMessages(cached.messagesByConversation[cached.activeConversationId] ?? []);
+    }
+    cacheHydratedRef.current = true;
+  }, [cacheKey]);
+
+  useEffect(() => {
+    if (!cacheHydratedRef.current) return;
+    writeFriendlyUiCache(cacheKey, {
+      activeConversationId,
+      draft,
+      conversations,
+      messagesByConversation,
+    });
+  }, [cacheKey, activeConversationId, draft, conversations, messagesByConversation]);
 
   function forceRelogin() {
     clearApiToken();
@@ -241,7 +320,9 @@ export function FriendlyChatPage() {
 
   function loadLocalMessages(conversationId: string) {
     const local = readLocalFriendlyState();
-    setMessages(local.messages[conversationId] ?? []);
+    const nextMessages = local.messages[conversationId] ?? [];
+    setMessages(nextMessages);
+    setMessagesByConversation((prev) => ({ ...prev, [conversationId]: nextMessages }));
   }
 
   function ensureLocalConversation(targetUserId: string): string | null {
@@ -380,6 +461,10 @@ export function FriendlyChatPage() {
       return;
     }
 
+    if (messagesByConversation[activeConversationId]?.length) {
+      setMessages(messagesByConversation[activeConversationId]);
+    }
+
     if (useLocalMode) {
       loadLocalMessages(activeConversationId);
       return;
@@ -400,6 +485,7 @@ export function FriendlyChatPage() {
         const data = await platformApi.getFriendlyMessages(token, activeConversationId);
         if (!disposed) {
           setMessages(data);
+          setMessagesByConversation((prev) => ({ ...prev, [activeConversationId]: data }));
           setModeNotice(null);
         }
       } catch (apiError) {
@@ -441,6 +527,7 @@ export function FriendlyChatPage() {
               });
               if (same) return prev;
             }
+            setMessagesByConversation((current) => ({ ...current, [activeConversationId]: data }));
             return data;
           });
         }
@@ -492,6 +579,10 @@ export function FriendlyChatPage() {
       writeLocalFriendlyState(local);
 
       setMessages((prev) => [...prev, message]);
+      setMessagesByConversation((prev) => ({
+        ...prev,
+        [activeConversationId]: [...(prev[activeConversationId] ?? []), message].slice(-120),
+      }));
       setConversations((prev) =>
         prev
           .map((item) =>
@@ -526,6 +617,10 @@ export function FriendlyChatPage() {
     try {
       const sent = await platformApi.sendFriendlyMessage(token, activeConversationId, text);
       setMessages((prev) => [...prev, sent]);
+      setMessagesByConversation((prev) => ({
+        ...prev,
+        [activeConversationId]: [...(prev[activeConversationId] ?? []), sent].slice(-120),
+      }));
       setConversations((prev) =>
         prev.map((item) =>
           item.id === activeConversationId
