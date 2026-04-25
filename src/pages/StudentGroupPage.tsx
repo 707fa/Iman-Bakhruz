@@ -6,6 +6,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
@@ -126,6 +127,7 @@ export function StudentGroupPage() {
   const [aiCheckingTaskId, setAiCheckingTaskId] = useState<string | null>(null);
   const [aiReviews, setAiReviews] = useState<Record<string, AiHomeworkReview>>({});
   const [aiErrors, setAiErrors] = useState<Record<string, string>>({});
+  const [mobileSection, setMobileSection] = useState<"overview" | "homework" | "top">("overview");
 
   if (!currentStudent) return null;
 
@@ -241,6 +243,210 @@ export function StudentGroupPage() {
     }
   }
 
+  const overviewSection = (
+    <Card>
+      <CardContent className="space-y-4 p-4 sm:p-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("auth.group")}</p>
+            <p className="mt-2 text-lg font-semibold text-charcoal dark:text-zinc-100">{group?.title ?? t("student.noGroup")}</p>
+          </div>
+
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("auth.time")}</p>
+            <p className="mt-2 inline-flex items-center gap-2 text-lg font-semibold text-charcoal dark:text-zinc-100">
+              <Clock3 className="h-4 w-4 text-burgundy-700 dark:text-white" />
+              {group?.time ?? "-"}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("auth.days")}</p>
+            <p className="mt-2 inline-flex items-center gap-2 text-lg font-semibold text-charcoal dark:text-zinc-100">
+              <CalendarDays className="h-4 w-4 text-burgundy-700 dark:text-white" />
+              {daysLabel}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("student.placeInGroup")}</p>
+            <p className="mt-2 inline-flex items-center gap-2 text-lg font-semibold text-burgundy-700 dark:text-white">
+              <Users className="h-4 w-4" />
+              #{groupPlace > 0 ? groupPlace : "-"}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const homeworkSection = (
+    <Card>
+      <CardContent className="space-y-4 p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-lg font-semibold text-charcoal dark:text-zinc-100">Домашние задания</h3>
+          <Badge variant="soft">{groupHomework.length}</Badge>
+        </div>
+
+        {!canUseApi ? (
+          <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            Домашние задания доступны в API режиме.
+          </p>
+        ) : loadingHomework ? (
+          <p className="text-sm text-charcoal/60 dark:text-zinc-400">Загрузка заданий...</p>
+        ) : groupHomework.length === 0 ? (
+          <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            Пока нет заданий от учителя.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {groupHomework.map((task) => {
+              const fieldValue = answers[task.id] ?? task.mySubmission?.answerText ?? "";
+              const aiMode = aiModes[task.id] ?? "friendly";
+              const aiReview = aiReviews[task.id];
+              const aiError = aiErrors[task.id];
+              const checkingNow = aiCheckingTaskId === task.id;
+
+              return (
+                <div key={task.id} className="space-y-3 rounded-2xl border border-burgundy-100 p-4 dark:border-zinc-700">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{task.title}</p>
+                    {task.dueAt ? <Badge variant="soft">дедлайн: {new Date(task.dueAt).toLocaleString()}</Badge> : null}
+                  </div>
+
+                  {task.description ? <p className="text-sm text-charcoal/70 dark:text-zinc-300">{task.description}</p> : null}
+
+                  {task.mySubmission ? (
+                    <div className="space-y-1 rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm dark:border-burgundy-800 dark:bg-burgundy-950/30">
+                      <p className="font-semibold text-burgundy-700 dark:text-white">
+                        Сдано: {task.mySubmission.status === "reviewed" ? "проверено" : "ожидает проверки"}
+                      </p>
+                      {task.mySubmission.teacherComment ? (
+                        <p className="text-charcoal/75 dark:text-zinc-300">Комментарий учителя: {task.mySubmission.teacherComment}</p>
+                      ) : null}
+                      {typeof task.mySubmission.score === "number" ? (
+                        <p className="font-semibold text-burgundy-700 dark:text-white">Оценка: {task.mySubmission.score.toFixed(2)}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-2">
+                    <textarea
+                      value={fieldValue}
+                      onChange={(event) => setAnswers((prev) => ({ ...prev, [task.id]: event.target.value }))}
+                      rows={3}
+                      className="w-full resize-y rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-base text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-100 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-burgundy-700 dark:focus:ring-burgundy-900/40"
+                      placeholder="Напишите ответ на задание..."
+                    />
+
+                    <div className="grid gap-2 sm:grid-cols-[220px_1fr]">
+                      <Select
+                        value={aiMode}
+                        onValueChange={(value) =>
+                          setAiModes((prev) => ({
+                            ...prev,
+                            [task.id]: value === "strict" ? "strict" : "friendly",
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("homework.aiModeLabel")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="friendly">{t("homework.aiModeFriendly")}</SelectItem>
+                          <SelectItem value="strict">{t("homework.aiModeStrict")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => void handleAiCheck(task)}
+                        disabled={checkingNow || !fieldValue.trim()}
+                        className="justify-start"
+                      >
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        {checkingNow ? t("homework.aiChecking") : t("homework.aiCheck")}
+                      </Button>
+                    </div>
+
+                    <Button
+                      onClick={() => void handleSubmitHomework(task.id)}
+                      disabled={submittingTaskId === task.id || !fieldValue.trim()}
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      {task.mySubmission ? "Обновить ответ" : "Сдать задание"}
+                    </Button>
+                  </div>
+
+                  {aiError ? (
+                    <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/30 dark:text-white">
+                      {aiError}
+                    </p>
+                  ) : null}
+
+                  {aiReview ? (
+                    <div className="space-y-3 rounded-xl border border-burgundy-200 bg-white p-3 dark:border-burgundy-800 dark:bg-zinc-950">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Badge variant="soft">{aiReview.mode === "strict" ? t("homework.aiModeStrict") : t("homework.aiModeFriendly")}</Badge>
+                        <p className="text-sm font-semibold text-burgundy-700 dark:text-white">{t("homework.aiScore")}: {aiReview.score}/100</p>
+                      </div>
+
+                      {aiReview.summary ? (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">{t("homework.aiSummary")}</p>
+                          <p className="mt-1 text-sm text-charcoal dark:text-zinc-100">{aiReview.summary}</p>
+                        </div>
+                      ) : null}
+
+                      {aiReview.correctedText ? (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">{t("homework.aiCorrected")}</p>
+                          <p className="mt-1 rounded-lg border border-burgundy-100 bg-burgundy-50 px-3 py-2 text-sm text-charcoal dark:border-burgundy-900/50 dark:bg-burgundy-950/30 dark:text-zinc-100">
+                            {aiReview.correctedText}
+                          </p>
+                        </div>
+                      ) : null}
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">{t("homework.aiIssues")}</p>
+                        {aiReview.issues.length === 0 ? (
+                          <p className="mt-1 text-sm text-charcoal/75 dark:text-zinc-300">{t("homework.aiNoIssues")}</p>
+                        ) : (
+                          <div className="mt-2 space-y-2">
+                            {aiReview.issues.map((issue, index) => (
+                              <div key={`${task.id}-issue-${index}`} className="rounded-lg border border-burgundy-100 px-3 py-2 dark:border-zinc-700">
+                                <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("homework.aiIssueOriginal")}: {issue.original || "-"}</p>
+                                <p className="mt-1 text-xs text-charcoal/70 dark:text-zinc-300">{t("homework.aiIssueWhy")}: {issue.why || "-"}</p>
+                                <p className="mt-1 text-xs text-charcoal/70 dark:text-zinc-300">{t("homework.aiIssueFix")}: {issue.fix || "-"}</p>
+                                <p className="mt-1 text-xs text-burgundy-700 dark:text-white">{t("homework.aiIssueNative")}: {issue.native || "-"}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const rankingSection = (
+    <RankingList
+      title={t("student.myGroupTop")}
+      items={groupTop}
+      groups={state.groups}
+      currentUserId={currentStudent.id}
+      showMeta={false}
+      itemHref={(item) => `/student/profile/${item.studentId}`}
+    />
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -249,203 +455,24 @@ export function StudentGroupPage() {
         action={<Badge variant="soft">{group?.title ?? t("student.noGroup")}</Badge>}
       />
 
-      <Card>
-        <CardContent className="space-y-4 p-4 sm:p-5">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-              <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("auth.group")}</p>
-              <p className="mt-2 text-lg font-semibold text-charcoal dark:text-zinc-100">{group?.title ?? t("student.noGroup")}</p>
-            </div>
+      <div className="lg:hidden">
+        <Tabs value={mobileSection} onValueChange={(value) => setMobileSection(value as "overview" | "homework" | "top")}>
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1">
+            <TabsTrigger className="px-2 py-2 text-xs" value="overview">Группа</TabsTrigger>
+            <TabsTrigger className="px-2 py-2 text-xs" value="homework">Домашка</TabsTrigger>
+            <TabsTrigger className="px-2 py-2 text-xs" value="top">Топ</TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview">{overviewSection}</TabsContent>
+          <TabsContent value="homework">{homeworkSection}</TabsContent>
+          <TabsContent value="top">{rankingSection}</TabsContent>
+        </Tabs>
+      </div>
 
-            <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-              <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("auth.time")}</p>
-              <p className="mt-2 inline-flex items-center gap-2 text-lg font-semibold text-charcoal dark:text-zinc-100">
-                <Clock3 className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                {group?.time ?? "-"}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-              <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("auth.days")}</p>
-              <p className="mt-2 inline-flex items-center gap-2 text-lg font-semibold text-charcoal dark:text-zinc-100">
-                <CalendarDays className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                {daysLabel}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-              <p className="text-xs uppercase tracking-[0.12em] text-charcoal/55 dark:text-zinc-400">{t("student.placeInGroup")}</p>
-              <p className="mt-2 inline-flex items-center gap-2 text-lg font-semibold text-burgundy-700 dark:text-white">
-                <Users className="h-4 w-4" />
-                #{groupPlace > 0 ? groupPlace : "-"}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="space-y-4 p-4 sm:p-5">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-charcoal dark:text-zinc-100">Домашние задания</h3>
-            <Badge variant="soft">{groupHomework.length}</Badge>
-          </div>
-
-          {!canUseApi ? (
-            <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              Домашние задания доступны в API режиме.
-            </p>
-          ) : loadingHomework ? (
-            <p className="text-sm text-charcoal/60 dark:text-zinc-400">Загрузка заданий...</p>
-          ) : groupHomework.length === 0 ? (
-            <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              Пока нет заданий от учителя.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {groupHomework.map((task) => {
-                const fieldValue = answers[task.id] ?? task.mySubmission?.answerText ?? "";
-                const aiMode = aiModes[task.id] ?? "friendly";
-                const aiReview = aiReviews[task.id];
-                const aiError = aiErrors[task.id];
-                const checkingNow = aiCheckingTaskId === task.id;
-
-                return (
-                  <div key={task.id} className="space-y-3 rounded-2xl border border-burgundy-100 p-4 dark:border-zinc-700">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{task.title}</p>
-                      {task.dueAt ? <Badge variant="soft">дедлайн: {new Date(task.dueAt).toLocaleString()}</Badge> : null}
-                    </div>
-
-                    {task.description ? <p className="text-sm text-charcoal/70 dark:text-zinc-300">{task.description}</p> : null}
-
-                    {task.mySubmission ? (
-                      <div className="space-y-1 rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm dark:border-burgundy-800 dark:bg-burgundy-950/30">
-                        <p className="font-semibold text-burgundy-700 dark:text-white">
-                          Сдано: {task.mySubmission.status === "reviewed" ? "проверено" : "ожидает проверки"}
-                        </p>
-                        {task.mySubmission.teacherComment ? (
-                          <p className="text-charcoal/75 dark:text-zinc-300">Комментарий учителя: {task.mySubmission.teacherComment}</p>
-                        ) : null}
-                        {typeof task.mySubmission.score === "number" ? (
-                          <p className="font-semibold text-burgundy-700 dark:text-white">Оценка: {task.mySubmission.score.toFixed(2)}</p>
-                        ) : null}
-                      </div>
-                    ) : null}
-
-                    <div className="space-y-2">
-                      <textarea
-                        value={fieldValue}
-                        onChange={(event) => setAnswers((prev) => ({ ...prev, [task.id]: event.target.value }))}
-                        rows={3}
-                        className="w-full resize-y rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-base text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-100 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-burgundy-700 dark:focus:ring-burgundy-900/40"
-                        placeholder="Напишите ответ на задание..."
-                      />
-
-                      <div className="grid gap-2 sm:grid-cols-[220px_1fr]">
-                        <Select
-                          value={aiMode}
-                          onValueChange={(value) =>
-                            setAiModes((prev) => ({
-                              ...prev,
-                              [task.id]: value === "strict" ? "strict" : "friendly",
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={t("homework.aiModeLabel")} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="friendly">{t("homework.aiModeFriendly")}</SelectItem>
-                            <SelectItem value="strict">{t("homework.aiModeStrict")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => void handleAiCheck(task)}
-                          disabled={checkingNow || !fieldValue.trim()}
-                          className="justify-start"
-                        >
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          {checkingNow ? t("homework.aiChecking") : t("homework.aiCheck")}
-                        </Button>
-                      </div>
-
-                      <Button
-                        onClick={() => void handleSubmitHomework(task.id)}
-                        disabled={submittingTaskId === task.id || !fieldValue.trim()}
-                      >
-                        <Send className="mr-2 h-4 w-4" />
-                        {task.mySubmission ? "Обновить ответ" : "Сдать задание"}
-                      </Button>
-                    </div>
-
-                    {aiError ? (
-                      <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/30 dark:text-white">
-                        {aiError}
-                      </p>
-                    ) : null}
-
-                    {aiReview ? (
-                      <div className="space-y-3 rounded-xl border border-burgundy-200 bg-white p-3 dark:border-burgundy-800 dark:bg-zinc-950">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <Badge variant="soft">{aiReview.mode === "strict" ? t("homework.aiModeStrict") : t("homework.aiModeFriendly")}</Badge>
-                          <p className="text-sm font-semibold text-burgundy-700 dark:text-white">{t("homework.aiScore")}: {aiReview.score}/100</p>
-                        </div>
-
-                        {aiReview.summary ? (
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">{t("homework.aiSummary")}</p>
-                            <p className="mt-1 text-sm text-charcoal dark:text-zinc-100">{aiReview.summary}</p>
-                          </div>
-                        ) : null}
-
-                        {aiReview.correctedText ? (
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">{t("homework.aiCorrected")}</p>
-                            <p className="mt-1 rounded-lg border border-burgundy-100 bg-burgundy-50 px-3 py-2 text-sm text-charcoal dark:border-burgundy-900/50 dark:bg-burgundy-950/30 dark:text-zinc-100">
-                              {aiReview.correctedText}
-                            </p>
-                          </div>
-                        ) : null}
-
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">{t("homework.aiIssues")}</p>
-                          {aiReview.issues.length === 0 ? (
-                            <p className="mt-1 text-sm text-charcoal/75 dark:text-zinc-300">{t("homework.aiNoIssues")}</p>
-                          ) : (
-                            <div className="mt-2 space-y-2">
-                              {aiReview.issues.map((issue, index) => (
-                                <div key={`${task.id}-issue-${index}`} className="rounded-lg border border-burgundy-100 px-3 py-2 dark:border-zinc-700">
-                                  <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("homework.aiIssueOriginal")}: {issue.original || "-"}</p>
-                                  <p className="mt-1 text-xs text-charcoal/70 dark:text-zinc-300">{t("homework.aiIssueWhy")}: {issue.why || "-"}</p>
-                                  <p className="mt-1 text-xs text-charcoal/70 dark:text-zinc-300">{t("homework.aiIssueFix")}: {issue.fix || "-"}</p>
-                                  <p className="mt-1 text-xs text-burgundy-700 dark:text-white">{t("homework.aiIssueNative")}: {issue.native || "-"}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <RankingList
-        title={t("student.myGroupTop")}
-        items={groupTop}
-        groups={state.groups}
-        currentUserId={currentStudent.id}
-        showMeta={false}
-        itemHref={(item) => `/student/profile/${item.studentId}`}
-      />
+      <div className="hidden space-y-6 lg:block">
+        {overviewSection}
+        {homeworkSection}
+        {rankingSection}
+      </div>
     </div>
   );
 }

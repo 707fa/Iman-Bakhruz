@@ -5,6 +5,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useAppStore } from "../hooks/useAppStore";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useToast } from "../hooks/useToast";
@@ -154,6 +155,7 @@ export function StudentSpeakingPage() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [manualTranscript, setManualTranscript] = useState("");
   const [result, setResult] = useState<SpeakingAnalysisResult | null>(null);
+  const [mobileSection, setMobileSection] = useState<"practice" | "analysis" | "history">("practice");
 
   const [history, setHistory] = useState<LocalSpeakingAttempt[]>(() => readHistory(currentStudent?.id || "guest"));
 
@@ -244,7 +246,7 @@ export function StudentSpeakingPage() {
   async function generateQuestions() {
     const topic = lessonTopic.trim();
     if (!topic) {
-      setQuestionError("Введите тему урока");
+      setQuestionError("Р’РІРµРґРёС‚Рµ С‚РµРјСѓ СѓСЂРѕРєР°");
       return;
     }
 
@@ -261,7 +263,7 @@ export function StudentSpeakingPage() {
       });
       setGeneratedQuestions(questions.slice(0, DAILY_TARGET));
       setQuestionIndex(0);
-      showToast({ message: "AI подготовил 20 speaking вопросов", tone: "success" });
+      showToast({ message: "AI РїРѕРґРіРѕС‚РѕРІРёР» 20 speaking РІРѕРїСЂРѕСЃРѕРІ", tone: "success" });
     } catch (error) {
       const message = mapSpeakingApiErrorToMessage(error);
       setQuestionError(message);
@@ -339,7 +341,7 @@ export function StudentSpeakingPage() {
     }
 
     if (wordsCount(transcript) < MIN_WORDS) {
-      showToast({ message: `Минимум ${MIN_WORDS} слов для проверки.`, tone: "error" });
+      showToast({ message: `РњРёРЅРёРјСѓРј ${MIN_WORDS} СЃР»РѕРІ РґР»СЏ РїСЂРѕРІРµСЂРєРё.`, tone: "error" });
       return;
     }
 
@@ -380,6 +382,170 @@ export function StudentSpeakingPage() {
   const statusLabel = t(`speaking.status.${status}`);
   const dailyDone = Math.min(history.length, DAILY_TARGET);
 
+  const questionSection = (
+    <Card className="rounded-2xl">
+      <CardContent className="space-y-3 p-3 sm:p-4">
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+          <Input
+            value={lessonTopic}
+            onChange={(event) => setLessonTopic(event.target.value)}
+            placeholder="РўРµРјР° СѓСЂРѕРєР° (РЅР°РїСЂРёРјРµСЂ: Past Simple, Daily routine, Travel)"
+          />
+          <Button onClick={() => void generateQuestions()} disabled={generatingQuestions} className="h-10 px-4">
+            {generatingQuestions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            AI 20 РІРѕРїСЂРѕСЃРѕРІ
+          </Button>
+        </div>
+        {questionError ? <p className="text-xs text-burgundy-700 dark:text-burgundy-200">{questionError}</p> : null}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <Badge className="bg-burgundy-700 text-white">{t("speaking.question")}</Badge>
+          <Badge variant="positive">{questionIndex + 1}/{effectiveQuestions.length || DAILY_TARGET}</Badge>
+          <Badge variant="positive">{currentQuestion?.topic || "Topic"}</Badge>
+          {taskLoading ? <Badge variant="positive">Teacher tasks loading...</Badge> : null}
+        </div>
+        <p className="text-base font-semibold text-charcoal dark:text-zinc-100 sm:text-lg">{currentQuestion?.prompt || "No question"}</p>
+        <Button variant="secondary" onClick={listenQuestion} className="h-9 text-sm">
+          <Volume2 className="mr-2 h-4 w-4" />
+          {t("speaking.listenQuestion")}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+
+  const recordingSection = (
+    <Card className="rounded-2xl">
+      <CardHeader className="pb-2">
+        <CardTitle className="inline-flex items-center gap-2 text-lg">
+          <Mic className="h-5 w-5 text-burgundy-700 dark:text-white" />
+          {t("speaking.recording")}
+        </CardTitle>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <Badge variant="positive">{statusLabel}</Badge>
+          <Badge variant="positive">{t("speaking.timer")}: {toClock(recordingSeconds)}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {!speech.supported ? (
+          <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
+            {t("speaking.unsupported")}
+          </p>
+        ) : null}
+
+        <Button
+          onClick={toggleRecording}
+          disabled={status === "processing"}
+          className="h-10 w-full text-sm"
+          variant={speech.listening ? "secondary" : "default"}
+        >
+          {speech.listening ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t("speaking.stopRecording")}
+            </>
+          ) : (
+            <>
+              <Mic className="mr-2 h-4 w-4" />
+              {t("speaking.startRecording")}
+            </>
+          )}
+        </Button>
+
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-charcoal/65 dark:text-zinc-400">
+            {t("speaking.transcript")}
+          </p>
+          <textarea
+            value={manualTranscript}
+            onChange={(event) => setManualTranscript(event.target.value)}
+            rows={4}
+            className="w-full resize-y rounded-xl border border-burgundy-100 bg-white p-2.5 text-sm text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
+            placeholder={t("speaking.transcriptPlaceholder")}
+          />
+        </div>
+
+        {speech.interimTranscript ? (
+          <p className="text-xs text-charcoal/65 dark:text-zinc-400">
+            {t("speaking.interim")}: {speech.interimTranscript}
+          </p>
+        ) : null}
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"} className="h-10 text-sm">
+            {status === "processing" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+            {t("speaking.analyze")}
+          </Button>
+          <Button variant="secondary" onClick={resetAttempt} className="h-10 text-sm">
+            <RotateCcw className="mr-2 h-4 w-4" />
+            {t("speaking.retry")}
+          </Button>
+          <Button variant="secondary" onClick={goNextQuestion} className="h-10 text-sm">
+            <Sparkles className="mr-2 h-4 w-4" />
+            {t("speaking.nextQuestion")}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const historySection = (
+    <Card className="rounded-2xl">
+      <CardContent className="space-y-2 p-3 sm:p-4">
+        <h3 className="text-base font-bold">{t("speaking.history")}</h3>
+        {history.length === 0 ? (
+          <p className="text-xs text-charcoal/65 dark:text-zinc-400">{t("speaking.historyEmpty")}</p>
+        ) : (
+          <div className="space-y-2">
+            {history.slice(0, 8).map((item) => (
+              <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-2.5 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="line-clamp-1 text-xs font-semibold text-charcoal dark:text-zinc-100">{item.topic || "Topic"}</p>
+                <p className="line-clamp-1 text-[11px] text-charcoal/65 dark:text-zinc-400">{item.question}</p>
+                <p className="mt-1 text-xs font-bold text-burgundy-700 dark:text-burgundy-200">Score: {item.score}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const resultSection = (
+    <Card className="rounded-2xl">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">{t("speaking.results")}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {!result ? (
+          <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.emptyResult")}</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="rounded-xl border border-burgundy-100 bg-white p-2.5 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.overall")}</p><p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{result.score}</p></div>
+              <div className="rounded-xl border border-burgundy-100 bg-white p-2.5 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.grammar")}</p><p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{result.grammarScore}</p></div>
+              <div className="rounded-xl border border-burgundy-100 bg-white p-2.5 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.fluency")}</p><p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{result.fluencyScore}</p></div>
+              <div className="rounded-xl border border-burgundy-100 bg-white p-2.5 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.vocabulary")}</p><p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{result.vocabularyScore}</p></div>
+            </div>
+
+            <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+              <p className="inline-flex items-center gap-2 font-semibold text-charcoal dark:text-zinc-100"><Brain className="h-4 w-4 text-burgundy-700 dark:text-white" />{t("speaking.feedback")}</p>
+              <p className="mt-1.5 text-sm text-charcoal/80 dark:text-zinc-300">{result.feedback || "-"}</p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("speaking.corrected")}</p>
+                <p className="mt-1 text-sm text-charcoal/75 dark:text-zinc-300">{result.correctedAnswer || "-"}</p>
+              </div>
+              <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("speaking.modelAnswer")}</p>
+                <p className="mt-1 text-sm text-charcoal/75 dark:text-zinc-300">{result.modelAnswer || "-"}</p>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -393,163 +559,30 @@ export function StudentSpeakingPage() {
         }
       />
 
-      <Card className="rounded-2xl">
-        <CardContent className="space-y-3 p-3 sm:p-4">
-          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-            <Input
-              value={lessonTopic}
-              onChange={(event) => setLessonTopic(event.target.value)}
-              placeholder="Тема урока (например: Past Simple, Daily routine, Travel)"
-            />
-            <Button onClick={() => void generateQuestions()} disabled={generatingQuestions} className="h-10 px-4">
-              {generatingQuestions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              AI 20 вопросов
-            </Button>
-          </div>
-          {questionError ? <p className="text-xs text-burgundy-700 dark:text-burgundy-200">{questionError}</p> : null}
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <Badge className="bg-burgundy-700 text-white">{t("speaking.question")}</Badge>
-            <Badge variant="positive">{questionIndex + 1}/{effectiveQuestions.length || DAILY_TARGET}</Badge>
-            <Badge variant="positive">{currentQuestion?.topic || "Topic"}</Badge>
-            {taskLoading ? <Badge variant="positive">Teacher tasks loading...</Badge> : null}
-          </div>
-          <p className="text-base font-semibold text-charcoal dark:text-zinc-100 sm:text-lg">{currentQuestion?.prompt || "No question"}</p>
-          <Button variant="secondary" onClick={listenQuestion} className="h-9 text-sm">
-            <Volume2 className="mr-2 h-4 w-4" />
-            {t("speaking.listenQuestion")}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-[1fr_310px]">
-        <Card className="rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="inline-flex items-center gap-2 text-lg">
-              <Mic className="h-5 w-5 text-burgundy-700 dark:text-white" />
-              {t("speaking.recording")}
-            </CardTitle>
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <Badge variant="positive">{statusLabel}</Badge>
-              <Badge variant="positive">{t("speaking.timer")}: {toClock(recordingSeconds)}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {!speech.supported ? (
-              <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
-                {t("speaking.unsupported")}
-              </p>
-            ) : null}
-
-            <Button
-              onClick={toggleRecording}
-              disabled={status === "processing"}
-              className="h-10 w-full text-sm"
-              variant={speech.listening ? "secondary" : "default"}
-            >
-              {speech.listening ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("speaking.stopRecording")}
-                </>
-              ) : (
-                <>
-                  <Mic className="mr-2 h-4 w-4" />
-                  {t("speaking.startRecording")}
-                </>
-              )}
-            </Button>
-
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-charcoal/65 dark:text-zinc-400">
-                {t("speaking.transcript")}
-              </p>
-              <textarea
-                value={manualTranscript}
-                onChange={(event) => setManualTranscript(event.target.value)}
-                rows={4}
-                className="w-full resize-y rounded-xl border border-burgundy-100 bg-white p-2.5 text-sm text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
-                placeholder={t("speaking.transcriptPlaceholder")}
-              />
-            </div>
-
-            {speech.interimTranscript ? (
-              <p className="text-xs text-charcoal/65 dark:text-zinc-400">
-                {t("speaking.interim")}: {speech.interimTranscript}
-              </p>
-            ) : null}
-
-            <div className="grid gap-2 sm:grid-cols-3">
-              <Button onClick={() => void analyzeAnswer()} disabled={status === "processing"} className="h-10 text-sm">
-                {status === "processing" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                {t("speaking.analyze")}
-              </Button>
-              <Button variant="secondary" onClick={resetAttempt} className="h-10 text-sm">
-                <RotateCcw className="mr-2 h-4 w-4" />
-                {t("speaking.retry")}
-              </Button>
-              <Button variant="secondary" onClick={goNextQuestion} className="h-10 text-sm">
-                <Sparkles className="mr-2 h-4 w-4" />
-                {t("speaking.nextQuestion")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl">
-          <CardContent className="space-y-2 p-3 sm:p-4">
-            <h3 className="text-base font-bold">{t("speaking.history")}</h3>
-            {history.length === 0 ? (
-              <p className="text-xs text-charcoal/65 dark:text-zinc-400">{t("speaking.historyEmpty")}</p>
-            ) : (
-              <div className="space-y-2">
-                {history.slice(0, 8).map((item) => (
-                  <div key={item.id} className="rounded-xl border border-burgundy-100 bg-white px-2.5 py-2 dark:border-zinc-700 dark:bg-zinc-900">
-                    <p className="line-clamp-1 text-xs font-semibold text-charcoal dark:text-zinc-100">{item.topic || "Topic"}</p>
-                    <p className="line-clamp-1 text-[11px] text-charcoal/65 dark:text-zinc-400">{item.question}</p>
-                    <p className="mt-1 text-xs font-bold text-burgundy-700 dark:text-burgundy-200">Score: {item.score}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="lg:hidden">
+        <Tabs value={mobileSection} onValueChange={(value) => setMobileSection(value as "practice" | "analysis" | "history")}>
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1">
+            <TabsTrigger className="px-2 py-2 text-xs" value="practice">Practice</TabsTrigger>
+            <TabsTrigger className="px-2 py-2 text-xs" value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger className="px-2 py-2 text-xs" value="history">History</TabsTrigger>
+          </TabsList>
+          <TabsContent value="practice" className="space-y-4">
+            {questionSection}
+            {recordingSection}
+          </TabsContent>
+          <TabsContent value="analysis">{resultSection}</TabsContent>
+          <TabsContent value="history">{historySection}</TabsContent>
+        </Tabs>
       </div>
 
-      <Card className="rounded-2xl">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">{t("speaking.results")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {!result ? (
-            <p className="text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.emptyResult")}</p>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="rounded-xl border border-burgundy-100 bg-white p-2.5 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.overall")}</p><p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{result.score}</p></div>
-                <div className="rounded-xl border border-burgundy-100 bg-white p-2.5 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.grammar")}</p><p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{result.grammarScore}</p></div>
-                <div className="rounded-xl border border-burgundy-100 bg-white p-2.5 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.fluency")}</p><p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{result.fluencyScore}</p></div>
-                <div className="rounded-xl border border-burgundy-100 bg-white p-2.5 dark:border-zinc-700 dark:bg-zinc-900"><p className="text-[10px] uppercase tracking-[0.12em] text-charcoal/60 dark:text-zinc-500">{t("speaking.vocabulary")}</p><p className="mt-1 text-xl font-bold text-burgundy-700 dark:text-white">{result.vocabularyScore}</p></div>
-              </div>
-
-              <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
-                <p className="inline-flex items-center gap-2 font-semibold text-charcoal dark:text-zinc-100"><Brain className="h-4 w-4 text-burgundy-700 dark:text-white" />{t("speaking.feedback")}</p>
-                <p className="mt-1.5 text-sm text-charcoal/80 dark:text-zinc-300">{result.feedback || "-"}</p>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
-                  <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("speaking.corrected")}</p>
-                  <p className="mt-1 text-sm text-charcoal/75 dark:text-zinc-300">{result.correctedAnswer || "-"}</p>
-                </div>
-                <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
-                  <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("speaking.modelAnswer")}</p>
-                  <p className="mt-1 text-sm text-charcoal/75 dark:text-zinc-300">{result.modelAnswer || "-"}</p>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <div className="hidden space-y-4 lg:block">
+        {questionSection}
+        <div className="grid gap-4 lg:grid-cols-[1fr_310px]">
+          {recordingSection}
+          {historySection}
+        </div>
+        {resultSection}
+      </div>
     </div>
   );
 }
