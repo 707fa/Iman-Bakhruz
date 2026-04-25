@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   BellRing,
   Bot,
@@ -26,6 +27,7 @@ import { Button } from "./ui/button";
 
 type ArenaTab = "ketka" | "speed" | "memory" | "emoji";
 type InviteStatus = "pending" | "accepted" | "declined";
+type KetkaViewMode = "all" | "setup" | "match";
 
 interface LocalPlayer extends CardGamePlayer {
   isHuman?: boolean;
@@ -53,6 +55,14 @@ interface KetkaInvitePayload {
   toStudentId: string;
   toStudentName: string;
   groupId: string;
+}
+
+interface KetkaMatchSnapshot {
+  players: LocalPlayer[];
+  currentPlayerIndex: number;
+  tablePile: LearningCard[];
+  winnerName: string;
+  winnerId: string;
 }
 
 const STORAGE_KEY = "ketka-homework-deck-v2";
@@ -162,7 +172,9 @@ function findNextPlayerIndex(players: LocalPlayer[], currentIndex: number): numb
   return currentIndex;
 }
 
-export function MultiplayerKetka() {
+export function MultiplayerKetka({ viewMode = "all" }: { viewMode?: KetkaViewMode }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { state, currentStudent, awardGamePoints } = useAppStore();
   const socket = useSocket();
   const [tab, setTab] = useState<ArenaTab>("ketka");
@@ -172,11 +184,12 @@ export function MultiplayerKetka() {
   const [incomingInvites, setIncomingInvites] = useState<GameInvite[]>([]);
   const [onlineStudentIds, setOnlineStudentIds] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState("");
-  const [players, setPlayers] = useState<LocalPlayer[]>([]);
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [winnerName, setWinnerName] = useState("");
-  const [winnerId, setWinnerId] = useState("");
-  const [tablePile, setTablePile] = useState<LearningCard[]>([]);
+  const matchFromRoute = (location.state as { ketkaMatch?: KetkaMatchSnapshot } | null)?.ketkaMatch;
+  const [players, setPlayers] = useState<LocalPlayer[]>(() => (viewMode === "match" ? matchFromRoute?.players ?? [] : []));
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(() => (viewMode === "match" ? matchFromRoute?.currentPlayerIndex ?? 0 : 0));
+  const [winnerName, setWinnerName] = useState(() => (viewMode === "match" ? matchFromRoute?.winnerName ?? "" : ""));
+  const [winnerId, setWinnerId] = useState(() => (viewMode === "match" ? matchFromRoute?.winnerId ?? "" : ""));
+  const [tablePile, setTablePile] = useState<LearningCard[]>(() => (viewMode === "match" ? matchFromRoute?.tablePile ?? [] : []));
   const [lastAnswer, setLastAnswer] = useState<AnswerCheckResult | null>(null);
   const [memoryOpened, setMemoryOpened] = useState<string[]>([]);
   const [speedIndex, setSpeedIndex] = useState(0);
@@ -357,15 +370,32 @@ export function MultiplayerKetka() {
       };
     });
 
-    setPlayers([me, ...opponents]);
-    setWinnerName("");
-    setWinnerId("");
-    setTablePile([]);
+    const snapshot: KetkaMatchSnapshot = {
+      players: [me, ...opponents],
+      currentPlayerIndex: 0,
+      tablePile: [],
+      winnerName: "",
+      winnerId: "",
+    };
+
+    if (viewMode === "setup") {
+      navigate("/student/games/ketka-play", { state: { ketkaMatch: snapshot } });
+      return;
+    }
+
+    setPlayers(snapshot.players);
+    setWinnerName(snapshot.winnerName);
+    setWinnerId(snapshot.winnerId);
+    setTablePile(snapshot.tablePile);
     setLastAnswer(null);
-    setCurrentPlayerIndex(0);
+    setCurrentPlayerIndex(snapshot.currentPlayerIndex);
   }
 
   function resetMatch() {
+    if (viewMode === "match") {
+      navigate("/student/games", { replace: true });
+      return;
+    }
     setPlayers([]);
     setWinnerName("");
     setWinnerId("");
@@ -436,15 +466,22 @@ export function MultiplayerKetka() {
     [deck],
   );
 
+  const showAllModes = viewMode === "all";
+  const showOnlySetup = viewMode === "setup";
+  const showOnlyMatch = viewMode === "match";
+  const canOpenKetkaSetup = showAllModes || showOnlySetup;
+
   return (
     <div className="space-y-6">
       <section className="overflow-hidden rounded-[2rem] border border-burgundy-100 bg-[radial-gradient(circle_at_top_left,rgba(128,0,32,0.18),transparent_35%),linear-gradient(135deg,#111014,#1a1114_45%,#08080b)] p-5 text-white shadow-lift sm:p-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.24em] text-white/45">Ketka Arena</p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">English games in one clean arena</h1>
+            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{showOnlyMatch ? "Ketka Match" : "English games in one clean arena"}</h1>
             <p className="mt-3 max-w-3xl text-sm font-semibold text-white/65">
-              Ketka now keeps cards, online opponents, invites, and match start on one screen. Only game modes are separated.
+              {showOnlyMatch
+                ? "Live match view optimized for mobile gameplay. Setup is kept on the previous screen."
+                : "Create homework cards, see card count, invite classmates, then open a dedicated match screen."}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 rounded-3xl border border-white/10 bg-white/10 p-2 backdrop-blur-xl">
@@ -455,96 +492,136 @@ export function MultiplayerKetka() {
         </div>
       </section>
 
-      <nav className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <TabButton active={tab === "ketka"} onClick={() => setTab("ketka")} icon={<Gamepad2 className="h-4 w-4" />}>Ketka</TabButton>
-        <TabButton active={tab === "speed"} onClick={() => setTab("speed")} icon={<Zap className="h-4 w-4" />}>Speed</TabButton>
-        <TabButton active={tab === "memory"} onClick={() => setTab("memory")} icon={<Brain className="h-4 w-4" />}>Memory</TabButton>
-        <TabButton active={tab === "emoji"} onClick={() => setTab("emoji")} icon={<Sparkles className="h-4 w-4" />}>Emoji</TabButton>
-      </nav>
-
-      {tab === "ketka" ? (
-        players.length > 0 ? (
-          <div className="space-y-4 overflow-hidden rounded-[2rem]">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-burgundy-100 bg-white px-4 py-3 shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-sm font-black text-charcoal dark:text-white">
-                {winnerName ? `Winner: ${winnerName}. +5 rating points added.` : `Playing with ${players.length} players.`}
-              </p>
-              <Button type="button" variant="secondary" onClick={resetMatch}>Back to setup</Button>
-            </div>
-            <GameBoard
-              players={players}
-              currentPlayerTurn={currentPlayer?.playerId ?? ""}
-              activeAnswererId={answerer?.playerId}
-              currentCard={activeCard}
-              localPlayerId={currentStudent?.id ?? "me"}
-              tablePileCount={tablePile.length}
-              lastAnswer={lastAnswer}
-              onCheckAnswer={checkAnswer}
-              onCardAnswered={resolveAnswer}
-            />
-          </div>
-        ) : (
-          <div className="grid gap-5 xl:grid-cols-[360px_1fr_380px]">
-            <Panel title="1. Create cards" subtitle="Students write the English word, hint, emoji, and Russian translation as homework.">
-              <CardForm form={form} setForm={setForm} onAdd={addCard} />
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <Button type="button" onClick={addAiCards} variant="secondary">
-                  <Bot className="mr-2 h-4 w-4" />
-                  AI ideas
-                </Button>
-                <Button type="button" onClick={() => setDeck([])} variant="ghost">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clear
-                </Button>
-              </div>
-            </Panel>
-
-            <Panel title="2. Your Ketka deck" subtitle="These cards are used in class. Click a card to flip it.">
-              <div className="grid gap-4 md:grid-cols-2">
-                <AnimatePresence>
-                  {deck.map((card) => (
-                    <motion.div key={card.id} layout>
-                      <Card card={card} compact />
-                      <button
-                        type="button"
-                        onClick={() => setDeck((current) => current.filter((item) => item.id !== card.id))}
-                        className="mt-2 w-full rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-red-700 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200"
-                      >
-                        Remove
-                      </button>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </Panel>
-
-            <Panel title="3. Invite opponents" subtitle="Only online students from your own group can receive game requests.">
-              <KetkaInviteBox
-                socketConnected={Boolean(socket)}
-                notice={notice}
-                incomingInvites={incomingInvites}
-                onlineClassmates={onlineClassmates}
-                offlineClassmates={offlineClassmates}
-                invites={invites}
-                acceptedCount={acceptedInvites.length}
-                canStart={canStart}
-                onSendInvite={sendInvite}
-                onDemoAnswerInvite={answerInvite}
-                onRespondIncomingInvite={respondIncomingInvite}
-                onStart={startKetka}
-              />
-            </Panel>
-          </div>
-        )
+      {showAllModes ? (
+        <nav className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <TabButton active={tab === "ketka"} onClick={() => setTab("ketka")} icon={<Gamepad2 className="h-4 w-4" />}>Ketka</TabButton>
+          <TabButton active={tab === "speed"} onClick={() => setTab("speed")} icon={<Zap className="h-4 w-4" />}>Speed</TabButton>
+          <TabButton active={tab === "memory"} onClick={() => setTab("memory")} icon={<Brain className="h-4 w-4" />}>Memory</TabButton>
+          <TabButton active={tab === "emoji"} onClick={() => setTab("emoji")} icon={<Sparkles className="h-4 w-4" />}>Emoji</TabButton>
+        </nav>
       ) : null}
 
-      {tab === "speed" ? (
+      {(showOnlyMatch || (showAllModes && tab === "ketka")) && players.length > 0 ? (
+        <div className="space-y-4 overflow-hidden rounded-[2rem]">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-burgundy-100 bg-white px-4 py-3 shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
+            <p className="text-sm font-black text-charcoal dark:text-white">
+              {winnerName ? `Winner: ${winnerName}. +5 rating points added.` : `Playing with ${players.length} players.`}
+            </p>
+            <Button type="button" variant="secondary" onClick={resetMatch}>
+              {showOnlyMatch ? "Back to setup page" : "Back to setup"}
+            </Button>
+          </div>
+          <GameBoard
+            players={players}
+            currentPlayerTurn={currentPlayer?.playerId ?? ""}
+            activeAnswererId={answerer?.playerId}
+            currentCard={activeCard}
+            localPlayerId={currentStudent?.id ?? "me"}
+            tablePileCount={tablePile.length}
+            lastAnswer={lastAnswer}
+            onCheckAnswer={checkAnswer}
+            onCardAnswered={resolveAnswer}
+          />
+        </div>
+      ) : null}
+
+      {showOnlyMatch && players.length === 0 ? (
+        <Panel title="No active Ketka match" subtitle="Start from setup page, then open match again.">
+          <Button type="button" onClick={() => navigate("/student/games")} className="w-full sm:w-auto">
+            Back to Ketka setup
+          </Button>
+        </Panel>
+      ) : null}
+
+      {canOpenKetkaSetup && players.length === 0 ? (
+        <div className="grid gap-5 xl:grid-cols-[360px_1fr_380px]">
+          <Panel title="1. Create cards" subtitle="Students write the English word, hint, emoji, and translation as homework.">
+            <CardForm form={form} setForm={setForm} onAdd={addCard} />
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <Button type="button" onClick={addAiCards} variant="secondary">
+                <Bot className="mr-2 h-4 w-4" />
+                AI ideas
+              </Button>
+              <Button type="button" onClick={() => setDeck([])} variant="ghost">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear
+              </Button>
+            </div>
+          </Panel>
+
+          <Panel title="2. Your Ketka deck" subtitle="Mobile-first list before game start. You can quickly see word, hint, and translation.">
+            <div className="mb-3 rounded-2xl border border-burgundy-100 bg-burgundy-50/55 px-4 py-3 text-sm font-black text-burgundy-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-burgundy-100">
+              Total cards: {deck.length}
+            </div>
+
+            <div className="space-y-3 md:hidden">
+              {deck.map((card) => (
+                <div key={card.id} className="rounded-2xl border border-burgundy-100 bg-white p-3 shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-charcoal/45 dark:text-zinc-500">English</p>
+                  <p className="mt-1 text-lg font-black text-charcoal dark:text-white">{card.word}</p>
+                  <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-charcoal/45 dark:text-zinc-500">Hint</p>
+                  <p className="mt-1 text-sm font-semibold text-charcoal/75 dark:text-zinc-300">
+                    {card.hintEmoji ? `${card.hintEmoji} ` : ""}
+                    {card.hintText || "No hint"}
+                  </p>
+                  <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-charcoal/45 dark:text-zinc-500">Translation</p>
+                  <p className="mt-1 text-base font-black text-burgundy-700 dark:text-burgundy-200">{card.translation}</p>
+                  <button
+                    type="button"
+                    onClick={() => setDeck((current) => current.filter((item) => item.id !== card.id))}
+                    className="mt-3 w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-red-700 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden gap-4 md:grid md:grid-cols-2">
+              <AnimatePresence>
+                {deck.map((card) => (
+                  <motion.div key={card.id} layout>
+                    <Card card={card} compact />
+                    <button
+                      type="button"
+                      onClick={() => setDeck((current) => current.filter((item) => item.id !== card.id))}
+                      className="mt-2 w-full rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-red-700 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200"
+                    >
+                      Remove
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </Panel>
+
+          <Panel title="3. Invite opponents" subtitle="Only online students from your group can receive requests.">
+            <KetkaInviteBox
+              socketConnected={Boolean(socket)}
+              notice={notice}
+              incomingInvites={incomingInvites}
+              onlineClassmates={onlineClassmates}
+              offlineClassmates={offlineClassmates}
+              invites={invites}
+              acceptedCount={acceptedInvites.length}
+              canStart={canStart}
+              onSendInvite={sendInvite}
+              onDemoAnswerInvite={answerInvite}
+              onRespondIncomingInvite={respondIncomingInvite}
+              onStart={startKetka}
+              startLabel={showOnlySetup ? "Open match page" : undefined}
+            />
+          </Panel>
+        </div>
+      ) : null}
+
+      {showAllModes && tab === "speed" ? (
         <Panel title="Speed Translation" subtitle="Choose the correct translation fast. Good warm-up before Ketka.">
           <SpeedGame deck={deck} index={speedIndex} setIndex={setSpeedIndex} score={speedScore} setScore={setSpeedScore} />
         </Panel>
       ) : null}
 
-      {tab === "memory" ? (
+      {showAllModes && tab === "memory" ? (
         <Panel title="Memory Match" subtitle="Match English words with Russian translations.">
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {memoryCards.map((item) => (
@@ -561,7 +638,7 @@ export function MultiplayerKetka() {
         </Panel>
       ) : null}
 
-      {tab === "emoji" ? (
+      {showAllModes && tab === "emoji" ? (
         <Panel title="Emoji Hint" subtitle="Look at the emoji and hint, then guess the English word.">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {deck.slice(0, 9).map((card) => (
@@ -600,6 +677,7 @@ function KetkaInviteBox({
   onDemoAnswerInvite,
   onRespondIncomingInvite,
   onStart,
+  startLabel,
 }: {
   socketConnected: boolean;
   notice: string;
@@ -613,6 +691,7 @@ function KetkaInviteBox({
   onDemoAnswerInvite: (studentId: string, status: InviteStatus) => void;
   onRespondIncomingInvite: (invite: GameInvite, accepted: boolean) => void;
   onStart: () => void;
+  startLabel?: string;
 }) {
   return (
     <div className="space-y-4">
@@ -709,7 +788,7 @@ function KetkaInviteBox({
 
       <Button type="button" disabled={!canStart} onClick={onStart} className="w-full">
         <UsersRound className="mr-2 h-4 w-4" />
-        Start Ketka with {acceptedCount + 1} player(s)
+        {startLabel ?? `Start Ketka with ${acceptedCount + 1} player(s)`}
       </Button>
     </div>
   );

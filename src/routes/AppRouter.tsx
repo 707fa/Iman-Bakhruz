@@ -26,6 +26,9 @@ const StudentPublicProfilePage = lazy(() =>
   import("../pages/StudentPublicProfilePage").then((module) => ({ default: module.StudentPublicProfilePage })),
 );
 const StudentGamesPage = lazy(() => import("../pages/StudentGamesPage").then((module) => ({ default: module.StudentGamesPage })));
+const StudentKetkaPlayPage = lazy(() =>
+  import("../pages/StudentKetkaPlayPage").then((module) => ({ default: module.StudentKetkaPlayPage })),
+);
 const TeacherHomePage = lazy(() => import("../pages/TeacherHomePage").then((module) => ({ default: module.TeacherHomePage })));
 const TeacherGroupsPage = lazy(() => import("../pages/TeacherGroupsPage").then((module) => ({ default: module.TeacherGroupsPage })));
 const TeacherTopPage = lazy(() => import("../pages/TeacherTopPage").then((module) => ({ default: module.TeacherTopPage })));
@@ -86,6 +89,7 @@ export function AppRouter() {
             <Route path="/student" element={<StudentDashboardPage />} />
             <Route path="/student/group" element={<StudentGroupPage />} />
             <Route path="/student/games" element={<StudentGamesPage />} />
+            <Route path="/student/games/ketka-play" element={<StudentKetkaPlayPage />} />
             <Route path="/student/top" element={<StudentTopPage />} />
             <Route path="/student/speaking" element={<StudentSpeakingPage />} />
             <Route path="/student/parent" element={<Navigate to="/student" replace />} />

@@ -7,10 +7,10 @@ export function StudentGamesPage() {
     <div className="space-y-7">
       <PageHeader
         title="Ketka Arena"
-        subtitle="Создавай домашние карточки, выбирай соперников и играй в современные English games на уроке."
+        subtitle="Create homework cards, check card list comfortably on mobile, invite classmates, then open dedicated match page."
         action={<Badge variant="soft">Student games</Badge>}
       />
-      <MultiplayerKetka />
+      <MultiplayerKetka viewMode="setup" />
     </div>
   );
 }
