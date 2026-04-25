@@ -1,10 +1,8 @@
-import { ArrowRight, CalendarDays, Clock3, Gamepad2, Mic, Trophy, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { CalendarDays, Clock3, Trophy, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { TeacherSpotlightCard } from "../components/TeacherSpotlightCard";
 import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
@@ -74,67 +72,6 @@ export function StudentDashboardPage() {
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="interactive-lift h-full">
-          <CardContent className="p-5">
-            <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("tabs.group")}</p>
-            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("student.groupSubtitle")}</p>
-            <Link to="/student/group" className="mt-4 block">
-              <Button variant="secondary" className="w-full justify-between">
-                {t("student.openGroup")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="interactive-lift h-full">
-          <CardContent className="p-5">
-            <p className="text-base font-semibold text-charcoal dark:text-zinc-100">{t("tabs.global")}</p>
-            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("student.globalSubtitle")}</p>
-            <Link to="/student/top" className="mt-4 block">
-              <Button variant="secondary" className="w-full justify-between">
-                {t("student.openTop")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="interactive-lift h-full">
-          <CardContent className="p-5">
-            <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
-              <Mic className="h-4 w-4 text-burgundy-700 dark:text-white" />
-              {t("nav.speaking")}
-            </p>
-            <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">{t("speaking.subtitle")}</p>
-            <Link to="/student/speaking" className="mt-4 block">
-              <Button variant="secondary" className="w-full justify-between">
-                {t("speaking.openPractice")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="interactive-lift h-full overflow-hidden border-burgundy-200">
-          <CardContent className="relative p-5">
-            <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-burgundy-100 blur-2xl dark:bg-burgundy-900/40" />
-            <p className="relative inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-zinc-100">
-              <Gamepad2 className="h-4 w-4 text-burgundy-700 dark:text-white" />
-              {t("nav.games")}
-            </p>
-            <p className="relative mt-1 text-sm text-charcoal/65 dark:text-zinc-400">Ketka, speed, memory and emoji practice in one arena.</p>
-            <Link to="/student/games" className="relative mt-4 block">
-              <Button className="w-full justify-between">
-                Open games
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
 
       {teacher ? <TeacherSpotlightCard teacherId={teacher.id} /> : null}
     </div>
