@@ -253,7 +253,7 @@ export function StudentSpeakingPage() {
   async function generateQuestions() {
     const topic = lessonTopic.trim();
     if (!topic) {
-      setQuestionError("Р’РІРµРґРёС‚Рµ С‚РµРјСѓ СѓСЂРѕРєР°");
+      setQuestionError("Enter lesson topic first.");
       return;
     }
 
@@ -270,7 +270,7 @@ export function StudentSpeakingPage() {
       });
       setGeneratedQuestions(questions.slice(0, DAILY_TARGET));
       setQuestionIndex(0);
-      showToast({ message: "AI РїРѕРґРіРѕС‚РѕРІРёР» 20 speaking РІРѕРїСЂРѕСЃРѕРІ", tone: "success" });
+      showToast({ message: "AI prepared 20 speaking questions.", tone: "success" });
     } catch (error) {
       const message = mapSpeakingApiErrorToMessage(error);
       setQuestionError(message);
@@ -342,14 +342,14 @@ export function StudentSpeakingPage() {
   async function analyzeAnswer() {
     if (!currentQuestion) return;
 
-    const transcript = speech.transcript.trim();
+    const transcript = (speech.transcript || speech.interimTranscript || "").trim();
     if (!transcript) {
-      showToast({ message: t("speaking.error.emptyTranscript"), tone: "error" });
+      showToast({ message: "No speech captured yet. Speak a little longer and try again.", tone: "error" });
       return;
     }
 
     if (wordsCount(transcript) < MIN_WORDS) {
-      showToast({ message: `РњРёРЅРёРјСѓРј ${MIN_WORDS} СЃР»РѕРІ РґР»СЏ РїСЂРѕРІРµСЂРєРё.`, tone: "error" });
+      showToast({ message: `Minimum ${MIN_WORDS} words required for checking.`, tone: "error" });
       return;
     }
 
@@ -397,11 +397,11 @@ export function StudentSpeakingPage() {
           <Input
             value={lessonTopic}
             onChange={(event) => setLessonTopic(event.target.value)}
-            placeholder="РўРµРјР° СѓСЂРѕРєР° (РЅР°РїСЂРёРјРµСЂ: Past Simple, Daily routine, Travel)"
+            placeholder="Lesson topic (example: Past Simple, Daily routine, Travel)"
           />
           <Button onClick={() => void generateQuestions()} disabled={generatingQuestions} className="h-11 rounded-full px-5">
             {generatingQuestions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            AI 20 РІРѕРїСЂРѕСЃРѕРІ
+            AI 20 questions
           </Button>
         </div>
         {questionError ? <p className="text-xs text-burgundy-700 dark:text-burgundy-200">{questionError}</p> : null}

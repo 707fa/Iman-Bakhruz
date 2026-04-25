@@ -39,6 +39,12 @@ function resolveCtor(): BrowserSpeechRecognitionCtor | null {
   return scoped.SpeechRecognition ?? scoped.webkitSpeechRecognition ?? null;
 }
 
+function isIosSafariLike(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return /iP(hone|ad|od)/i.test(ua);
+}
+
 function mapSpeechError(errorCode: string): string {
   if (errorCode === "not-allowed" || errorCode === "service-not-allowed") {
     return "Microphone permission denied.";
@@ -154,12 +160,25 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       return false;
     }
 
+    if (listening) {
+      return true;
+    }
+
     if (!window.isSecureContext && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
       setError("Speech recognition requires HTTPS.");
       return false;
     }
 
     try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          // noop
+        }
+        cleanupRecognition();
+      }
+
       const recognition = new ctor();
       recognitionRef.current = recognition;
       setError(null);
@@ -170,7 +189,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       stoppingRef.current = false;
 
       recognition.lang = options.lang || "en-US";
-      recognition.continuous = options.continuous ?? true;
+      recognition.continuous = options.continuous ?? !isIosSafariLike();
       recognition.interimResults = options.interimResults ?? true;
       recognition.maxAlternatives = options.maxAlternatives ?? 3;
 
@@ -208,7 +227,6 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
           }
         }
         setListening(false);
-        setInterimTranscript("");
         stoppingRef.current = false;
         cleanupRecognition();
       };
@@ -223,7 +241,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       setError("Unable to start microphone recording.");
       return false;
     }
-  }, [cleanupRecognition, ctor, options.continuous, options.interimResults, options.lang, options.maxAlternatives]);
+  }, [cleanupRecognition, ctor, listening, options.continuous, options.interimResults, options.lang, options.maxAlternatives]);
 
   return {
     supported,

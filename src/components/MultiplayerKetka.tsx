@@ -906,7 +906,7 @@ function DeckListCompact({
           <span>Translation</span>
           <span />
         </div>
-        <div className="max-h-[440px] overflow-y-auto">
+        <div className="h-[52vh] min-h-[280px] max-h-[440px] overflow-y-auto overscroll-contain">
           {deck.map((card) => (
             <div key={card.id} className="grid grid-cols-[1.2fr_1.5fr_1.1fr_auto] items-center gap-2 border-b border-burgundy-100/70 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950">
               <span className="truncate font-black text-charcoal dark:text-white">{card.word}</span>
