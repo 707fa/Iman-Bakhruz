@@ -1,4 +1,4 @@
-import { Bot, ImagePlus, Loader2, Mic, Send, User } from "lucide-react";
+import { Bot, ImagePlus, Loader2, Mic, Send, User, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
 import { AI_GATEWAY_URL, DATA_PROVIDER_MODE } from "../lib/env";
@@ -13,9 +13,7 @@ import { platformApi } from "../services/api/platformApi";
 import { aiGatewayCheckHomework, mapAiGatewayErrorToMessage } from "../services/api/aiGatewayApi";
 import { useVoiceAssistant } from "../hooks/useVoiceAssistant";
 import { VoiceScreen } from "./voice/VoiceScreen";
-import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Input } from "./ui/input";
 
 interface ImanAiChatCardProps {
   title?: string;
@@ -90,7 +88,7 @@ function mapBackendAiErrorToMessage(error: unknown): string {
     }
 
     if (error.status >= 500 || error.status === 408 || error.status === 0) {
-      return `AI service is temporarily unavailable. Please retry in 1-2 minutes.`;
+      return "AI service is temporarily unavailable. Please retry in 1-2 minutes.";
     }
   }
 
@@ -166,6 +164,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const [loading, setLoading] = useState(false);
   const [statusHint, setStatusHint] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { showToast } = useToast();
 
   const sessionUserId = state.session?.userId;
@@ -192,19 +191,23 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const isApiMode = DATA_PROVIDER_MODE === "api";
   const useGatewayMode = Boolean(AI_GATEWAY_URL);
   const canUseApi = useGatewayMode || (isApiMode && Boolean(token));
-  const localStorageKey = useMemo(
-    () => `iman-ai-chat-v2:${sessionUserId ?? "guest"}`,
-    [sessionUserId],
-  );
+  const localStorageKey = useMemo(() => `iman-ai-chat-v2:${sessionUserId ?? "guest"}`, [sessionUserId]);
   const teacherQuickPrompts = useMemo(
     () => [
-      "Сделай 5 speaking вопросов для уровня Elementary на тему Daily routine.",
-      "Проверь это домашнее задание как учитель и дай короткий feedback.",
-      "Составь 15-минутный план урока для темы Past Simple.",
-      "Дай 10 мини-упражнений на vocabulary для Beginner.",
+      "Create 5 speaking questions for Elementary on Daily routine.",
+      "Check this homework like a teacher and give short feedback.",
+      "Build a 15-minute lesson plan for Past Simple.",
+      "Give 10 quick vocabulary exercises for Beginner.",
     ],
     [],
   );
+
+  const resizeComposer = useCallback(() => {
+    const node = textareaRef.current;
+    if (!node) return;
+    node.style.height = "0px";
+    node.style.height = `${Math.min(node.scrollHeight, 160)}px`;
+  }, []);
 
   const voiceExchange = useCallback(
     async (userText: string) => {
@@ -301,7 +304,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     return () => {
       disposed = true;
     };
-  }, [canUseApi, token, useGatewayMode, localStorageKey]);
+  }, [canUseApi, token, useGatewayMode, localStorageKey, showToast]);
 
   useEffect(() => {
     if (!useGatewayMode) return;
@@ -312,6 +315,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     if (!listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, loading, sending]);
+
+  useEffect(() => {
+    resizeComposer();
+  }, [text, resizeComposer]);
 
   async function applySelectedImage(file: File) {
     try {
@@ -345,9 +352,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     };
   }, []);
 
-  const canSend = useMemo(() => {
-    return Boolean((text || "").trim() || imageFile);
-  }, [text, imageFile]);
+  const canSend = useMemo(() => Boolean(text.trim() || imageFile), [text, imageFile]);
 
   function handleOpenVoice() {
     voice.setOpen(true);
@@ -420,7 +425,6 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           setStatusHint(null);
           return;
         } catch (gatewayError) {
-          // Soft fallback: if gateway is unreachable, try existing backend AI route.
           if (isApiMode && token) {
             try {
               const imageBase64 = selectedFile ? await fileToDataUrl(selectedFile) : undefined;
@@ -529,7 +533,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
             <div
               ref={listRef}
-              className="h-80 space-y-2 overflow-y-auto rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+              className="scrollbar-thin h-[62vh] min-h-[360px] space-y-5 overflow-y-auto rounded-3xl border border-burgundy-100/70 bg-white/90 px-3 py-4 sm:px-5 dark:border-zinc-800 dark:bg-zinc-950/75"
             >
               {loading ? (
                 <div className="flex items-center gap-2 text-sm text-charcoal/65 dark:text-zinc-400">
@@ -537,11 +541,17 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                   Loading chat...
                 </div>
               ) : messages.length === 0 ? (
-                <p className="text-sm text-charcoal/65 dark:text-zinc-400">
-                  {isTeacherMode
-                    ? "Начните teacher chat: спросите план урока, проверку задания или speaking-вопросы."
-                    : "Start chat. You can send a text question or homework photo."}
-                </p>
+                <div className="mx-auto flex h-full max-w-lg flex-col items-center justify-center px-4 py-10 text-center">
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-burgundy-200 bg-burgundy-50 dark:border-burgundy-900/60 dark:bg-burgundy-950/30">
+                    <Bot className="h-5 w-5 text-burgundy-700 dark:text-burgundy-200" />
+                  </div>
+                  <p className="text-base font-semibold text-charcoal dark:text-zinc-100">Start a new message</p>
+                  <p className="mt-1 text-sm text-charcoal/65 dark:text-zinc-400">
+                    {isTeacherMode
+                      ? "Ask for lesson plans, speaking questions, or quick homework review."
+                      : "Ask any English question or send homework photo for checking."}
+                  </p>
+                </div>
               ) : (
                 messages.map((message) => {
                   const mine = message.role === "user";
@@ -549,13 +559,13 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                     <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                       <div
                         className={[
-                          "max-w-[90%] rounded-2xl px-3 py-2 text-sm",
+                          "max-w-[92%] rounded-3xl px-4 py-3 text-[15px] leading-6 sm:max-w-[86%]",
                           mine
-                            ? "bg-burgundy-700 text-white"
-                            : "border border-burgundy-100 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100",
+                            ? "bg-burgundy-700 text-white shadow-soft"
+                            : "border border-zinc-200 bg-zinc-50 text-charcoal dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-100",
                         ].join(" ")}
                       >
-                        <div className={`mb-1 inline-flex items-center gap-1 text-xs ${mine ? "text-white/75" : "text-charcoal/55 dark:text-zinc-400"}`}>
+                        <div className={`mb-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] ${mine ? "text-white/80" : "text-charcoal/55 dark:text-zinc-400"}`}>
                           {mine ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
                           {mine ? "You" : "Iman AI"}
                         </div>
@@ -563,20 +573,15 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                           mine ? (
                             <p className="whitespace-pre-wrap break-words">{message.text}</p>
                           ) : (
-                            <p
-                              className="whitespace-pre-wrap break-words"
-                              dangerouslySetInnerHTML={{ __html: toSafeRichHtml(message.text) }}
-                            />
+                            <p className="whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: toSafeRichHtml(message.text) }} />
                           )
                         ) : null}
                         {message.imageUrl ? (
                           <a href={message.imageUrl} target="_blank" rel="noreferrer" className="mt-2 block">
-                            <img src={message.imageUrl} alt="Homework" className="max-h-52 rounded-xl border border-white/20 object-contain" />
+                            <img src={message.imageUrl} alt="Homework" className="max-h-56 rounded-2xl border border-white/20 object-contain" />
                           </a>
                         ) : null}
-                        <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/75" : "text-charcoal/50 dark:text-zinc-400"}`}>
-                          {toReadableTime(message.createdAt)}
-                        </p>
+                        <p className={`mt-1 text-right text-[10px] ${mine ? "text-white/75" : "text-charcoal/50 dark:text-zinc-400"}`}>{toReadableTime(message.createdAt)}</p>
                       </div>
                     </div>
                   );
@@ -584,7 +589,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               )}
               {sending ? (
                 <div className="flex justify-start">
-                  <div className="max-w-[90%] rounded-2xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100">
+                  <div className="max-w-[90%] rounded-3xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-charcoal dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
                     <div className="mb-1 inline-flex items-center gap-1 text-xs text-charcoal/55 dark:text-zinc-400">
                       <Bot className="h-3.5 w-3.5" />
                       Iman AI
@@ -599,63 +604,91 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             </div>
 
             {imagePreview ? (
-              <div className="rounded-2xl border border-burgundy-100 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-950">
-                <img src={imagePreview} alt="Selected homework" className="max-h-48 rounded-xl object-contain" />
+              <div className="flex items-start justify-between gap-3 rounded-2xl border border-burgundy-200/70 bg-burgundy-50/70 p-2.5 dark:border-burgundy-900/60 dark:bg-burgundy-950/25">
+                <img src={imagePreview} alt="Selected homework" className="max-h-28 rounded-xl object-contain" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageFile(null);
+                    setImagePreview(null);
+                    setStatusHint(null);
+                  }}
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-burgundy-300 text-burgundy-700 transition hover:bg-burgundy-100 dark:border-burgundy-700 dark:text-burgundy-200 dark:hover:bg-burgundy-900/50"
+                  aria-label="Remove selected image"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             ) : null}
 
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
-              <Input
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                placeholder={isTeacherMode ? "Напишите запрос как преподаватель..." : "Write question or homework comment..."}
-                onPaste={(event) => {
-                  const items = event.clipboardData?.items;
-                  if (!items || items.length === 0) return;
-                  const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
-                  if (!imageItem) return;
-                  const file = fileFromClipboardItem(imageItem);
-                  if (!file) return;
-                  event.preventDefault();
-                  void applySelectedImage(file);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    void handleSend();
-                  }
-                }}
-              />
+            <div className="sticky bottom-0 z-20 rounded-3xl border border-zinc-200 bg-white/96 p-2.5 shadow-soft backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/96">
+              <div className="flex items-end gap-2 sm:gap-2.5">
+                <label className="inline-flex shrink-0">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      void applySelectedImage(file);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-300 bg-zinc-100 text-charcoal transition hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                    aria-label="Attach photo"
+                  >
+                    <ImagePlus className="h-5 w-5" />
+                  </button>
+                </label>
 
-              <label className="inline-flex">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
+                <textarea
+                  ref={textareaRef}
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  placeholder={isTeacherMode ? "Write teacher request..." : "Message Iman Chat..."}
+                  rows={1}
+                  className="scrollbar-thin max-h-40 min-h-[40px] w-full resize-none bg-transparent px-2 py-2 text-[15px] text-charcoal outline-none placeholder:text-charcoal/45 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                  onPaste={(event) => {
+                    const items = event.clipboardData?.items;
+                    if (!items || items.length === 0) return;
+                    const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
+                    if (!imageItem) return;
+                    const file = fileFromClipboardItem(imageItem);
                     if (!file) return;
+                    event.preventDefault();
                     void applySelectedImage(file);
                   }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      void handleSend();
+                    }
+                  }}
                 />
-                <Button asChild variant="secondary" type="button">
-                  <span>
-                    <ImagePlus className="mr-2 h-4 w-4" />
-                    Photo
-                  </span>
-                </Button>
-              </label>
 
-              <Button onClick={() => void handleSend()} disabled={!canSend || sending}>
-                {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                Send
-              </Button>
+                <button
+                  type="button"
+                  onClick={handleOpenVoice}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-300 bg-zinc-100 text-charcoal transition hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                  aria-label="Open voice"
+                >
+                  <Mic className="h-5 w-5" />
+                </button>
 
-              <Button variant="secondary" type="button" onClick={handleOpenVoice}>
-                <Mic className="mr-2 h-4 w-4" />
-                Voice
-              </Button>
+                <button
+                  type="button"
+                  onClick={() => void handleSend()}
+                  disabled={!canSend || sending}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-burgundy-700 text-white transition hover:bg-burgundy-600 disabled:cursor-not-allowed disabled:opacity-45"
+                  aria-label="Send message"
+                >
+                  {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
+
           </>
         )}
       </CardContent>
