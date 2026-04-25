@@ -32,28 +32,28 @@ export function StudentDashboardPage() {
         }
       />
 
-      <section className="space-y-4 rounded-[1.8rem] bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.18),transparent_42%),linear-gradient(145deg,#15080d,#110b10_52%,#0b0b0f)] p-4 text-white shadow-[0_28px_80px_rgba(0,0,0,0.38)] sm:p-5">
-          <div className="flex flex-col gap-4 rounded-2xl bg-[linear-gradient(120deg,#3a0f1a,#2a0d16_55%,#1b0f14)] p-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="space-y-4 rounded-[1.8rem] border border-zinc-200/80 bg-white p-4 text-charcoal shadow-[0_20px_50px_rgba(15,23,42,0.08)] sm:p-5 dark:border-zinc-800 dark:bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.18),transparent_42%),linear-gradient(145deg,#15080d,#110b10_52%,#0b0b0f)] dark:text-white dark:shadow-[0_28px_80px_rgba(0,0,0,0.38)]">
+          <div className="flex flex-col gap-4 rounded-2xl bg-burgundy-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:bg-[linear-gradient(120deg,#3a0f1a,#2a0d16_55%,#1b0f14)]">
             <div className="flex items-center gap-3">
               <UserAvatar fullName={currentStudent.fullName} avatarUrl={currentStudent.avatarUrl} size="lg" />
               <div>
                 <p className="break-words text-xl font-bold sm:text-3xl">{currentStudent.fullName}</p>
-                <p className="mt-1 inline-flex items-center gap-2 text-sm text-white/85">
+                <p className="mt-1 inline-flex items-center gap-2 text-sm text-charcoal/80 dark:text-white/85">
                   <Users className="h-4 w-4" />
                   {group?.title ?? t("student.noGroup")}
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:w-auto">
-              <div className="rounded-xl bg-black/25 px-3 py-2 text-xs font-semibold">
-                <p className="text-white/70">{t("app.scheduleTime")}</p>
+              <div className="rounded-xl bg-white/75 px-3 py-2 text-xs font-semibold dark:bg-black/25">
+                <p className="text-charcoal/60 dark:text-white/70">{t("app.scheduleTime")}</p>
                 <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-bold">
                   <Clock3 className="h-4 w-4" />
                   {group?.time ?? "-"}
                 </p>
               </div>
-              <div className="rounded-xl bg-black/25 px-3 py-2 text-xs font-semibold">
-                <p className="text-white/70">{t("auth.days")}</p>
+              <div className="rounded-xl bg-white/75 px-3 py-2 text-xs font-semibold dark:bg-black/25">
+                <p className="text-charcoal/60 dark:text-white/70">{t("auth.days")}</p>
                 <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-bold">
                   <CalendarDays className="h-4 w-4" />
                   {daysLabel}
@@ -63,21 +63,21 @@ export function StudentDashboardPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl bg-black/30 p-4 backdrop-blur-md">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/65">{t("student.points")}</p>
-              <p className="mt-2 text-4xl font-black leading-none text-white">{currentStudent.points.toFixed(2)}</p>
+            <div className="rounded-2xl border border-zinc-200/70 bg-white/85 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/30">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-charcoal/60 dark:text-white/65">{t("student.points")}</p>
+              <p className="mt-2 text-4xl font-black leading-none text-charcoal dark:text-white">{currentStudent.points.toFixed(2)}</p>
             </div>
-            <div className="rounded-2xl bg-black/30 p-4 backdrop-blur-md">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/65">{t("student.placeInGroup")}</p>
-              <p className="mt-2 text-4xl font-black leading-none text-white">#{groupPlace > 0 ? groupPlace : "-"}</p>
+            <div className="rounded-2xl border border-zinc-200/70 bg-white/85 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/30">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-charcoal/60 dark:text-white/65">{t("student.placeInGroup")}</p>
+              <p className="mt-2 text-4xl font-black leading-none text-charcoal dark:text-white">#{groupPlace > 0 ? groupPlace : "-"}</p>
             </div>
-            <div className="rounded-2xl bg-black/30 p-4 backdrop-blur-md">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/65">{t("student.placeGlobal")}</p>
-              <p className="mt-2 inline-flex items-center gap-2 text-4xl font-black leading-none text-white">
-                <Trophy className="h-7 w-7 text-white" />
+            <div className="rounded-2xl border border-zinc-200/70 bg-white/85 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/30">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-charcoal/60 dark:text-white/65">{t("student.placeGlobal")}</p>
+              <p className="mt-2 inline-flex items-center gap-2 text-4xl font-black leading-none text-charcoal dark:text-white">
+                <Trophy className="h-7 w-7 text-burgundy-700 dark:text-white" />
                 #{globalPlace > 0 ? globalPlace : "-"}
               </p>
-              <span className="mt-3 inline-flex items-center rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white">
+              <span className="mt-3 inline-flex items-center rounded-full bg-burgundy-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-burgundy-800 dark:bg-white/15 dark:text-white">
                 <Sparkles className="mr-1.5 h-3.5 w-3.5" />
                 {globalRankTitle}
               </span>
