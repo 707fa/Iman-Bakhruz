@@ -1,7 +1,6 @@
 ﻿import { CalendarDays, Clock3, Send, Sparkles, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
-import { RankingList } from "../components/RankingList";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -11,7 +10,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
 import { DATA_PROVIDER_MODE } from "../lib/env";
-import { getGroupPlace, getGroupTop } from "../lib/ranking";
+import { getGroupPlace } from "../lib/ranking";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
 import type { AiChatMessage, HomeworkTask } from "../types";
@@ -127,12 +126,11 @@ export function StudentGroupPage() {
   const [aiCheckingTaskId, setAiCheckingTaskId] = useState<string | null>(null);
   const [aiReviews, setAiReviews] = useState<Record<string, AiHomeworkReview>>({});
   const [aiErrors, setAiErrors] = useState<Record<string, string>>({});
-  const [mobileSection, setMobileSection] = useState<"overview" | "homework" | "top">("overview");
+  const [mobileSection, setMobileSection] = useState<"overview" | "homework">("overview");
 
   if (!currentStudent) return null;
 
   const group = state.groups.find((item) => item.id === currentStudent.groupId);
-  const groupTop = getGroupTop(state, currentStudent.groupId, 10);
   const groupPlace = getGroupPlace(state, currentStudent.id, currentStudent.groupId);
   const daysLabel = group ? t(`days.${group.daysPattern}`) : "-";
 
@@ -436,17 +434,6 @@ export function StudentGroupPage() {
     </Card>
   );
 
-  const rankingSection = (
-    <RankingList
-      title={t("student.myGroupTop")}
-      items={groupTop}
-      groups={state.groups}
-      currentUserId={currentStudent.id}
-      showMeta={false}
-      itemHref={(item) => `/student/profile/${item.studentId}`}
-    />
-  );
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -456,22 +443,19 @@ export function StudentGroupPage() {
       />
 
       <div className="lg:hidden">
-        <Tabs value={mobileSection} onValueChange={(value) => setMobileSection(value as "overview" | "homework" | "top")}>
-          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1">
+        <Tabs value={mobileSection} onValueChange={(value) => setMobileSection(value as "overview" | "homework")}>
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1">
             <TabsTrigger className="px-2 py-2 text-xs" value="overview">Группа</TabsTrigger>
             <TabsTrigger className="px-2 py-2 text-xs" value="homework">Домашка</TabsTrigger>
-            <TabsTrigger className="px-2 py-2 text-xs" value="top">Топ</TabsTrigger>
           </TabsList>
           <TabsContent value="overview">{overviewSection}</TabsContent>
           <TabsContent value="homework">{homeworkSection}</TabsContent>
-          <TabsContent value="top">{rankingSection}</TabsContent>
         </Tabs>
       </div>
 
       <div className="hidden space-y-6 lg:block">
         {overviewSection}
         {homeworkSection}
-        {rankingSection}
       </div>
     </div>
   );
