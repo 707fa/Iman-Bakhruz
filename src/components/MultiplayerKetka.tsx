@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   BellRing,
@@ -194,6 +193,7 @@ export function MultiplayerKetka({ viewMode = "all" }: { viewMode?: KetkaViewMod
   const [memoryOpened, setMemoryOpened] = useState<string[]>([]);
   const [speedIndex, setSpeedIndex] = useState(0);
   const [speedScore, setSpeedScore] = useState(0);
+  const [mobileSetupTab, setMobileSetupTab] = useState<"create" | "deck" | "invite">("deck");
 
   useEffect(() => {
     saveDeck(deck);
@@ -534,85 +534,65 @@ export function MultiplayerKetka({ viewMode = "all" }: { viewMode?: KetkaViewMod
       ) : null}
 
       {canOpenKetkaSetup && players.length === 0 ? (
-        <div className="grid gap-5 xl:grid-cols-[360px_1fr_380px]">
-          <Panel title="1. Create cards" subtitle="Students write the English word, hint, emoji, and translation as homework.">
-            <CardForm form={form} setForm={setForm} onAdd={addCard} />
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <Button type="button" onClick={addAiCards} variant="secondary">
-                <Bot className="mr-2 h-4 w-4" />
-                AI ideas
-              </Button>
-              <Button type="button" onClick={() => setDeck([])} variant="ghost">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Clear
-              </Button>
+        <>
+          <div className="grid gap-2 rounded-2xl border border-burgundy-100 bg-white p-2 shadow-soft md:hidden dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="grid grid-cols-3 gap-2">
+              <MobileSetupTab active={mobileSetupTab === "create"} onClick={() => setMobileSetupTab("create")}>
+                Create
+              </MobileSetupTab>
+              <MobileSetupTab active={mobileSetupTab === "deck"} onClick={() => setMobileSetupTab("deck")}>
+                Deck ({deck.length})
+              </MobileSetupTab>
+              <MobileSetupTab active={mobileSetupTab === "invite"} onClick={() => setMobileSetupTab("invite")}>
+                Invite
+              </MobileSetupTab>
             </div>
-          </Panel>
+          </div>
 
-          <Panel title="2. Your Ketka deck" subtitle="Mobile-first list before game start. You can quickly see word, hint, and translation.">
-            <div className="mb-3 rounded-2xl border border-burgundy-100 bg-burgundy-50/55 px-4 py-3 text-sm font-black text-burgundy-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-burgundy-100">
-              Total cards: {deck.length}
-            </div>
-
-            <div className="space-y-3 md:hidden">
-              {deck.map((card) => (
-                <div key={card.id} className="rounded-2xl border border-burgundy-100 bg-white p-3 shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-charcoal/45 dark:text-zinc-500">English</p>
-                  <p className="mt-1 text-lg font-black text-charcoal dark:text-white">{card.word}</p>
-                  <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-charcoal/45 dark:text-zinc-500">Hint</p>
-                  <p className="mt-1 text-sm font-semibold text-charcoal/75 dark:text-zinc-300">
-                    {card.hintEmoji ? `${card.hintEmoji} ` : ""}
-                    {card.hintText || "No hint"}
-                  </p>
-                  <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-charcoal/45 dark:text-zinc-500">Translation</p>
-                  <p className="mt-1 text-base font-black text-burgundy-700 dark:text-burgundy-200">{card.translation}</p>
-                  <button
-                    type="button"
-                    onClick={() => setDeck((current) => current.filter((item) => item.id !== card.id))}
-                    className="mt-3 w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-red-700 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200"
-                  >
-                    Remove
-                  </button>
+          <div className="grid gap-5 xl:grid-cols-[360px_1fr_380px]">
+            <div className={`${mobileSetupTab === "create" ? "block" : "hidden"} md:block`}>
+              <Panel title="1. Create cards" subtitle="Add word, hint and translation quickly.">
+                <CardForm form={form} setForm={setForm} onAdd={addCard} />
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <Button type="button" onClick={addAiCards} variant="secondary">
+                    <Bot className="mr-2 h-4 w-4" />
+                    AI ideas
+                  </Button>
+                  <Button type="button" onClick={() => setDeck([])} variant="ghost">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Clear
+                  </Button>
                 </div>
-              ))}
+              </Panel>
             </div>
 
-            <div className="hidden gap-4 md:grid md:grid-cols-2">
-              <AnimatePresence>
-                {deck.map((card) => (
-                  <motion.div key={card.id} layout>
-                    <Card card={card} compact />
-                    <button
-                      type="button"
-                      onClick={() => setDeck((current) => current.filter((item) => item.id !== card.id))}
-                      className="mt-2 w-full rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-red-700 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200"
-                    >
-                      Remove
-                    </button>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+            <div className={`${mobileSetupTab === "deck" ? "block" : "hidden"} md:block`}>
+              <Panel title="2. Your Ketka deck" subtitle="Compact list: more cards on screen, less scrolling.">
+                <DeckListCompact deck={deck} onRemove={(id) => setDeck((current) => current.filter((item) => item.id !== id))} />
+              </Panel>
             </div>
-          </Panel>
 
-          <Panel title="3. Invite opponents" subtitle="Only online students from your group can receive requests.">
-            <KetkaInviteBox
-              socketConnected={Boolean(socket)}
-              notice={notice}
-              incomingInvites={incomingInvites}
-              onlineClassmates={onlineClassmates}
-              offlineClassmates={offlineClassmates}
-              invites={invites}
-              acceptedCount={acceptedInvites.length}
-              canStart={canStart}
-              onSendInvite={sendInvite}
-              onDemoAnswerInvite={answerInvite}
-              onRespondIncomingInvite={respondIncomingInvite}
-              onStart={startKetka}
-              startLabel={showOnlySetup ? "Open match page" : undefined}
-            />
-          </Panel>
-        </div>
+            <div className={`${mobileSetupTab === "invite" ? "block" : "hidden"} md:block`}>
+              <Panel title="3. Invite opponents" subtitle="Only online students from your group can receive requests.">
+                <KetkaInviteBox
+                  socketConnected={Boolean(socket)}
+                  notice={notice}
+                  incomingInvites={incomingInvites}
+                  onlineClassmates={onlineClassmates}
+                  offlineClassmates={offlineClassmates}
+                  invites={invites}
+                  acceptedCount={acceptedInvites.length}
+                  canStart={canStart}
+                  onSendInvite={sendInvite}
+                  onDemoAnswerInvite={answerInvite}
+                  onRespondIncomingInvite={respondIncomingInvite}
+                  onStart={startKetka}
+                  startLabel={showOnlySetup ? "Open match page" : undefined}
+                />
+              </Panel>
+            </div>
+          </div>
+        </>
       ) : null}
 
       {showAllModes && tab === "speed" ? (
@@ -851,6 +831,68 @@ function SpeedGame({
             {option}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function MobileSetupTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.08em] transition ${
+        active
+          ? "bg-burgundy-700 text-white"
+          : "border border-burgundy-100 bg-burgundy-50/60 text-charcoal dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DeckListCompact({
+  deck,
+  onRemove,
+}: {
+  deck: LearningCard[];
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-burgundy-100 bg-burgundy-50/55 px-4 py-3 text-sm font-black text-burgundy-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-burgundy-100">
+        Total cards: {deck.length}
+      </div>
+      <div className="overflow-hidden rounded-2xl border border-burgundy-100 dark:border-zinc-800">
+        <div className="grid grid-cols-[1.2fr_1.5fr_1.1fr_auto] gap-2 border-b border-burgundy-100 bg-burgundy-50/60 px-3 py-2 text-[11px] font-black uppercase tracking-[0.08em] text-charcoal/70 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+          <span>Word</span>
+          <span>Hint</span>
+          <span>Translation</span>
+          <span />
+        </div>
+        <div className="max-h-[440px] overflow-y-auto">
+          {deck.map((card) => (
+            <div key={card.id} className="grid grid-cols-[1.2fr_1.5fr_1.1fr_auto] items-center gap-2 border-b border-burgundy-100/70 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <span className="truncate font-black text-charcoal dark:text-white">{card.word}</span>
+              <span className="truncate font-semibold text-charcoal/70 dark:text-zinc-300">
+                {card.hintEmoji ? `${card.hintEmoji} ` : ""}
+                {card.hintText || "No hint"}
+              </span>
+              <span className="truncate font-black text-burgundy-700 dark:text-burgundy-200">{card.translation}</span>
+              <button
+                type="button"
+                onClick={() => onRemove(card.id)}
+                className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-red-700 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200"
+              >
+                Del
+              </button>
+            </div>
+          ))}
+          {deck.length === 0 ? (
+            <div className="px-3 py-5 text-center text-sm font-semibold text-charcoal/55 dark:text-zinc-400">No cards yet.</div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
