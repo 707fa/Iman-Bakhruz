@@ -1,6 +1,6 @@
-import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, MessageCircle, Mic, Trophy, UsersRound } from "lucide-react";
+import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
@@ -31,6 +31,7 @@ function navItemClass(active: boolean): string {
 export function AppLayout() {
   const location = useLocation();
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { state, currentStudent, currentStudentAccess, currentTeacher, currentParent, logout } = useAppStore();
   const { t } = useUi();
   const session = state.session;
@@ -116,6 +117,7 @@ export function AppLayout() {
 
   useEffect(() => {
     contentScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    setMobileMenuOpen(false);
   }, [location.pathname]);
 
   return (
@@ -205,6 +207,14 @@ export function AppLayout() {
           <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/88 shadow-sm backdrop-blur-xl sm:bg-white/84 dark:border-zinc-800 dark:bg-zinc-950/92 sm:dark:bg-zinc-950/88">
             <div className="mx-auto flex min-h-12 w-full max-w-[1320px] items-center justify-between gap-2 px-2 py-[max(0.35rem,env(safe-area-inset-top))] sm:min-h-14 sm:px-5 lg:py-2">
               <div className="flex min-w-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-charcoal lg:hidden dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  aria-label="Open menu"
+                >
+                  <Menu className="h-4 w-4" />
+                </button>
                 <Link
                   to={session.role === "student" ? "/student" : session.role === "teacher" ? "/teacher" : "/parent"}
                   className="inline-flex items-center gap-2"
@@ -257,28 +267,85 @@ export function AppLayout() {
         </div>
       </div>
 
-      <nav className="fixed inset-x-2 bottom-[max(0.35rem,env(safe-area-inset-bottom))] z-[65] rounded-[1.25rem] border border-zinc-200/80 bg-white/90 p-1 shadow-lift backdrop-blur-xl lg:hidden dark:border-zinc-800 dark:bg-zinc-950/94">
-        <div className="[-ms-overflow-style:none] flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {mobileQuickNav.map((item) => {
-            const active = isItemActive(location.pathname, item);
-            return (
-              <Link
-                key={`mobile-bottom-${item.href}`}
-                to={item.href}
-                className={cn(
-                  "flex min-h-[3.4rem] min-w-[4.2rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[0.95rem] px-1.5 py-1.5 text-[10px] font-semibold transition sm:min-h-[3.8rem]",
-                  active
-                    ? "bg-burgundy-700 text-white shadow-soft"
-                    : "text-charcoal/70 dark:text-zinc-300",
-                )}
+      {mobileMenuOpen ? (
+        <div className="fixed inset-0 z-[80] lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="absolute inset-0 bg-black/45"
+            aria-label="Close menu backdrop"
+          />
+          <aside className="absolute left-0 top-0 h-dvh w-[82vw] max-w-[320px] overflow-y-auto border-r border-zinc-200 bg-white px-4 py-4 shadow-lift dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mb-4 flex items-center justify-between">
+              <BrandLogo
+                title={t("app.name")}
+                subtitle={t("app.center")}
+                size="sm"
+                titleClassName="text-base text-charcoal dark:text-white"
+                subtitleClassName="text-[10px] uppercase tracking-[0.08em] text-charcoal/50 dark:text-zinc-500"
+              />
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700"
+                aria-label="Close menu"
               >
-                <item.icon className="h-4 w-4 shrink-0 sm:h-[1.15rem] sm:w-[1.15rem]" />
-                <span className="max-w-full truncate text-center leading-tight">{item.label}</span>
-              </Link>
-            );
-          })}
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <nav className="space-y-2">
+              {mobileQuickNav.map((item) => {
+                const active = isItemActive(location.pathname, item);
+                return (
+                  <Link
+                    key={`mobile-drawer-${item.href}`}
+                    to={item.href}
+                    className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active))}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {hasChatItems ? (
+              <>
+                <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">{t("menu.chats")}</p>
+                <nav className="mt-2 space-y-2">
+                  {chatItems.map((item) => {
+                    const active = isItemActive(location.pathname, item);
+                    return (
+                      <Link key={`mobile-chat-${item.href}`} to={item.href} className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active))}>
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </>
+            ) : null}
+
+            {hasGameItems ? (
+              <>
+                <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">{t("menu.games")}</p>
+                <nav className="mt-2 space-y-2">
+                  {gameItems.map((item) => {
+                    const active = isItemActive(location.pathname, item);
+                    return (
+                      <Link key={`mobile-game-${item.href}`} to={item.href} className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active))}>
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </>
+            ) : null}
+          </aside>
         </div>
-      </nav>
+      ) : null}
     </div>
   );
 }
