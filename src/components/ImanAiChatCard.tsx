@@ -1,5 +1,5 @@
-import { Bot, ImagePlus, Loader2, Send, User } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Bot, ImagePlus, Loader2, Mic, Send, User } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AiChatMessage } from "../types";
 import { AI_GATEWAY_URL, DATA_PROVIDER_MODE } from "../lib/env";
 import { useAppStore } from "../hooks/useAppStore";
@@ -11,6 +11,8 @@ import { ApiError } from "../services/api/http";
 import { clearApiToken, getApiToken } from "../services/tokenStorage";
 import { platformApi } from "../services/api/platformApi";
 import { aiGatewayCheckHomework, mapAiGatewayErrorToMessage } from "../services/api/aiGatewayApi";
+import { useVoiceAssistant } from "../hooks/useVoiceAssistant";
+import { VoiceScreen } from "./voice/VoiceScreen";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
@@ -97,6 +99,16 @@ function mapBackendAiErrorToMessage(error: unknown): string {
 
 function makeMessageId(prefix: "u" | "a"): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getLastAssistantText(messages: AiChatMessage[]): string {
+  return (
+    messages
+      .slice()
+      .reverse()
+      .find((item) => item.role === "assistant" && item.text.trim().length > 0)?.text ??
+    "I'm here. Let's keep practicing."
+  );
 }
 
 function readLocalMessages(storageKey: string): AiChatMessage[] {
@@ -194,6 +206,56 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     [],
   );
 
+  const voiceExchange = useCallback(
+    async (userText: string) => {
+      const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\n[/CONTEXT]\n\n${userText}`;
+
+      if (useGatewayMode) {
+        try {
+          const response = await aiGatewayCheckHomework({
+            text: textWithContext,
+            userId: sessionUserId,
+          });
+          return normalizeAssistantReply(response.result);
+        } catch {
+          if (isApiMode && token) {
+            const updatedMessages = await platformApi.sendAiMessage(token, {
+              text: userText,
+              level: studentLevel,
+              language: aiLanguage,
+              groupTitle: currentGroup?.title,
+              groupTime: currentGroup?.time,
+              systemContext,
+            });
+            return normalizeAssistantReply(getLastAssistantText(updatedMessages));
+          }
+          throw new Error("Voice gateway error");
+        }
+      }
+
+      if (!token) {
+        throw new Error("No API token");
+      }
+
+      const updatedMessages = await platformApi.sendAiMessage(token, {
+        text: userText,
+        level: studentLevel,
+        language: aiLanguage,
+        groupTitle: currentGroup?.title,
+        groupTime: currentGroup?.time,
+        systemContext,
+      });
+      return normalizeAssistantReply(getLastAssistantText(updatedMessages));
+    },
+    [aiLanguage, currentGroup?.time, currentGroup?.title, isApiMode, sessionUserId, studentLevel, systemContext, token, useGatewayMode],
+  );
+
+  const voice = useVoiceAssistant({
+    lang: aiLanguage === "ru" ? "ru-RU" : aiLanguage === "uz" ? "uz-UZ" : "en-US",
+    onExchange: voiceExchange,
+    onError: (message) => showToast({ message, tone: "error" }),
+  });
+
   useEffect(() => {
     if (!canUseApi) return;
 
@@ -285,6 +347,31 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const canSend = useMemo(() => {
     return Boolean((text || "").trim() || imageFile);
   }, [text, imageFile]);
+
+  function handleOpenVoice() {
+    voice.setOpen(true);
+    window.setTimeout(() => {
+      if (voice.micMuted) {
+        voice.toggleMic();
+      }
+    }, 60);
+  }
+
+  async function handleCloseVoice() {
+    const voiceMessages = voice.consumeSessionMessages();
+    await voice.close();
+
+    if (voiceMessages.length === 0) return;
+
+    const syncedMessages: AiChatMessage[] = voiceMessages.map((item, index) => ({
+      id: makeMessageId(item.role === "assistant" ? "a" : "u"),
+      role: item.role,
+      text: normalizeAssistantReply(item.text),
+      createdAt: item.createdAt || new Date(Date.now() + index * 10).toISOString(),
+    }));
+
+    setMessages((prev) => [...prev, ...syncedMessages].slice(-120));
+  }
 
   async function handleSend() {
     if (!canSend || sending) return;
@@ -516,7 +603,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               </div>
             ) : null}
 
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
               <Input
                 value={text}
                 onChange={(event) => setText(event.target.value)}
@@ -562,10 +649,27 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                 Send
               </Button>
+
+              <Button variant="secondary" type="button" onClick={handleOpenVoice}>
+                <Mic className="mr-2 h-4 w-4" />
+                Voice
+              </Button>
             </div>
           </>
         )}
       </CardContent>
+
+      <VoiceScreen
+        open={voice.open}
+        state={voice.state}
+        level={voice.visualLevel}
+        transcript={voice.transcript}
+        micMuted={voice.micMuted}
+        audioMuted={voice.audioMuted}
+        onToggleMic={voice.toggleMic}
+        onToggleAudio={voice.toggleAudio}
+        onClose={() => void handleCloseVoice()}
+      />
     </Card>
   );
 }
