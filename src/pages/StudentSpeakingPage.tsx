@@ -30,6 +30,7 @@ interface LocalSpeakingAttempt {
 
 const DAILY_TARGET = 20;
 const MIN_WORDS = 4;
+const PASS_SCORE = 70;
 
 function toClock(seconds: number): string {
   const safe = Math.max(0, Math.floor(seconds));
@@ -332,9 +333,14 @@ export function StudentSpeakingPage() {
   }
 
   function goNextQuestion() {
+    if (!result || result.score < PASS_SCORE) {
+      showToast({ message: `Answer is not accepted yet. Reach ${PASS_SCORE}+ and try again.`, tone: "error" });
+      return;
+    }
+
     setQuestionIndex((prev) => {
       const next = prev + 1;
-      return next >= effectiveQuestions.length ? 0 : next;
+      return next >= effectiveQuestions.length ? prev : next;
     });
     resetAttempt();
   }
@@ -367,6 +373,11 @@ export function StudentSpeakingPage() {
 
       setResult(analysis);
       setStatus("success");
+      if (analysis.score < PASS_SCORE) {
+        showToast({ message: `Not enough score (${analysis.score}). Please try this question again.`, tone: "error" });
+      } else {
+        showToast({ message: "Great. Answer accepted, now go to next question.", tone: "success" });
+      }
 
       const nextHistory: LocalSpeakingAttempt[] = [
         {
@@ -470,11 +481,19 @@ export function StudentSpeakingPage() {
             <RotateCcw className="mr-2 h-4 w-4" />
             {t("speaking.retry")}
           </Button>
-          <Button variant="secondary" onClick={goNextQuestion} className="h-11 rounded-full text-sm">
+          <Button
+            variant="secondary"
+            onClick={goNextQuestion}
+            disabled={!result || result.score < PASS_SCORE}
+            className="h-11 rounded-full text-sm"
+          >
             <Sparkles className="mr-2 h-4 w-4" />
             {t("speaking.nextQuestion")}
           </Button>
         </div>
+        <p className="text-xs font-semibold text-charcoal/70 dark:text-zinc-300">
+          Passing score: {PASS_SCORE}+. You cannot skip this question.
+        </p>
       </CardContent>
     </Card>
   );
@@ -520,6 +539,11 @@ export function StudentSpeakingPage() {
             <div className="rounded-xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
               <p className="inline-flex items-center gap-2 font-semibold text-charcoal dark:text-zinc-100"><Brain className="h-4 w-4 text-burgundy-700 dark:text-white" />{t("speaking.feedback")}</p>
               <p className="mt-1.5 text-sm text-charcoal/80 dark:text-zinc-300">{result.feedback || "-"}</p>
+              <p className={`mt-2 text-sm font-semibold ${result.score >= PASS_SCORE ? "text-emerald-700 dark:text-emerald-300" : "text-burgundy-700 dark:text-burgundy-300"}`}>
+                {result.score >= PASS_SCORE
+                  ? `Accepted. You can open the next question.`
+                  : `Try again. Need ${PASS_SCORE}+ to continue.`}
+              </p>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
