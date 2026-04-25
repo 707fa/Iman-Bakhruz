@@ -32,8 +32,8 @@ export function StudentDashboardPage() {
         }
       />
 
-      <section className="space-y-4 rounded-[1.8rem] bg-[radial-gradient(circle_at_top_right,rgba(95,6,6,0.14),transparent_40%),linear-gradient(145deg,#121216,#0f1014_52%,#0a0b0e)] p-4 text-white shadow-[0_28px_80px_rgba(0,0,0,0.38)] sm:p-5">
-          <div className="flex flex-col gap-4 rounded-2xl bg-[linear-gradient(120deg,#2a0f14,#1d1216_55%,#17181d)] p-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="space-y-4 rounded-[1.8rem] bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.18),transparent_42%),linear-gradient(145deg,#15080d,#110b10_52%,#0b0b0f)] p-4 text-white shadow-[0_28px_80px_rgba(0,0,0,0.38)] sm:p-5">
+          <div className="flex flex-col gap-4 rounded-2xl bg-[linear-gradient(120deg,#3a0f1a,#2a0d16_55%,#1b0f14)] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <UserAvatar fullName={currentStudent.fullName} avatarUrl={currentStudent.avatarUrl} size="lg" />
               <div>

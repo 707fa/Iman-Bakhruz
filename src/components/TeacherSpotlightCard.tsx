@@ -37,7 +37,7 @@ export function TeacherSpotlightCard({ teacherId }: TeacherSpotlightCardProps) {
   if (!teacher) return null;
 
   return (
-    <section className="rounded-[1.8rem] bg-[radial-gradient(circle_at_top_right,rgba(95,6,6,0.12),transparent_42%),linear-gradient(145deg,#131318,#101116_52%,#0a0b0f)] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.34)] sm:p-5">
+    <section className="rounded-[1.8rem] bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.16),transparent_42%),linear-gradient(145deg,#15090f,#110c11_52%,#0a0b0f)] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.34)] sm:p-5">
       <div className="border-b border-white/10 pb-4">
         <p className="text-xs uppercase tracking-[0.12em] text-white/60">{t("home.teacherInfoTitle")}</p>
         <p className="mt-1 text-sm text-white/80">{t("home.teacherInfoSubtitle")}</p>
