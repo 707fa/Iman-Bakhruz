@@ -492,12 +492,23 @@ export function StudentSpeakingPage() {
           </p>
         </div>
 
-        <div className="grid gap-2">
-          <Button variant="secondary" onClick={resetAttempt} className="h-11 rounded-full text-sm">
-            <RotateCcw className="mr-2 h-4 w-4" />
-            {t("speaking.retry")}
-          </Button>
-        </div>
+        <AnimatePresence>
+          {result && result.score < PASS_SCORE ? (
+            <motion.div
+              key="retry-only-on-fail"
+              initial={{ opacity: 0, y: 10, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -8, filter: "blur(6px)" }}
+              transition={{ duration: 0.28, ease: "easeOut" }}
+              className="grid gap-2"
+            >
+              <Button variant="secondary" onClick={resetAttempt} className="h-11 rounded-full text-sm">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                {t("speaking.retry")}
+              </Button>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
         <p className="text-xs font-semibold text-charcoal/70 dark:text-zinc-300">
           Passing score: {PASS_SCORE}+. Next question opens automatically after correct answer.
         </p>
