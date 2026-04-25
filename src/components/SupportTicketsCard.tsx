@@ -5,7 +5,6 @@ import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Input } from "./ui/input";
 
 interface SupportTicketsCardProps {
   role: UserRole;
@@ -61,6 +60,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   const [ticketUpdating, setTicketUpdating] = useState(false);
   const [typingHint, setTypingHint] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const draftRef = useRef<HTMLTextAreaElement | null>(null);
   const latestIncomingIdRef = useRef<string | null>(null);
 
   const sortedTickets = useMemo(
@@ -162,6 +162,15 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     if (!viewportRef.current) return;
     viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
   }, [activeMessages, activeTicket?.id, typingHint]);
+
+  useEffect(() => {
+    const el = draftRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const next = Math.min(el.scrollHeight, 128);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > 128 ? "auto" : "hidden";
+  }, [draft]);
 
   async function handleSend() {
     if (!token || !draft.trim() || sending) return;
@@ -335,12 +344,14 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
 
               {role === "student" || role === "teacher" ? (
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-2 shadow-[0_14px_30px_-22px_rgba(0,0,0,0.65)]">
-                  <div className="flex items-center gap-2">
-                    <Input
+                  <div className="flex items-end gap-2">
+                    <textarea
+                      ref={draftRef}
                       value={draft}
                       onChange={(event) => setDraft(event.target.value)}
                       placeholder="Write your message to support..."
-                      className="h-11 border-0 bg-transparent text-zinc-100 shadow-none placeholder:text-zinc-500 focus-visible:ring-0"
+                      rows={1}
+                      className="max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-xl border-0 bg-transparent px-3 py-2.5 text-zinc-100 shadow-none placeholder:text-zinc-500 focus:outline-none"
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                           event.preventDefault();
