@@ -6,13 +6,16 @@ import { useUi } from "../hooks/useUi";
 export function ImanAiChatPage() {
   const { state } = useAppStore();
   const { t } = useUi();
+  const isTeacherMode = state.session?.role === "teacher";
 
-  const subtitle = state.session?.role === "teacher" ? t("ai.subtitleTeacher") : t("ai.subtitleStudent");
+  const subtitle = isTeacherMode
+    ? "Teacher AI workspace: lesson plans, speaking tasks, and homework feedback."
+    : t("ai.subtitleStudent");
 
   return (
     <div className="space-y-6">
       <PageHeader title={t("ai.title")} subtitle={subtitle} />
-      <ImanAiChatCard title={t("ai.title")} />
+      <ImanAiChatCard title={isTeacherMode ? "Iman Chat • Teacher Mode" : t("ai.title")} />
     </div>
   );
 }

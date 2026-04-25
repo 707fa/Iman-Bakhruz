@@ -157,21 +157,41 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const { showToast } = useToast();
 
   const sessionUserId = state.session?.userId;
+  const isTeacherMode = state.session?.role === "teacher";
   const currentGroup = currentStudent ? state.groups.find((item) => item.id === currentStudent.groupId) : null;
-  const studentLevel = normalizeStudentLevelFromGroupTitle(currentGroup?.title);
-  const aiLanguage = resolveAiFeedbackLanguage(studentLevel, locale);
-  const systemContext = buildImanChatContextPrompt({
-    level: studentLevel,
-    locale,
-    groupTitle: currentGroup?.title,
-    groupTime: currentGroup?.time,
-  });
+  const studentLevel = isTeacherMode ? "intermediate" : normalizeStudentLevelFromGroupTitle(currentGroup?.title);
+  const aiLanguage = isTeacherMode ? (locale === "uz" ? "uz" : locale === "en" ? "en" : "ru") : resolveAiFeedbackLanguage(studentLevel, locale);
+  const systemContext = isTeacherMode
+    ? [
+        "You are Iman Chat, a teacher assistant for English lessons.",
+        "Target user is a teacher in an English center.",
+        "Give practical and structured answers for class planning, homework checks, speaking tasks, and student feedback.",
+        "Keep answers concise and classroom-ready.",
+        "Use bullets and short sections when useful.",
+        "Do not use markdown noise like **, __, ```.",
+        "Do not duplicate one sentence in multiple languages.",
+      ].join("\n")
+    : buildImanChatContextPrompt({
+        level: studentLevel,
+        locale,
+        groupTitle: currentGroup?.title,
+        groupTime: currentGroup?.time,
+      });
   const isApiMode = DATA_PROVIDER_MODE === "api";
   const useGatewayMode = Boolean(AI_GATEWAY_URL);
   const canUseApi = useGatewayMode || (isApiMode && Boolean(token));
   const localStorageKey = useMemo(
     () => `iman-ai-chat-v2:${sessionUserId ?? "guest"}`,
     [sessionUserId],
+  );
+  const teacherQuickPrompts = useMemo(
+    () => [
+      "Сделай 5 speaking вопросов для уровня Elementary на тему Daily routine.",
+      "Проверь это домашнее задание как учитель и дай короткий feedback.",
+      "Составь 15-минутный план урока для темы Past Simple.",
+      "Дай 10 мини-упражнений на vocabulary для Beginner.",
+    ],
+    [],
   );
 
   useEffect(() => {
@@ -395,6 +415,24 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           </p>
         ) : (
           <>
+            {isTeacherMode ? (
+              <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/60 dark:text-zinc-400">Teacher quick prompts</p>
+                <div className="flex flex-wrap gap-2">
+                  {teacherQuickPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => setText(prompt)}
+                      className="rounded-full border border-burgundy-100 bg-burgundy-50 px-3 py-1 text-xs font-semibold text-burgundy-700 transition hover:border-burgundy-300 dark:border-burgundy-900/70 dark:bg-burgundy-950/35 dark:text-burgundy-100 dark:hover:border-burgundy-700"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             {statusHint ? (
               <p className="rounded-xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs font-semibold text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-burgundy-100">
                 {statusHint}
@@ -412,7 +450,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 </div>
               ) : messages.length === 0 ? (
                 <p className="text-sm text-charcoal/65 dark:text-zinc-400">
-                  Start chat. You can send a text question or homework photo.
+                  {isTeacherMode
+                    ? "Начните teacher chat: спросите план урока, проверку задания или speaking-вопросы."
+                    : "Start chat. You can send a text question or homework photo."}
                 </p>
               ) : (
                 messages.map((message) => {
@@ -480,7 +520,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               <Input
                 value={text}
                 onChange={(event) => setText(event.target.value)}
-                placeholder="Write question or homework comment..."
+                placeholder={isTeacherMode ? "Напишите запрос как преподаватель..." : "Write question or homework comment..."}
                 onPaste={(event) => {
                   const items = event.clipboardData?.items;
                   if (!items || items.length === 0) return;

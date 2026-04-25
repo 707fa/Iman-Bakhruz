@@ -10,6 +10,14 @@ import { useAppStore } from "../hooks/useAppStore";
 import { getTeacherAccessibleGroups } from "../lib/teacherGroups";
 import { useUi } from "../hooks/useUi";
 
+function isGroupToday(daysPattern: "mwf" | "tts"): boolean {
+  const day = new Date().getDay();
+  if (daysPattern === "mwf") {
+    return day === 1 || day === 3 || day === 5;
+  }
+  return day === 2 || day === 4 || day === 6;
+}
+
 export function TeacherHomePage() {
   const { state, currentTeacher } = useAppStore();
   const { t } = useUi();
@@ -20,6 +28,7 @@ export function TeacherHomePage() {
   const groupIds = new Set(groups.map((group) => group.id));
   const studentsCount = state.students.filter((student) => groupIds.has(student.groupId)).length;
   const ratingsCount = state.ratingLogs.filter((log) => log.teacherId === currentTeacher.id).length;
+  const groupsToday = groups.filter((group) => isGroupToday(group.daysPattern));
 
   return (
     <div className="space-y-6">
@@ -108,10 +117,37 @@ export function TeacherHomePage() {
       <Card>
         <CardContent className="space-y-3 p-4 sm:p-5">
           <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-white">
+            <Clock3 className="h-4 w-4 text-charcoal dark:text-white" />
+            Сегодняшние занятия
+          </p>
+          {groupsToday.length === 0 ? (
+            <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+              На сегодня занятий нет.
+            </p>
+          ) : (
+            <div className="grid gap-2 md:grid-cols-2">
+              {groupsToday.map((group) => (
+                <Link
+                  key={`today-${group.id}`}
+                  to={`/teacher/group/${group.id}`}
+                  className="flex items-center justify-between rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm transition hover:border-burgundy-300 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500"
+                >
+                  <span className="truncate font-semibold text-charcoal dark:text-white">{group.title}</span>
+                  <span className="ml-2 shrink-0 text-charcoal/65 dark:text-zinc-400">{group.time}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-3 p-4 sm:p-5">
+          <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-white">
             <Sparkles className="h-4 w-4 text-charcoal dark:text-white" />
             {t("teacher.quickActions")}
           </p>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <Link to="/teacher/groups">
               <Button variant="secondary" className="w-full justify-between">
                 {t("nav.teacherGroups")}
@@ -139,6 +175,11 @@ export function TeacherHomePage() {
                   <MessageCircle className="h-4 w-4" />
                   {t("nav.aiChat")}
                 </span>
+              </Button>
+            </Link>
+            <Link to="/teacher/support">
+              <Button variant="secondary" className="w-full justify-between">
+                Support
               </Button>
             </Link>
           </div>
