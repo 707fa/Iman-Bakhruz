@@ -20,9 +20,9 @@ const buttonVariants = cva(
           "bg-white text-zinc-900 shadow-soft ring-1 ring-zinc-300/90 hover:-translate-y-0.5 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-800",
       },
       size: {
-        default: "h-11 px-4 py-2 text-[15px] sm:h-10 sm:text-sm",
+        default: "h-10 px-3.5 py-2 text-sm sm:h-9",
         sm: "h-9 rounded-xl px-3 text-xs",
-        lg: "h-12 rounded-2xl px-6 text-sm",
+        lg: "h-11 rounded-2xl px-5 text-sm",
       },
     },
     defaultVariants: {
