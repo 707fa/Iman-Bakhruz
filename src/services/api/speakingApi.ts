@@ -333,13 +333,13 @@ export function mapSpeakingApiErrorToMessage(error: unknown): string {
     if (error.status >= 500) return message || "AI server is temporarily unavailable. Try again in 1-2 minutes.";
     if (error.status >= 400) {
       if (message && !/please check your text/i.test(message)) return message;
-      return "AI could not analyze this answer. Please retry.";
+      return "Could not check right now. Please try again.";
     }
   }
   if (error instanceof TypeError) {
     return "Network error. Check internet or API connection.";
   }
-  return "Unable to analyze speaking answer. Please retry.";
+  return "Could not check right now. Please try again.";
 }
 
 async function sendRequest(baseUrl: string, path: string, payload: SpeakingCheckPayload): Promise<SpeakingAnalysisResult> {

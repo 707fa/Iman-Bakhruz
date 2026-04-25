@@ -392,9 +392,9 @@ export function StudentSpeakingPage() {
       ].slice(0, 20);
       setHistory(nextHistory);
     } catch (error) {
-      const message = mapSpeakingApiErrorToMessage(error);
       setStatus("error");
-      showToast({ message, tone: "error" });
+      // Keep speaking flow clean for students: do not show technical analyze errors.
+      window.setTimeout(() => setStatus("idle"), 700);
     }
   }
 
