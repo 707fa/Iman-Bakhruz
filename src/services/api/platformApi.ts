@@ -103,6 +103,17 @@ function num(value: unknown, fallback = 0): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function bool(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes", "online"].includes(normalized)) return true;
+    if (["false", "0", "no", "offline", ""].includes(normalized)) return false;
+  }
+  return undefined;
+}
+
 function normalizeRole(value: unknown): UserRole {
   if (value === "teacher") return "teacher";
   if (value === "parent") return "parent";
@@ -151,11 +162,13 @@ function normalizeStudent(raw: unknown): Student | null {
     groupId: str(item.groupId ?? item.group_id),
     avatarUrl: str(item.avatarUrl ?? item.avatar) || undefined,
     points: num(item.points),
-    isActive: item.isActive !== undefined ? Boolean(item.isActive) : item.is_active !== undefined ? Boolean(item.is_active) : undefined,
+    isActive: bool(item.isActive ?? item.is_active),
     isImanStudent:
-      item.isImanStudent !== undefined ? Boolean(item.isImanStudent) : item.is_iman_student !== undefined ? Boolean(item.is_iman_student) : undefined,
-    isPaid: item.isPaid !== undefined ? Boolean(item.isPaid) : item.is_paid !== undefined ? Boolean(item.is_paid) : undefined,
+      bool(item.isImanStudent ?? item.is_iman_student),
+    isPaid: bool(item.isPaid ?? item.is_paid),
     paidUntil: str(item.paidUntil ?? item.paid_until) || undefined,
+    isOnline: bool(item.isOnline ?? item.is_online),
+    lastSeenAt: str(item.lastSeenAt ?? item.last_seen_at) || undefined,
     statusBadge: progress?.status ?? normalizeStatus(item.statusBadge ?? item.status_badge),
     progress,
   };
@@ -235,6 +248,8 @@ function normalizeTeacher(raw: unknown): Teacher | null {
     password: str(item.password),
     groupIds,
     avatarUrl: str(item.avatarUrl ?? item.avatar) || undefined,
+    isOnline: bool(item.isOnline ?? item.is_online),
+    lastSeenAt: str(item.lastSeenAt ?? item.last_seen_at) || undefined,
   };
 }
 
@@ -444,7 +459,7 @@ function normalizeFriendlyConversation(raw: unknown): FriendlyConversation | nul
       fullName: str(peer.fullName ?? peer.full_name),
       role: normalizeRole(peer.role),
       avatarUrl: str(peer.avatarUrl ?? peer.avatar) || undefined,
-      isOnline: peer.isOnline !== undefined ? Boolean(peer.isOnline) : peer.is_online !== undefined ? Boolean(peer.is_online) : undefined,
+      isOnline: bool(peer.isOnline ?? peer.is_online),
       lastSeenAt: str(peer.lastSeenAt ?? peer.last_seen_at) || undefined,
     },
     lastMessage: last

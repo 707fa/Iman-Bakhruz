@@ -38,6 +38,8 @@ export interface Student {
   isImanStudent?: boolean;
   isPaid?: boolean;
   paidUntil?: string;
+  isOnline?: boolean;
+  lastSeenAt?: string;
   statusBadge?: StatusBadge;
   progress?: ProgressSnapshot;
 }
@@ -49,6 +51,8 @@ export interface Teacher {
   password: string;
   groupIds: string[];
   avatarUrl?: string;
+  isOnline?: boolean;
+  lastSeenAt?: string;
 }
 
 export interface Parent {

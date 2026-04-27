@@ -157,6 +157,7 @@ export function StudentSpeakingPage() {
   const [status, setStatus] = useState<SpeakingStatus>("idle");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [result, setResult] = useState<SpeakingAnalysisResult | null>(null);
+  const [speakingNotice, setSpeakingNotice] = useState<string | null>(null);
   const [mobileSection, setMobileSection] = useState<"practice" | "analysis" | "history">("practice");
   const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
   const wasListeningRef = useRef(false);
@@ -212,15 +213,19 @@ export function StudentSpeakingPage() {
 
   useEffect(() => {
     if (speech.listening) {
-      setStatus("listening");
+      setStatus(pendingAutoAnalyze ? "processing" : "listening");
       wasListeningRef.current = true;
+      return;
+    }
+    if (pendingAutoAnalyze) {
+      setStatus("processing");
       return;
     }
     if (status === "listening" || wasListeningRef.current) {
       setStatus("idle");
       wasListeningRef.current = false;
     }
-  }, [speech.listening, status]);
+  }, [pendingAutoAnalyze, speech.listening, status]);
 
   useEffect(() => {
     if (!pendingAutoAnalyze || speech.listening) return;
@@ -234,6 +239,7 @@ export function StudentSpeakingPage() {
   useEffect(() => {
     if (!speech.error) return;
     setStatus("error");
+    setSpeakingNotice(speech.error);
     showToast({ message: speech.error, tone: "error" });
   }, [speech.error, showToast]);
 
@@ -250,6 +256,7 @@ export function StudentSpeakingPage() {
     setStatus("idle");
     setRecordingSeconds(0);
     setResult(null);
+    setSpeakingNotice(null);
     setPendingAutoAnalyze(false);
   }
 
@@ -287,15 +294,20 @@ export function StudentSpeakingPage() {
   function toggleRecording() {
     if (speech.listening) {
       setPendingAutoAnalyze(true);
+      setSpeakingNotice("Recording stopped. AI is checking your answer...");
+      setStatus("processing");
       speech.stop();
       return;
     }
 
     setResult(null);
     setRecordingSeconds(0);
+    setSpeakingNotice(null);
     setPendingAutoAnalyze(false);
 
     if (!speech.supported) {
+      setStatus("error");
+      setSpeakingNotice(t("speaking.error.unavailable"));
       showToast({ message: t("speaking.error.unavailable"), tone: "error" });
       return;
     }
@@ -307,6 +319,7 @@ export function StudentSpeakingPage() {
     }
 
     setStatus("listening");
+    setSpeakingNotice("Recording is on. Speak clearly, then press Stop.");
   }
 
   function listenQuestion() {
@@ -352,16 +365,25 @@ export function StudentSpeakingPage() {
 
     const transcript = (speech.transcript || speech.interimTranscript || "").trim();
     if (!transcript) {
-      showToast({ message: "No speech captured yet. Speak a little longer and try again.", tone: "error" });
+      const message = "No speech captured yet. Speak a little longer and try again.";
+      setStatus("error");
+      setSpeakingNotice(message);
+      showToast({ message, tone: "error" });
+      window.setTimeout(() => setStatus("idle"), 900);
       return;
     }
 
     if (wordsCount(transcript) < MIN_WORDS) {
-      showToast({ message: `Minimum ${MIN_WORDS} words required for checking.`, tone: "error" });
+      const message = `Minimum ${MIN_WORDS} words required for checking.`;
+      setStatus("error");
+      setSpeakingNotice(message);
+      showToast({ message, tone: "error" });
+      window.setTimeout(() => setStatus("idle"), 900);
       return;
     }
 
     setStatus("processing");
+    setSpeakingNotice("AI is checking grammar, fluency, and vocabulary...");
 
     try {
       const analysis = await checkSpeakingAnswer({
@@ -375,6 +397,7 @@ export function StudentSpeakingPage() {
 
       setResult(analysis);
       setStatus("success");
+      setSpeakingNotice(analysis.score >= PASS_SCORE ? "Analysis ready. Good answer!" : "Analysis ready. Try again to improve your score.");
       if (analysis.score < PASS_SCORE) {
         showToast({ message: `Not enough score (${analysis.score}). Please try this question again.`, tone: "error" });
       } else {
@@ -397,14 +420,46 @@ export function StudentSpeakingPage() {
       ].slice(0, 20);
       setHistory(nextHistory);
     } catch (error) {
+      const message = mapSpeakingApiErrorToMessage(error);
       setStatus("error");
-      // Keep speaking flow clean for students: do not show technical analyze errors.
-      window.setTimeout(() => setStatus("idle"), 700);
+      setSpeakingNotice(message);
+      showToast({ message, tone: "error" });
     }
   }
 
   const statusLabel = t(`speaking.status.${status}`);
   const dailyDone = Math.min(history.length, DAILY_TARGET);
+  const capturedText = (speech.transcript || speech.interimTranscript || "").trim();
+  const capturedWords = wordsCount(capturedText);
+  const statusPanelTitle = !speech.supported
+    ? "Speaking is not available in this browser"
+    : generatingQuestions || taskLoading
+      ? "Loading speaking practice..."
+      : status === "processing"
+        ? "Working..."
+        : status === "listening"
+          ? "Recording is working"
+          : status === "success"
+            ? "Speaking worked"
+            : status === "error"
+              ? "Action needed"
+              : "Ready to record";
+  const statusPanelText = speakingNotice
+    ?? (!speech.supported
+      ? t("speaking.unsupported")
+      : status === "processing"
+        ? "Please wait. Do not close this page."
+        : status === "listening"
+          ? "The microphone is listening now."
+          : "Press the microphone button to start.");
+  const statusPanelClass =
+    status === "error" || !speech.supported
+      ? "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/35 dark:text-rose-100"
+      : status === "listening"
+        ? "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/45 dark:bg-emerald-950/25 dark:text-emerald-100"
+        : status === "processing" || generatingQuestions || taskLoading
+          ? "border-burgundy-200 bg-burgundy-50 text-burgundy-950 dark:border-burgundy-900/55 dark:bg-burgundy-950/35 dark:text-burgundy-100"
+          : "border-burgundy-100 bg-white text-charcoal dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
 
   const questionSection = (
     <Card className="overflow-hidden rounded-[1.75rem] border-burgundy-100/70 bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.12),transparent_48%),linear-gradient(180deg,#ffffff,#faf8f8)] dark:border-zinc-800 dark:bg-[radial-gradient(circle_at_top_right,rgba(111,0,0,0.18),transparent_48%),linear-gradient(180deg,#121214,#0b0b0d)]">
@@ -467,6 +522,32 @@ export function StudentSpeakingPage() {
             {t("speaking.unsupported")}
           </p>
         ) : null}
+
+        <div className={`rounded-2xl border p-3 shadow-soft ${statusPanelClass}`}>
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/75 text-current dark:bg-black/20">
+              {status === "processing" || generatingQuestions || taskLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <span className={`h-2.5 w-2.5 rounded-full ${status === "listening" || status === "success" ? "bg-emerald-500" : status === "error" || !speech.supported ? "bg-rose-500" : "bg-burgundy-600"}`} />
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-black">{statusPanelTitle}</p>
+                <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-current dark:bg-black/20">
+                  {capturedWords} words
+                </span>
+              </div>
+              <p className="mt-1 text-xs font-semibold opacity-80">{statusPanelText}</p>
+              {capturedText ? (
+                <p className="mt-2 line-clamp-2 rounded-xl bg-white/70 px-3 py-2 text-xs font-semibold opacity-90 dark:bg-black/20">
+                  {capturedText}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
 
         <div className="relative flex flex-col items-center gap-3 py-1">
           <span

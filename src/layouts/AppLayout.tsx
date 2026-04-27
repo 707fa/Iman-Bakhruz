@@ -1,4 +1,4 @@
-import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
+import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, LifeBuoy, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
@@ -95,7 +95,7 @@ export function AppLayout() {
 
   const mobileQuickNav = useMemo<NavItem[]>(() => {
     if (session.role === "student") {
-      const byHref = new Map<string, NavItem>([...navItems, ...chatItems].map((item) => [item.href, item]));
+      const byHref = new Map<string, NavItem>([...navItems, ...chatItems, ...gameItems].map((item) => [item.href, item]));
       const preferredOrder = ["/student", "/student/group", "/student/top", "/student/speaking", "/student/games", "/student/ai-chat"];
       return preferredOrder.map((href) => byHref.get(href)).filter((item): item is NavItem => Boolean(item));
     }
@@ -108,7 +108,7 @@ export function AppLayout() {
       quick.push(chatItems[1]);
     }
     return quick.slice(0, 5);
-  }, [chatItems, navItems, session.role]);
+  }, [chatItems, gameItems, navItems, session.role]);
 
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? currentParent?.fullName ?? "User";
   const avatar = currentStudent?.avatarUrl ?? currentTeacher?.avatarUrl ?? currentParent?.avatarUrl;
@@ -354,6 +354,24 @@ export function AppLayout() {
                       </Link>
                     );
                   })}
+                </nav>
+              </>
+            ) : null}
+
+            {supportHref ? (
+              <>
+                <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">Support</p>
+                <nav className="mt-2 space-y-2">
+                  <Link
+                    to={supportHref}
+                    className={cn(
+                      "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold",
+                      navItemClass(isItemActive(location.pathname, { label: "Support", href: supportHref, icon: LifeBuoy })),
+                    )}
+                  >
+                    <LifeBuoy className="h-4 w-4" />
+                    Support
+                  </Link>
                 </nav>
               </>
             ) : null}

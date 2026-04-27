@@ -61,6 +61,10 @@ function isRecentlyActive(value?: string): boolean {
   return Date.now() - timestamp <= 3 * 60 * 1000;
 }
 
+function isPeerOnline(peer: Pick<ChatPeer, "isOnline" | "lastSeenAt">): boolean {
+  return peer.isOnline === true || isRecentlyActive(peer.lastSeenAt);
+}
+
 function readLocalFriendlyState(): LocalFriendlyState {
   if (typeof window === "undefined") {
     return { conversations: [], messages: {} };
@@ -234,8 +238,8 @@ export function FriendlyChatPage() {
           fullName: student.fullName,
           role: "student" as const,
           avatarUrl: student.avatarUrl,
-          isOnline: Boolean((student as unknown as Record<string, unknown>).isOnline ?? (student as unknown as Record<string, unknown>).is_online),
-          lastSeenAt: String((student as unknown as Record<string, unknown>).lastSeenAt ?? (student as unknown as Record<string, unknown>).last_seen_at ?? ""),
+          isOnline: student.isOnline,
+          lastSeenAt: student.lastSeenAt,
         }));
     }
 
@@ -246,8 +250,8 @@ export function FriendlyChatPage() {
         fullName: student.fullName,
         role: "student" as const,
         avatarUrl: student.avatarUrl,
-        isOnline: Boolean((student as unknown as Record<string, unknown>).isOnline ?? (student as unknown as Record<string, unknown>).is_online),
-        lastSeenAt: String((student as unknown as Record<string, unknown>).lastSeenAt ?? (student as unknown as Record<string, unknown>).last_seen_at ?? ""),
+        isOnline: student.isOnline,
+        lastSeenAt: student.lastSeenAt,
       }));
 
     const teacherId = currentTeacherId;
@@ -260,8 +264,8 @@ export function FriendlyChatPage() {
         fullName: teacher.fullName,
         role: "teacher" as const,
         avatarUrl: teacher.avatarUrl,
-        isOnline: Boolean((teacher as unknown as Record<string, unknown>).isOnline ?? (teacher as unknown as Record<string, unknown>).is_online),
-        lastSeenAt: String((teacher as unknown as Record<string, unknown>).lastSeenAt ?? (teacher as unknown as Record<string, unknown>).last_seen_at ?? ""),
+        isOnline: teacher.isOnline,
+        lastSeenAt: teacher.lastSeenAt,
       },
       ...studentPeers,
     ];
@@ -289,6 +293,8 @@ export function FriendlyChatPage() {
             fullName: peer.fullName,
             role: peer.role,
             avatarUrl: peer.avatarUrl,
+            isOnline: peer.isOnline,
+            lastSeenAt: peer.lastSeenAt,
           },
           lastMessage: lastMessage
             ? {
@@ -702,9 +708,9 @@ export function FriendlyChatPage() {
                       <p className="truncate text-sm font-semibold text-charcoal dark:text-zinc-100">{conversation.peer.fullName}</p>
                       <p className="mb-0.5 flex items-center gap-1 text-[11px] text-charcoal/55 dark:text-zinc-400">
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${conversation.peer.isOnline || isRecentlyActive(conversation.peer.lastSeenAt || conversation.updatedAt) ? "bg-emerald-500" : "bg-zinc-500"}`}
+                          className={`h-1.5 w-1.5 rounded-full ${isPeerOnline(conversation.peer) ? "bg-emerald-500" : "bg-zinc-500"}`}
                         />
-                        {conversation.peer.isOnline || isRecentlyActive(conversation.peer.lastSeenAt || conversation.updatedAt) ? "online" : "offline"}
+                        {isPeerOnline(conversation.peer) ? "online" : "offline"}
                       </p>
                       <p className="truncate text-xs text-charcoal/55 dark:text-zinc-400">{conversation.lastMessage?.text ?? t("chat.empty")}</p>
                     </div>
@@ -731,8 +737,8 @@ export function FriendlyChatPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-charcoal dark:text-zinc-100">{peer.fullName}</p>
                       <p className="flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-charcoal/50 dark:text-zinc-500">
-                        <span className={`h-1.5 w-1.5 rounded-full ${peer.isOnline || isRecentlyActive(peer.lastSeenAt) ? "bg-emerald-500" : "bg-zinc-500"}`} />
-                        {peer.role}
+                        <span className={`h-1.5 w-1.5 rounded-full ${isPeerOnline(peer) ? "bg-emerald-500" : "bg-zinc-500"}`} />
+                        {peer.role} · {isPeerOnline(peer) ? "online" : "offline"}
                       </p>
                     </div>
                   </button>
@@ -761,9 +767,9 @@ export function FriendlyChatPage() {
                     <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{activeConversation.peer.fullName}</p>
                     <p className="flex items-center gap-1 text-[11px] text-charcoal/55 dark:text-zinc-400">
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${activeConversation.peer.isOnline || isRecentlyActive(activeConversation.peer.lastSeenAt || activeConversation.updatedAt) ? "bg-emerald-500" : "bg-zinc-500"}`}
+                        className={`h-1.5 w-1.5 rounded-full ${isPeerOnline(activeConversation.peer) ? "bg-emerald-500" : "bg-zinc-500"}`}
                       />
-                      {activeConversation.peer.isOnline || isRecentlyActive(activeConversation.peer.lastSeenAt || activeConversation.updatedAt) ? "online" : "offline"}
+                      {isPeerOnline(activeConversation.peer) ? "online" : "offline"}
                     </p>
                   </div>
                 </div>
@@ -837,6 +843,4 @@ export function FriendlyChatPage() {
     </div>
   );
 }
-
-
 
