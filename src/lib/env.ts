@@ -104,6 +104,8 @@ export const VOICE_GATEWAY_URL = normalizeOptionalUrl(voiceGatewayUrlCandidate);
 export const VOICE_GATEWAY_ENABLED = normalizeBoolean(import.meta.env.VITE_VOICE_GATEWAY_ENABLED, VOICE_GATEWAY_URL !== null);
 export const VOICE_TTS_VOICE = normalizeOptionalText(import.meta.env.VITE_VOICE_TTS_VOICE);
 export const VOICE_BROWSER_FALLBACK_ENABLED = normalizeBoolean(import.meta.env.VITE_VOICE_BROWSER_FALLBACK_ENABLED, true);
+export const TELEGRAM_BOT_URL = normalizeOptionalUrl(import.meta.env.VITE_TELEGRAM_BOT_URL);
+export const TELEGRAM_CHANNEL_URL = normalizeOptionalUrl(import.meta.env.VITE_TELEGRAM_CHANNEL_URL);
 export const API_HINT_TEACHER_PHONE = normalizeOptionalText(import.meta.env.VITE_API_HINT_TEACHER_PHONE);
 export const API_HINT_TEACHER_PASSWORD = normalizeOptionalText(import.meta.env.VITE_API_HINT_TEACHER_PASSWORD);
 export const API_HINT_STUDENT_PHONE = normalizeOptionalText(import.meta.env.VITE_API_HINT_STUDENT_PHONE);

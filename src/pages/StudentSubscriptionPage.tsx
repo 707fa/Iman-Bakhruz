@@ -8,10 +8,26 @@ import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
+import { TELEGRAM_BOT_URL } from "../lib/env";
 import { ApiError } from "../services/api/http";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
 import type { PaymentTransaction, SubscriptionState } from "../types";
+
+function toTelegramStartPayload(...parts: Array<string | number | null | undefined>): string {
+  const payload = parts
+    .filter((part) => part !== null && part !== undefined && String(part).trim())
+    .map((part) => String(part).trim())
+    .join("_")
+    .replace(/[^A-Za-z0-9_-]/g, "_");
+
+  return (payload || "receipt").slice(0, 64);
+}
+
+function buildTelegramBotStartUrl(botUrl: string, payload: string): string {
+  const joiner = botUrl.includes("?") ? "&" : "?";
+  return `${botUrl}${joiner}start=${encodeURIComponent(payload)}`;
+}
 
 export function StudentSubscriptionPage() {
   const navigate = useNavigate();
@@ -140,9 +156,13 @@ export function StudentSubscriptionPage() {
       showToast({
         tone: "success",
         message: response.telegramNotified
-          ? "Чек отправлен. Учитель получит заявку в Telegram."
-          : "Чек загружен. Учитель проверит оплату.",
+          ? t("pay.receiptSentTelegram")
+          : t("pay.receiptUploaded"),
       });
+      if (TELEGRAM_BOT_URL) {
+        const startPayload = toTelegramStartPayload("receipt", state.session?.userId, response.transaction?.id ?? lastTx?.id);
+        window.location.assign(buildTelegramBotStartUrl(TELEGRAM_BOT_URL, startPayload));
+      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         showToast({ tone: "error", message: t("msg.reloginRequired") });
@@ -195,7 +215,7 @@ export function StudentSubscriptionPage() {
 
           {!isPaid ? (
             <div className="space-y-3 rounded-2xl border border-border p-3">
-              <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">Загрузить чек оплаты</p>
+              <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("pay.uploadReceipt")}</p>
               <input
                 type="file"
                 accept="image/*"
@@ -210,22 +230,22 @@ export function StudentSubscriptionPage() {
                   disabled={uploadingReceipt || !receiptFile}
                 >
                   {uploadingReceipt ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Отправить чек
+                  {t("pay.sendReceipt")}
                 </Button>
                 {lastTx?.receiptUrl ? (
                   <a href={lastTx.receiptUrl} target="_blank" rel="noreferrer">
-                    <Button type="button" variant="ghost">Открыть последний чек</Button>
+                    <Button type="button" variant="ghost">{t("pay.openLastReceipt")}</Button>
                   </a>
                 ) : null}
               </div>
               {lastTx?.manualVerdict ? (
                 <p className="text-xs text-charcoal/70 dark:text-zinc-400">
-                  AI проверка:{" "}
+                  {t("pay.aiVerdict")}:{" "}
                   {lastTx.manualVerdict === "likely_valid"
-                    ? "Похоже на настоящий чек"
+                    ? t("pay.verdictValid")
                     : lastTx.manualVerdict === "likely_fake"
-                      ? "Похоже на фейк чек"
-                      : "Ожидает проверки"}{" "}
+                      ? t("pay.verdictFake")
+                      : t("pay.verdictPending")}{" "}
                   {lastTx.manualVerdictReason ? `- ${lastTx.manualVerdictReason}` : ""}
                 </p>
               ) : null}

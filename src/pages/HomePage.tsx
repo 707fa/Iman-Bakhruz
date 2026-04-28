@@ -22,36 +22,37 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
+import { useUi } from "../hooks/useUi";
 
-const TELEGRAM_URL = "https://t.me/iman_bekhruz";
-const INSTAGRAM_URL = "https://instagram.com/iman.bekhruz";
+const TELEGRAM_URL = "https://t.me/iman_bakhruz";
+const INSTAGRAM_URL = "https://instagram.com/iman.bakhruz";
 const DEFAULT_PHONE = "+998 90 978-82-55";
 
-const teacherStory = [
-  "Hi, I'm Iman Bekhruz. I'm a CELTA & IELTS certified teacher with over 5 years of teaching experience.",
-  "During this time, I've worked with 1000+ students, helping them not only achieve high IELTS scores but also build confidence and discipline.",
-  "For me, teaching is not just about grammar or vocabulary. I focus on developing my students' mindset, character, and communication skills.",
-  "My teaching style is strict, energetic, and demanding, because I care about real results. I push my students to go beyond their limits and become the best version of themselves.",
-  "By the will and with the help of Allah, I strive to guide my students toward success and meaningful growth.",
+const teacherStoryKeys = [
+  "landing.story1",
+  "landing.story2",
+  "landing.story3",
+  "landing.story4",
+  "landing.story5",
 ];
 
 const teacherSlides = [
   {
     src: teacherPhoto,
-    alt: "Iman Bekhruz teacher portrait",
-    label: "CELTA & IELTS Certified",
+    alt: "Iman Bakhruz teacher portrait",
+    labelKey: "landing.slide1",
     position: "50% 18%",
   },
   {
     src: teacherPhoto,
-    alt: "Iman Bekhruz class mentor portrait",
-    label: "1000+ Students Coached",
+    alt: "Iman Bakhruz class mentor portrait",
+    labelKey: "landing.slide2",
     position: "50% 35%",
   },
   {
     src: teacherPhoto,
-    alt: "Iman Bekhruz professional profile portrait",
-    label: "Strict and Results-Driven Approach",
+    alt: "Iman Bakhruz professional profile portrait",
+    labelKey: "landing.slide3",
     position: "50% 52%",
   },
 ];
@@ -59,40 +60,40 @@ const teacherSlides = [
 const valuePoints = [
   {
     icon: Target,
-    title: "Result-focused roadmap",
-    text: "Each student gets a weekly plan with clear targets for grammar, speaking, and vocabulary.",
+    titleKey: "landing.featureRoadmapTitle",
+    textKey: "landing.featureRoadmapText",
   },
   {
     icon: Users,
-    title: "Small-group accountability",
-    text: "Strong discipline and regular feedback keep students active, not passive.",
+    titleKey: "landing.featureGroupsTitle",
+    textKey: "landing.featureGroupsText",
   },
   {
     icon: ShieldCheck,
-    title: "Parent-friendly transparency",
-    text: "Progress is visible with scores, speaking feedback, and homework control.",
+    titleKey: "landing.featureParentsTitle",
+    textKey: "landing.featureParentsText",
   },
 ];
 
 const processSteps = [
   {
-    title: "1. Free level check",
-    text: "Quick placement test + mini speaking interview to identify exact level.",
+    titleKey: "landing.step1Title",
+    textKey: "landing.step1Text",
   },
   {
-    title: "2. Personalized plan",
-    text: "Student joins the right group and receives weekly goals and task priorities.",
+    titleKey: "landing.step2Title",
+    textKey: "landing.step2Text",
   },
   {
-    title: "3. Measurable progress",
-    text: "We track scores, speaking quality, and consistency so growth is visible.",
+    titleKey: "landing.step3Title",
+    textKey: "landing.step3Text",
   },
 ];
 
 const socialProof = [
-  { label: "Students trained", value: "1000+" },
-  { label: "Teaching experience", value: "5+ years" },
-  { label: "Weekly support", value: "7 days" },
+  { labelKey: "landing.studentsTrained", value: "1000+" },
+  { labelKey: "landing.expYears", value: "5+ years" },
+  { labelKey: "landing.weeklySupport", value: "7 days" },
 ];
 
 function roleHome(role: "student" | "teacher" | "parent"): string {
@@ -103,11 +104,12 @@ function roleHome(role: "student" | "teacher" | "parent"): string {
 
 export function HomePage() {
   const { state } = useAppStore();
+  const { t } = useUi();
   const [activeSlide, setActiveSlide] = useState(0);
 
   const teacher = state.teachers[0];
   const displayPhone = teacher?.phone || DEFAULT_PHONE;
-  const teacherName = "Iman Bekhruz";
+  const teacherName = "Iman Bakhruz";
   const dashboardHref = state.session ? roleHome(state.session.role) : "/login";
 
   useEffect(() => {
@@ -131,8 +133,8 @@ export function HomePage() {
         <header className="sticky top-2 z-30 rounded-2xl border border-burgundy-100 bg-white/95 px-3 py-2 shadow-soft backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:px-4">
           <div className="flex min-w-0 items-center justify-between gap-2">
             <BrandLogo
-              title="Iman | Bekhruz"
-              subtitle="Education Center"
+              title={t("app.name")}
+              subtitle={t("app.center")}
               size="sm"
               className="max-w-[9rem] sm:max-w-[14rem] lg:max-w-none"
               titleClassName="text-base text-charcoal dark:text-zinc-100 sm:text-lg"
@@ -146,20 +148,20 @@ export function HomePage() {
                 <Link to={dashboardHref}>
                   <Button size="sm">
                     <GraduationCap className="mr-1.5 h-4 w-4" />
-                    Open Dashboard
+                    {t("landing.openDashboard")}
                   </Button>
                 </Link>
               ) : (
                 <div className="flex items-center gap-2">
                   <Link to="/register">
                     <Button size="sm" variant="secondary" className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm">
-                      Register
+                      {t("auth.registerLink")}
                     </Button>
                   </Link>
                   <Link to="/login">
                     <Button size="sm" className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm">
                       <GraduationCap className="mr-1.5 h-4 w-4" />
-                      Login
+                      {t("auth.loginButton")}
                     </Button>
                   </Link>
                 </div>
@@ -173,22 +175,22 @@ export function HomePage() {
             <CardContent className="grid gap-5 bg-gradient-to-br from-burgundy-900 via-burgundy-800 to-burgundy-700 p-5 text-white sm:p-7 lg:grid-cols-[1fr_auto] lg:items-center">
               <div className="space-y-3">
                 <Badge className="w-fit border-white/25 bg-white/10 text-white">English Growth System</Badge>
-                <h2 className="text-2xl font-bold leading-tight sm:text-3xl">From beginner confusion to confident English communication</h2>
+                <h2 className="text-2xl font-bold leading-tight sm:text-3xl">{t("landing.heroTitle")}</h2>
                 <p className="max-w-3xl text-sm text-white/90 sm:text-base">
-                  Structured classes, strict coaching, AI-supported practice, and real speaking discipline for students who need visible progress.
+                  {t("landing.heroSubtitle")}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 lg:justify-end">
                 <a href={TELEGRAM_URL} target="_blank" rel="noreferrer">
                   <Button variant="secondary" className="bg-white text-burgundy-800 hover:bg-white/90">
-                    Book Free Diagnostic
+                    {t("landing.bookDiagnostic")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </a>
                 <a href={`tel:${displayPhone.replace(/\s|-/g, "")}`}>
                   <Button variant="ghost" className="border border-white/35 text-white hover:bg-white/10">
                     <PhoneCall className="mr-2 h-4 w-4" />
-                    Call Now
+                    {t("landing.callNow")}
                   </Button>
                 </a>
               </div>
@@ -199,29 +201,29 @@ export function HomePage() {
             <Card className="border-burgundy-200/80 shadow-lift">
               <CardContent className="space-y-5 p-5 sm:p-7">
                 <Badge className="w-fit border-burgundy-200 bg-burgundy-50 text-burgundy-900 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-burgundy-100">
-                  About Teacher
+                  {t("landing.aboutTeacher")}
                 </Badge>
 
                 <div>
                   <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{teacherName}</h1>
                   <p className="mt-2 text-sm font-semibold uppercase tracking-[0.08em] text-burgundy-700 dark:text-burgundy-200">
-                    CELTA & IELTS Certified | 5+ Years Experience
+                    {t("landing.yearsExp")}
                   </p>
                 </div>
 
                 <div className="space-y-3 text-sm leading-6 text-charcoal/80 dark:text-zinc-300 sm:text-[15px]">
-                  {teacherStory.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
+                  {teacherStoryKeys.map((key) => (
+                    <p key={key}>{t(key)}</p>
                   ))}
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-3">
                   {socialProof.map((item) => (
                     <div
-                      key={item.label}
+                      key={item.labelKey}
                       className="rounded-2xl border border-burgundy-100 bg-burgundy-50/70 px-3 py-2 dark:border-burgundy-900/40 dark:bg-burgundy-900/25"
                     >
-                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">{item.label}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">{t(item.labelKey)}</p>
                       <p className="mt-1 text-sm font-bold text-burgundy-700 dark:text-white">{item.value}</p>
                     </div>
                   ))}
@@ -231,7 +233,7 @@ export function HomePage() {
                   {state.session ? (
                     <Link to={dashboardHref}>
                       <Button>
-                        Open Dashboard
+                        {t("landing.openDashboard")}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
@@ -239,12 +241,12 @@ export function HomePage() {
                     <>
                       <Link to="/login">
                         <Button>
-                          Login
+                          {t("auth.loginButton")}
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                       </Link>
                       <Link to="/register">
-                        <Button variant="secondary">Register</Button>
+                        <Button variant="secondary">{t("auth.registerLink")}</Button>
                       </Link>
                     </>
                   )}
@@ -265,7 +267,7 @@ export function HomePage() {
                         style={{ transform: `translateX(-${activeSlide * 100}%)` }}
                       >
                         {teacherSlides.map((slide) => (
-                          <div key={slide.label} className="relative w-full shrink-0">
+                          <div key={slide.labelKey} className="relative w-full shrink-0">
                             <img
                               src={slide.src}
                               alt={slide.alt}
@@ -273,7 +275,7 @@ export function HomePage() {
                               style={{ objectPosition: slide.position }}
                             />
                             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-4">
-                              <p className="text-sm font-semibold text-white">{slide.label}</p>
+                              <p className="text-sm font-semibold text-white">{t(slide.labelKey)}</p>
                             </div>
                           </div>
                         ))}
@@ -300,7 +302,7 @@ export function HomePage() {
                     <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-2">
                       {teacherSlides.map((slide, index) => (
                         <button
-                          key={slide.label}
+                          key={slide.labelKey}
                           type="button"
                           onClick={() => setActiveSlide(index)}
                           className={`h-2 rounded-full transition ${index === activeSlide ? "w-6 bg-white" : "w-2 bg-white/50"}`}
@@ -322,7 +324,7 @@ export function HomePage() {
                   >
                     <span className="inline-flex items-center gap-2">
                       <PhoneCall className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                      Phone
+                      {t("landing.phone")}
                     </span>
                     <span className="text-burgundy-700 dark:text-white">{displayPhone}</span>
                   </a>
@@ -337,7 +339,7 @@ export function HomePage() {
                       <Send className="h-4 w-4 text-burgundy-700 dark:text-white" />
                       Telegram
                     </span>
-                    <span className="text-burgundy-700 dark:text-white">@iman_bekhruz</span>
+                    <span className="text-burgundy-700 dark:text-white">@iman_bakhruz</span>
                   </a>
 
                   <a
@@ -350,7 +352,7 @@ export function HomePage() {
                       <Instagram className="h-4 w-4 text-burgundy-700 dark:text-white" />
                       Instagram
                     </span>
-                    <span className="text-burgundy-700 dark:text-white">@iman.bekhruz</span>
+                    <span className="text-burgundy-700 dark:text-white">@iman.bakhruz</span>
                   </a>
                 </CardContent>
               </Card>
@@ -359,10 +361,10 @@ export function HomePage() {
                 <CardContent className="space-y-2 p-5">
                   <p className="inline-flex items-center gap-2 text-sm font-semibold text-charcoal dark:text-zinc-100">
                     <BadgeCheck className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                    Teaching Philosophy
+                    {t("landing.philosophyTitle")}
                   </p>
                   <p className="text-sm text-charcoal/75 dark:text-zinc-300">
-                    Real discipline, real progress, real communication skills. The focus is not only IELTS score, but strong character and consistent growth.
+                    {t("landing.philosophyText")}
                   </p>
                 </CardContent>
               </Card>
@@ -372,12 +374,12 @@ export function HomePage() {
           <Card className="border-burgundy-200/80 shadow-soft">
             <CardContent className="grid gap-3 p-5 sm:grid-cols-3 sm:p-6">
               {valuePoints.map((point) => (
-                <div key={point.title} className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                <div key={point.titleKey} className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
                   <p className="inline-flex items-center gap-2 text-sm font-semibold text-charcoal dark:text-zinc-100">
                     <point.icon className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                    {point.title}
+                    {t(point.titleKey)}
                   </p>
-                  <p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{point.text}</p>
+                  <p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{t(point.textKey)}</p>
                 </div>
               ))}
             </CardContent>
@@ -387,18 +389,18 @@ export function HomePage() {
             <CardContent className="space-y-4 p-5 sm:p-6">
               <p className="inline-flex items-center gap-2 text-sm font-semibold text-charcoal dark:text-zinc-100">
                 <Clock3 className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                How it works
+                {t("landing.howItWorks")}
               </p>
               <div className="grid gap-3 sm:grid-cols-3">
                 {processSteps.map((step) => (
-                  <div key={step.title} className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                    <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{step.title}</p>
-                    <p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{step.text}</p>
+                  <div key={step.titleKey} className="rounded-2xl border border-burgundy-100 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                    <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t(step.titleKey)}</p>
+                    <p className="mt-2 text-sm text-charcoal/75 dark:text-zinc-300">{t(step.textKey)}</p>
                   </div>
                 ))}
               </div>
               <div className="rounded-2xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-sm font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">
-                Seats are limited. Message in Telegram now to reserve your place in the next group.
+                {t("landing.limitedSeats")}
               </div>
             </CardContent>
           </Card>

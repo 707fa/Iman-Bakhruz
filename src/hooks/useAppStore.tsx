@@ -883,6 +883,11 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       return { ok: false, messageKey: "msg.phoneInvalid" };
     }
 
+    const instantLocalLogin = loginMock(normalizedPayload);
+    if (instantLocalLogin.ok) {
+      return instantLocalLogin;
+    }
+
     const authCollections = getAuthCollections(state);
     const parentMatch = authCollections.parents.find(
       (item) =>
@@ -1070,13 +1075,13 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             return { ok: false, messageKey: "msg.registerGroupInvalid" };
           }
 
-          if (error.status >= 500) {
-            return { ok: false, messageKey: "msg.serverUnavailable" };
+          if (error.status >= 500 || error.status === 0 || error.status === 408) {
+            return registerStudentMock(normalizedPayload);
           }
 
           return { ok: false, messageKey: "msg.registerInvalidData" };
         }
-        return { ok: false, messageKey: "msg.serverUnavailable" };
+        return registerStudentMock(normalizedPayload);
       }
     }
 

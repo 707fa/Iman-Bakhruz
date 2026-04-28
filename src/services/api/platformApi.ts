@@ -26,6 +26,8 @@ import type {
 } from "../../types";
 import { apiRequest } from "./http";
 
+const AUTH_REQUEST_TIMEOUT_MS = 2000;
+
 export interface AuthResponse {
   token: string;
   role: UserRole;
@@ -577,6 +579,7 @@ export const platformApi = {
     const response = await apiRequest<unknown>("/auth/login", {
       method: "POST",
       body: payload,
+      timeoutMs: AUTH_REQUEST_TIMEOUT_MS,
     });
     return normalizeAuthResponse(response);
   },
@@ -607,7 +610,7 @@ export const platformApi = {
     const response = await apiRequest<unknown>("/auth/register", {
       method: "POST",
       body,
-      timeoutMs: 5000,
+      timeoutMs: AUTH_REQUEST_TIMEOUT_MS,
     });
     return normalizeAuthResponse(response);
   },
