@@ -8,26 +8,10 @@ import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
-import { TELEGRAM_BOT_URL } from "../lib/env";
 import { ApiError } from "../services/api/http";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
 import type { PaymentTransaction, SubscriptionState } from "../types";
-
-function toTelegramStartPayload(...parts: Array<string | number | null | undefined>): string {
-  const payload = parts
-    .filter((part) => part !== null && part !== undefined && String(part).trim())
-    .map((part) => String(part).trim())
-    .join("_")
-    .replace(/[^A-Za-z0-9_-]/g, "_");
-
-  return (payload || "receipt").slice(0, 64);
-}
-
-function buildTelegramBotStartUrl(botUrl: string, payload: string): string {
-  const joiner = botUrl.includes("?") ? "&" : "?";
-  return `${botUrl}${joiner}start=${encodeURIComponent(payload)}`;
-}
 
 export function StudentSubscriptionPage() {
   const navigate = useNavigate();
@@ -159,10 +143,6 @@ export function StudentSubscriptionPage() {
           ? t("pay.receiptSentTelegram")
           : t("pay.receiptUploaded"),
       });
-      if (TELEGRAM_BOT_URL) {
-        const startPayload = toTelegramStartPayload("receipt", state.session?.userId, response.transaction?.id ?? lastTx?.id);
-        window.location.assign(buildTelegramBotStartUrl(TELEGRAM_BOT_URL, startPayload));
-      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         showToast({ tone: "error", message: t("msg.reloginRequired") });
