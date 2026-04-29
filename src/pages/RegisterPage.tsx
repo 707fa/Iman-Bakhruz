@@ -130,7 +130,7 @@ export function RegisterPage() {
         tone: result.ok ? "success" : "error",
       });
       if (result.ok) {
-        navigate("/", { replace: true });
+        navigate("/dashboard", { replace: true });
       }
     } finally {
       setIsSubmitting(false);
@@ -304,7 +304,7 @@ export function RegisterPage() {
 
             <Button type="submit" className="h-11 rounded-2xl sm:col-span-2" disabled={isSubmitting}>
               <UserPlus className="mr-2 h-4 w-4" />
-              {isSubmitting ? `${t("auth.registerButton")}...` : t("auth.registerButton")}
+              {isSubmitting ? t("auth.registering") : t("auth.registerButton")}
             </Button>
           </form>
 
@@ -315,9 +315,9 @@ export function RegisterPage() {
             </Link>
           </p>
           <p className="mt-2 text-center text-sm text-charcoal/65 dark:text-zinc-400">
-            For parents:{" "}
+            {t("auth.parentLabel")}{" "}
             <Link to="/register/parent" className="font-semibold text-charcoal hover:text-black dark:text-white dark:hover:text-zinc-200">
-              separate registration
+              {t("auth.parentRegisterLink")}
             </Link>
           </p>
         </CardContent>
@@ -325,4 +325,3 @@ export function RegisterPage() {
     </div>
   );
 }
-

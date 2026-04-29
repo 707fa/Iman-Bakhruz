@@ -34,7 +34,7 @@ export function LoginPage() {
       const result = await login({ phone, password });
       showToast({ message: t(result.messageKey, result.messageParams), tone: result.ok ? "success" : "error" });
       if (result.ok) {
-        navigate("/", { replace: true });
+        navigate("/dashboard", { replace: true });
       }
     } finally {
       setIsSubmitting(false);
@@ -134,13 +134,9 @@ export function LoginPage() {
                   />
                 </div>
 
-                <Button
-                  type="submit"
-                  className="h-11 w-full rounded-2xl bg-gradient-to-b from-burgundy-700 via-burgundy-800 to-burgundy-900 text-white shadow-soft hover:from-burgundy-600 hover:via-burgundy-700 hover:to-burgundy-800"
-                  disabled={isSubmitting}
-                >
+                <Button type="submit" className="h-11 w-full rounded-2xl bg-gradient-to-b from-burgundy-700 via-burgundy-800 to-burgundy-900 text-white shadow-soft hover:from-burgundy-600 hover:via-burgundy-700 hover:to-burgundy-800" disabled={isSubmitting}>
                   <LogIn className="mr-2 h-4 w-4" />
-                  {isSubmitting ? "Входим..." : t("auth.loginButton")}
+                  {isSubmitting ? t("auth.loggingIn") : t("auth.loginButton")}
                 </Button>
               </form>
 
@@ -150,12 +146,12 @@ export function LoginPage() {
                   {t("auth.registerLink")}
                 </Link>
               </p>
-              <p className="mt-2 text-center text-sm text-charcoal/65 dark:text-zinc-400">
-                Для родителей:{" "}
+              <div className="mt-3 flex items-center justify-center gap-1.5 text-center text-sm text-charcoal/65 dark:text-zinc-400">
+                <span>{t("auth.parentLabel")}</span>
                 <Link to="/register/parent" className="font-semibold text-charcoal hover:text-black dark:text-white dark:hover:text-zinc-200">
-                  отдельная регистрация
+                  {t("auth.parentRegisterLink")}
                 </Link>
-              </p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -163,4 +159,3 @@ export function LoginPage() {
     </div>
   );
 }
-

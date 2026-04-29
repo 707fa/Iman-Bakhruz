@@ -40,7 +40,7 @@ export function PublicOnlyGuard() {
     return <Outlet />;
   }
 
-  return <Navigate to="/" replace />;
+  return <Navigate to={roleHome(session.role)} replace />;
 }
 
 interface AuthGuardProps {
