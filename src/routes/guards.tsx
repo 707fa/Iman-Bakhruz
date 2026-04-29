@@ -3,6 +3,15 @@ import { useAppStore } from "../hooks/useAppStore";
 import type { UserRole } from "../types";
 
 const ONLY_SUPPORT_AND_RATINGS_ENABLED = true;
+const FULL_ACCESS_STUDENT_PHONES = new Set(["998978778177"]);
+
+function normalizePhone(value: string | undefined): string {
+  return (value ?? "").replace(/\D/g, "");
+}
+
+function isFullAccessStudent(phone: string | undefined): boolean {
+  return FULL_ACCESS_STUDENT_PHONES.has(normalizePhone(phone));
+}
 
 function roleHome(role: UserRole): string {
   if (role === "teacher") return "/teacher";
@@ -49,7 +58,7 @@ interface AuthGuardProps {
 
 export function AuthGuard({ role }: AuthGuardProps) {
   const location = useLocation();
-  const { state, currentStudentAccess } = useAppStore();
+  const { state, currentStudent, currentStudentAccess } = useAppStore();
   const session = state.session;
 
   if (!session) {
@@ -60,11 +69,20 @@ export function AuthGuard({ role }: AuthGuardProps) {
     return <Navigate to={roleHome(session.role)} replace />;
   }
 
-  if (ONLY_SUPPORT_AND_RATINGS_ENABLED && !isTemporaryOpenPage(location.pathname, session.role)) {
+  const shouldLockStudentPages =
+    ONLY_SUPPORT_AND_RATINGS_ENABLED &&
+    session.role === "student" &&
+    !isFullAccessStudent(currentStudent?.phone);
+
+  if (shouldLockStudentPages && !isTemporaryOpenPage(location.pathname, session.role)) {
     return <Navigate to={temporaryOpenPage(session.role)} replace />;
   }
 
   if (session.role === "student") {
+    if (isFullAccessStudent(currentStudent?.phone)) {
+      return <Outlet />;
+    }
+
     const isPaid = Boolean(currentStudentAccess?.hasFullAccess);
 
     if (!isPaid) {

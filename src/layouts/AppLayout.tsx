@@ -19,6 +19,15 @@ interface NavItem {
 }
 
 const ONLY_SUPPORT_AND_RATINGS_ENABLED = true;
+const FULL_ACCESS_STUDENT_PHONES = new Set(["998978778177"]);
+
+function normalizePhone(value: string | undefined): string {
+  return (value ?? "").replace(/\D/g, "");
+}
+
+function isFullAccessStudent(phone: string | undefined): boolean {
+  return FULL_ACCESS_STUDENT_PHONES.has(normalizePhone(phone));
+}
 
 function isItemActive(pathname: string, item: NavItem): boolean {
   if (item.locked) return false;
@@ -86,7 +95,8 @@ export function AppLayout() {
     parent: [],
   };
 
-  const isUnpaidStudent = session.role === "student" && !Boolean(currentStudentAccess?.hasFullAccess);
+  const fullAccessStudent = session.role === "student" && isFullAccessStudent(currentStudent?.phone);
+  const isUnpaidStudent = session.role === "student" && !fullAccessStudent && !Boolean(currentStudentAccess?.hasFullAccess);
   if (isUnpaidStudent) {
     mainNavMap.student = [
       { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true },
@@ -98,34 +108,18 @@ export function AppLayout() {
     gamesNavMap.student = [];
   }
 
-  if (ONLY_SUPPORT_AND_RATINGS_ENABLED) {
+  if (ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent) {
     mainNavMap.student = [
       { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true, locked: true },
       { label: t("tabs.group"), href: "/student/group", icon: UsersRound, locked: true },
       { label: t("tabs.global"), href: "/student/top", icon: Trophy },
       { label: t("nav.speaking"), href: "/student/speaking", icon: Mic, locked: true },
     ];
-    mainNavMap.teacher = [
-      { label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true, locked: true },
-      { label: t("nav.teacherGroups"), href: "/teacher/groups", icon: UsersRound, locked: true },
-      { label: t("nav.teacherTop"), href: "/teacher/top", icon: Trophy },
-    ];
-    mainNavMap.parent = [
-      { label: t("nav.parent"), href: "/parent", icon: LayoutDashboard, exact: true, locked: true },
-      { label: t("tabs.global"), href: "/top", icon: Trophy },
-    ];
     chatNavMap.student = [
       { label: t("nav.friendly"), href: "/student/chat", icon: MessageCircle, locked: true },
       { label: t("nav.aiChat"), href: "/student/ai-chat", icon: MessageCircle, locked: true },
     ];
-    chatNavMap.teacher = [
-      { label: t("nav.friendly"), href: "/teacher/chat", icon: MessageCircle, locked: true },
-      { label: t("nav.aiChat"), href: "/teacher/ai-chat", icon: MessageCircle, locked: true },
-    ];
-    chatNavMap.parent = [];
     gamesNavMap.student = [{ label: t("nav.games"), href: "/student/games", icon: Gamepad2, locked: true }];
-    gamesNavMap.teacher = [];
-    gamesNavMap.parent = [];
   }
 
   const navItems = mainNavMap[session.role];
@@ -154,7 +148,7 @@ export function AppLayout() {
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? currentParent?.fullName ?? "User";
   const avatar = currentStudent?.avatarUrl ?? currentTeacher?.avatarUrl ?? currentParent?.avatarUrl;
   const openHomeHref =
-    ONLY_SUPPORT_AND_RATINGS_ENABLED
+    ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent
       ? session.role === "student"
         ? "/student/top"
         : session.role === "teacher"
@@ -165,7 +159,7 @@ export function AppLayout() {
         : session.role === "teacher"
           ? "/teacher"
           : "/parent";
-  const profileHref = ONLY_SUPPORT_AND_RATINGS_ENABLED
+  const profileHref = ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent
     ? openHomeHref
     : session.role === "student"
       ? "/profile"
