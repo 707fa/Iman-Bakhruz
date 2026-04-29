@@ -412,6 +412,7 @@ interface StoreValue {
   awardGamePoints: (studentId: string, groupId: string, action: ScoreAction) => ActionResult;
   disableStudent: (studentId: string) => Promise<ActionResult>;
   renameGroup: (groupId: string, nextTitle: string) => Promise<ActionResult>;
+  applyAiScore: (points: number) => Promise<ActionResult>;
   refreshState: () => Promise<void>;
 }
 
@@ -1203,6 +1204,22 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return renameGroupMock(groupId, nextTitle);
   }
 
+  async function applyAiScore(points: number): Promise<ActionResult> {
+    const student = currentStudent;
+    if (!student) return { ok: false, messageKey: "msg.scoreNoAccess" };
+
+    // In a real API mode, the backend should ideally handle this when AI check succeeds.
+    // However, to ensure immediate UI feedback and support both modes, we update local state.
+    setState((prev) => {
+      const updatedStudents = prev.students.map((item) =>
+        item.id === student.id ? { ...item, points: Number((item.points + points).toFixed(2)) } : item,
+      );
+      return syncRankingsWithStudents({ ...prev, students: updatedStudents });
+    });
+
+    return { ok: true, messageKey: "msg.scoreUpdated" };
+  }
+
   async function refreshState(): Promise<void> {
     if (DATA_PROVIDER_MODE !== "api") return;
     const token = getApiToken();
@@ -1235,6 +1252,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       awardGamePoints,
       disableStudent,
       renameGroup,
+      applyAiScore,
       refreshState,
     }),
     [state, currentStudent, currentStudentAccess, currentTeacher, currentParent, currentParentStudent, getStudentAccess],

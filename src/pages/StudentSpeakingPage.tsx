@@ -135,7 +135,7 @@ function saveHistory(userId: string, history: LocalSpeakingAttempt[]) {
 }
 
 export function StudentSpeakingPage() {
-  const { state, currentStudent } = useAppStore();
+  const { state, currentStudent, applyAiScore } = useAppStore();
   const { t, locale } = useUi();
   const { showToast } = useToast();
 
@@ -398,10 +398,17 @@ export function StudentSpeakingPage() {
       setResult(analysis);
       setStatus("success");
       setSpeakingNotice(analysis.score >= PASS_SCORE ? "Analysis ready. Good answer!" : "Analysis ready. Try again to improve your score.");
+      
       if (analysis.score < PASS_SCORE) {
         showToast({ message: `Not enough score (${analysis.score}). Please try this question again.`, tone: "error" });
       } else {
         showToast({ message: "Great. Answer accepted.", tone: "success" });
+        
+        // Automated scoring
+        const points = analysis.score / 10;
+        await applyAiScore(points);
+        showToast({ tone: "success", message: `AI awarded you ${points.toFixed(1)} points for speaking!` });
+
         window.setTimeout(() => {
           goToNextQuestionAfterSuccess();
         }, 520);
