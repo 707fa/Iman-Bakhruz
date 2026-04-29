@@ -19,29 +19,13 @@ function roleHome(role: UserRole): string {
   return "/student";
 }
 
-function temporaryOpenPage(role: UserRole): string {
-  if (role === "teacher") return "/teacher/top";
-  if (role === "student") return "/student/top";
-  return "/top";
-}
-
-function isTemporaryOpenPage(pathname: string, role: UserRole): boolean {
-  if (role === "teacher") {
-    return pathname.startsWith("/teacher/top") || pathname.startsWith("/teacher/support");
-  }
-
-  if (role === "student") {
-    return (
-      pathname === "/student" ||
-      pathname === "/profile" ||
-      pathname.startsWith("/student/group") ||
-      pathname.startsWith("/student/top") ||
-      pathname.startsWith("/student/support") ||
-      pathname.startsWith("/student/profile")
-    );
-  }
-
-  return false;
+function isLockedStudentPage(pathname: string): boolean {
+  return (
+    pathname.startsWith("/student/games") ||
+    pathname.startsWith("/student/speaking") ||
+    pathname.startsWith("/student/chat") ||
+    pathname.startsWith("/student/ai-chat")
+  );
 }
 
 export function PublicOnlyGuard() {
@@ -61,7 +45,7 @@ interface AuthGuardProps {
 
 export function AuthGuard({ role }: AuthGuardProps) {
   const location = useLocation();
-  const { state, currentStudent, currentStudentAccess } = useAppStore();
+  const { state, currentStudent } = useAppStore();
   const session = state.session;
 
   if (!session) {
@@ -72,29 +56,18 @@ export function AuthGuard({ role }: AuthGuardProps) {
     return <Navigate to={roleHome(session.role)} replace />;
   }
 
-  const shouldLockStudentPages =
+  const shouldLockStudentFeatures =
     ONLY_SUPPORT_AND_RATINGS_ENABLED &&
     session.role === "student" &&
     !isFullAccessStudent(currentStudent?.phone);
 
-  if (shouldLockStudentPages && !isTemporaryOpenPage(location.pathname, session.role)) {
-    return <Navigate to={temporaryOpenPage(session.role)} replace />;
+  if (shouldLockStudentFeatures && isLockedStudentPage(location.pathname)) {
+    return <Navigate to="/student" replace />;
   }
 
   if (session.role === "student") {
     if (isFullAccessStudent(currentStudent?.phone)) {
       return <Outlet />;
-    }
-
-    const isPaid = Boolean(currentStudentAccess?.hasFullAccess);
-
-    if (!isPaid) {
-      const isStudentHome = location.pathname === "/student";
-      const allowedPrefixes = ["/profile", "/student/top", "/student/group", "/student/subscription", "/student/support"];
-      const isAllowed = isStudentHome || allowedPrefixes.some((path) => location.pathname.startsWith(path));
-      if (!isAllowed) {
-        return <Navigate to="/student/subscription" replace />;
-      }
     }
   }
 

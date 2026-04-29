@@ -1,4 +1,4 @@
-import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
+import { Gamepad2, GraduationCap, LayoutDashboard, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
@@ -52,7 +52,7 @@ export function AppLayout() {
   const location = useLocation();
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { state, currentStudent, currentStudentAccess, currentTeacher, currentParent, logout } = useAppStore();
+  const { state, currentStudent, currentTeacher, currentParent, logout } = useAppStore();
   const { t } = useUi();
   const session = state.session;
 
@@ -96,18 +96,6 @@ export function AppLayout() {
   };
 
   const fullAccessStudent = session.role === "student" && isFullAccessStudent(currentStudent?.phone);
-  const isUnpaidStudent = session.role === "student" && !fullAccessStudent && !Boolean(currentStudentAccess?.hasFullAccess);
-  if (isUnpaidStudent) {
-    mainNavMap.student = [
-      { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true },
-      { label: t("tabs.group"), href: "/student/group", icon: UsersRound },
-      { label: t("tabs.global"), href: "/student/top", icon: Trophy },
-      { label: t("nav.subscription"), href: "/student/subscription", icon: CreditCard },
-    ];
-    chatNavMap.student = [];
-    gamesNavMap.student = [];
-  }
-
   if (ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent) {
     mainNavMap.student = [
       { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true },
