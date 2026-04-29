@@ -22,7 +22,7 @@ import type {
   SubscriptionState,
 } from "../types";
 
-const STORAGE_KEY = "result-dashboard-v7";
+const STORAGE_KEY = "result-dashboard-v9";
 const TOP5_GRANTS_KEY = "result-top5-grants-v1";
 const TOP5_GRANT_DAYS = 30;
 const TOP5_LIMIT = 5;

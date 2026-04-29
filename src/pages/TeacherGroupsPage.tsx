@@ -34,12 +34,11 @@ export function TeacherGroupsPage() {
 
   if (!currentTeacher) return null;
 
-  async function handleRename(groupId: string) {
-    if (savingGroupId) return;
-    const nextTitle = (titleDrafts[groupId] ?? "").trim();
+  async function handleRename(groupId: string, nextTitle: string) {
+    if (savingGroupId || !nextTitle.trim() || nextTitle.trim().length < 2) return;
     setSavingGroupId(groupId);
     try {
-      const result = await renameGroup(groupId, nextTitle);
+      const result = await renameGroup(groupId, nextTitle.trim());
       showToast({
         tone: result.ok ? "success" : "error",
         message: t(result.messageKey, result.messageParams),
@@ -63,49 +62,15 @@ export function TeacherGroupsPage() {
         </p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {teacherGroups.map((group) => {
-            const draft = titleDrafts[group.id] ?? group.title;
-            const isSaving = savingGroupId === group.id;
-            const isSame = draft.trim() === group.title;
-            const invalid = draft.trim().length < 2;
-
-            return (
-              <div key={group.id} className="space-y-3">
-                <GroupCard group={group} students={state.students.filter((student) => student.groupId === group.id)} />
-
-                <Card>
-                  <CardContent className="space-y-3 p-4">
-                    <label className="text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/60 dark:text-zinc-400">
-                      {t("teacher.renameGroupLabel")}
-                    </label>
-                    <Input
-                      value={draft}
-                      onChange={(event) =>
-                        setTitleDrafts((prev) => ({
-                          ...prev,
-                          [group.id]: event.target.value,
-                        }))
-                      }
-                      placeholder={t("teacher.renameGroupPlaceholder")}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" && !isSaving && !invalid && !isSame) {
-                          event.preventDefault();
-                          void handleRename(group.id);
-                        }
-                      }}
-                    />
-                    <Button
-                      className="w-full"
-                      onClick={() => void handleRename(group.id)}
-                      disabled={isSaving || invalid || isSame}
-                    >
-                      {isSaving ? t("teacher.renaming") : t("teacher.renameGroupSave")}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            );
-          })}
+          {teacherGroups.map((group) => (
+            <GroupCard
+              key={group.id}
+              group={group}
+              students={state.students.filter((student) => student.groupId === group.id)}
+              isSaving={savingGroupId === group.id}
+              onRename={(nextTitle) => void handleRename(group.id, nextTitle)}
+            />
+          ))}
         </div>
       )}
     </div>

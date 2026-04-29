@@ -24,7 +24,7 @@ export const teachers: Teacher[] = [
   },
   {
     id: "t_3",
-    fullName: "Iman|Bekhruz",
+    fullName: "Iman | Bakhruz",
     phone: "+998909788255",
     password: "909788255@@",
     groupIds: ["g_101", "g_102", "g_103", "g_104", "g_105", "g_106", "g_201", "g_202", "g_203", "g_204", "g_205"],
@@ -43,28 +43,20 @@ export const students: Student[] = [
     isPaid: true,
     paidUntil: "2035-01-01T00:00:00+05:00",
   },
-   {
-    id: "s_1",
-    fullName: "Test Farruh",
+  {
+    id: "s_2",
+    fullName: "Ахроров Фаррух",
     phone: "+998999999999",
     password: "123456789",
     groupId: "g_104",
-    parentInviteCode: "PARENT-S1",
+    parentInviteCode: "PARENT-S2",
     points: 0,
     isPaid: true,
     paidUntil: "2035-01-01T00:00:00+05:00",
   },
 ];
 
-export const parents: Parent[] = [
-  {
-    id: "p_1",
-    fullName: "Родитель Фарруха",
-    phone: "+998901112233",
-    password: "Parent2024",
-    childStudentIds: ["s_1"],
-  },
-];
+export const parents: Parent[] = [];
 
 export const rankings: RankingItem[] = students.map((student) => ({
   studentId: student.id,

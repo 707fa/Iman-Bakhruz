@@ -73,7 +73,7 @@ export function UserMenu({ fullName, avatarUrl, profileHref, supportHref, onLogo
               className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-charcoal/80 transition hover:bg-burgundy-50 hover:text-burgundy-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               <Headset className="h-4 w-4" />
-              Support
+              {t("menu.support")}
             </Link>
           ) : null}
 

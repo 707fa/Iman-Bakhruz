@@ -36,7 +36,7 @@ export function BrandLogo({
     <div className={cn("inline-flex min-w-0 items-center gap-3", className)}>
       <img
         src={logoImage}
-        alt="Iman | Bekhruz logo"
+        alt="Iman | Bakhruz logo"
         className={cn("rounded-2xl object-cover shadow-soft", iconSizeClasses[size])}
       />
       <div className="min-w-0">

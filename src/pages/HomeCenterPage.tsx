@@ -10,8 +10,8 @@ import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 
-const TELEGRAM_URL = "https://t.me/iman_bekhruz";
-const INSTAGRAM_URL = "https://instagram.com/iman.bekhruz";
+const TELEGRAM_URL = "https://t.me/iman_bakhruz";
+const INSTAGRAM_URL = "https://instagram.com/iman.bakhruz";
 const DEFAULT_PHONE = "+998 90 978-82-55";
 
 function roleHome(role: "student" | "teacher" | "parent"): string {
@@ -26,7 +26,7 @@ export function HomeCenterPage() {
 
   const teacher = state.teachers[0];
   const displayPhone = teacher?.phone || DEFAULT_PHONE;
-  const teacherName = "Iman Bekhruz";
+  const teacherName = "Iman Bakhruz";
   const dashboardHref = state.session ? roleHome(state.session.role) : "/login";
 
   return (
@@ -133,7 +133,7 @@ export function HomeCenterPage() {
                     <Send className="h-4 w-4 text-burgundy-700 dark:text-white" />
                     Telegram
                   </span>
-                  <span className="text-burgundy-700 dark:text-white">@iman_bekhruz</span>
+                  <span className="text-burgundy-700 dark:text-white">@iman_bakhruz</span>
                 </a>
 
                 <a
@@ -146,7 +146,7 @@ export function HomeCenterPage() {
                     <Instagram className="h-4 w-4 text-burgundy-700 dark:text-white" />
                     Instagram
                   </span>
-                  <span className="text-burgundy-700 dark:text-white">@iman.bekhruz</span>
+                  <span className="text-burgundy-700 dark:text-white">@iman.bakhruz</span>
                 </a>
 
                 <div className="rounded-2xl border border-burgundy-200 bg-burgundy-50 px-3 py-2 text-xs font-semibold text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-900/35 dark:text-burgundy-100">

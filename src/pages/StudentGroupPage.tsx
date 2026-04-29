@@ -1,6 +1,7 @@
-﻿import { CalendarDays, Clock3, Send, Sparkles, Users } from "lucide-react";
+import { CalendarDays, Clock3, Send, Sparkles, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
+import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -139,6 +140,11 @@ export function StudentGroupPage() {
     [homeworkTasks, currentStudent.groupId],
   );
 
+  const classmates = useMemo(
+    () => state.students.filter((s) => s.groupId === currentStudent.groupId && s.id !== currentStudent.id),
+    [state.students, currentStudent.groupId, currentStudent.id],
+  );
+
   useEffect(() => {
     if (!canUseApi || !token) {
       setHomeworkTasks([]);
@@ -274,6 +280,22 @@ export function StudentGroupPage() {
             </p>
           </div>
         </div>
+
+        {classmates.length > 0 && (
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-4 sm:p-5 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">Одноклассники ({classmates.length})</p>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {classmates.map((student) => (
+                <div key={student.id} className="flex items-center gap-3 rounded-xl border border-burgundy-50 p-2.5 transition hover:border-burgundy-100 dark:border-zinc-800 dark:hover:border-zinc-700">
+                  <UserAvatar fullName={student.fullName} avatarUrl={student.avatarUrl} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-charcoal dark:text-zinc-200">{student.fullName}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -94,7 +94,7 @@ function normalizeBoolean(value: string | undefined, fallback: boolean): boolean
 }
 
 const platformApiUrlCandidate = import.meta.env.VITE_PLATFORM_API_URL ?? import.meta.env.VITE_API_URL;
-export const DATA_PROVIDER_MODE: DataProviderMode = normalizeProvider(import.meta.env.VITE_DATA_PROVIDER, platformApiUrlCandidate);
+export const DATA_PROVIDER_MODE: DataProviderMode = "mock";
 const socketUrlCandidate = import.meta.env.VITE_SOCKET_URL ?? import.meta.env.VITE_AI_GATEWAY_URL;
 const gatewayUrlCandidate =
   import.meta.env.VITE_AI_GATEWAY_URL ?? import.meta.env.VITE_SOCKET_URL ?? (DATA_PROVIDER_MODE === "api" ? platformApiUrlCandidate : undefined);
