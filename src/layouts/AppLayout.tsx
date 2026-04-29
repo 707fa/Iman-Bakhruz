@@ -15,19 +15,28 @@ interface NavItem {
   href: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
+  locked?: boolean;
 }
 
 const ONLY_SUPPORT_AND_RATINGS_ENABLED = true;
 
 function isItemActive(pathname: string, item: NavItem): boolean {
+  if (item.locked) return false;
   return item.exact ? pathname === item.href : pathname.startsWith(item.href);
 }
 
-function navItemClass(active: boolean): string {
+function navItemClass(active: boolean, locked = false): string {
+  if (locked) {
+    return "cursor-not-allowed text-charcoal/40 dark:text-zinc-600";
+  }
   if (active) {
     return "bg-gradient-to-br from-burgundy-600 via-burgundy-700 to-burgundy-800 text-white shadow-soft";
   }
   return "text-charcoal/75 hover:bg-burgundy-50/80 hover:text-charcoal dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white";
+}
+
+function soonBadgeClass(): string {
+  return "ml-auto rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
 }
 
 export function AppLayout() {
@@ -91,18 +100,33 @@ export function AppLayout() {
 
   if (ONLY_SUPPORT_AND_RATINGS_ENABLED) {
     mainNavMap.student = [
+      { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true, locked: true },
+      { label: t("tabs.group"), href: "/student/group", icon: UsersRound, locked: true },
       { label: t("tabs.global"), href: "/student/top", icon: Trophy },
+      { label: t("nav.speaking"), href: "/student/speaking", icon: Mic, locked: true },
       { label: t("menu.support"), href: "/student/support", icon: LifeBuoy },
+      { label: t("nav.subscription"), href: "/student/subscription", icon: CreditCard, locked: true },
     ];
     mainNavMap.teacher = [
+      { label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true, locked: true },
+      { label: t("nav.teacherGroups"), href: "/teacher/groups", icon: UsersRound, locked: true },
       { label: t("nav.teacherTop"), href: "/teacher/top", icon: Trophy },
       { label: t("menu.support"), href: "/teacher/support", icon: LifeBuoy },
     ];
-    mainNavMap.parent = [{ label: t("tabs.global"), href: "/top", icon: Trophy }];
-    chatNavMap.student = [];
-    chatNavMap.teacher = [];
+    mainNavMap.parent = [
+      { label: t("nav.parent"), href: "/parent", icon: LayoutDashboard, exact: true, locked: true },
+      { label: t("tabs.global"), href: "/top", icon: Trophy },
+    ];
+    chatNavMap.student = [
+      { label: t("nav.friendly"), href: "/student/chat", icon: MessageCircle, locked: true },
+      { label: t("nav.aiChat"), href: "/student/ai-chat", icon: MessageCircle, locked: true },
+    ];
+    chatNavMap.teacher = [
+      { label: t("nav.friendly"), href: "/teacher/chat", icon: MessageCircle, locked: true },
+      { label: t("nav.aiChat"), href: "/teacher/ai-chat", icon: MessageCircle, locked: true },
+    ];
     chatNavMap.parent = [];
-    gamesNavMap.student = [];
+    gamesNavMap.student = [{ label: t("nav.games"), href: "/student/games", icon: Gamepad2, locked: true }];
     gamesNavMap.teacher = [];
     gamesNavMap.parent = [];
   }
@@ -186,14 +210,21 @@ export function AppLayout() {
           <nav className="mt-2 space-y-2">
             {navItems.map((item) => {
               const active = isItemActive(location.pathname, item);
-              return (
-                <Link
-                  key={`desktop-main-${item.href}`}
-                  to={item.href}
-                  className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300", navItemClass(active))}
-                >
+              const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300", navItemClass(active, item.locked));
+              const content = (
+                <>
                   <item.icon className="h-4 w-4" />
-                  {item.label}
+                  <span className="truncate">{item.label}</span>
+                  {item.locked ? <span className={soonBadgeClass()}>Soon</span> : null}
+                </>
+              );
+              return item.locked ? (
+                <span key={`desktop-main-${item.href}`} className={className} aria-disabled="true">
+                  {content}
+                </span>
+              ) : (
+                <Link key={`desktop-main-${item.href}`} to={item.href} className={className}>
+                  {content}
                 </Link>
               );
             })}
@@ -205,14 +236,21 @@ export function AppLayout() {
               <nav className="mt-2 space-y-2">
                 {chatItems.map((item) => {
                   const active = isItemActive(location.pathname, item);
-                  return (
-                    <Link
-                      key={`desktop-chat-${item.href}`}
-                      to={item.href}
-                      className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300", navItemClass(active))}
-                    >
+                  const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300", navItemClass(active, item.locked));
+                  const content = (
+                    <>
                       <item.icon className="h-4 w-4" />
-                      {item.label}
+                      <span className="truncate">{item.label}</span>
+                      {item.locked ? <span className={soonBadgeClass()}>Soon</span> : null}
+                    </>
+                  );
+                  return item.locked ? (
+                    <span key={`desktop-chat-${item.href}`} className={className} aria-disabled="true">
+                      {content}
+                    </span>
+                  ) : (
+                    <Link key={`desktop-chat-${item.href}`} to={item.href} className={className}>
+                      {content}
                     </Link>
                   );
                 })}
@@ -226,14 +264,21 @@ export function AppLayout() {
               <nav className="mt-2 space-y-2">
                 {gameItems.map((item) => {
                   const active = isItemActive(location.pathname, item);
-                  return (
-                    <Link
-                      key={`desktop-game-${item.href}`}
-                      to={item.href}
-                      className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300", navItemClass(active))}
-                    >
+                  const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300", navItemClass(active, item.locked));
+                  const content = (
+                    <>
                       <item.icon className="h-4 w-4" />
-                      {item.label}
+                      <span className="truncate">{item.label}</span>
+                      {item.locked ? <span className={soonBadgeClass()}>Soon</span> : null}
+                    </>
+                  );
+                  return item.locked ? (
+                    <span key={`desktop-game-${item.href}`} className={className} aria-disabled="true">
+                      {content}
+                    </span>
+                  ) : (
+                    <Link key={`desktop-game-${item.href}`} to={item.href} className={className}>
+                      {content}
                     </Link>
                   );
                 })}
@@ -344,14 +389,21 @@ export function AppLayout() {
             <nav className="space-y-2">
               {mobileQuickNav.map((item) => {
                 const active = isItemActive(location.pathname, item);
-                return (
-                  <Link
-                    key={`mobile-drawer-${item.href}`}
-                    to={item.href}
-                    className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active))}
-                  >
+                const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active, item.locked));
+                const content = (
+                  <>
                     <item.icon className="h-4 w-4" />
-                    {item.label}
+                    <span className="truncate">{item.label}</span>
+                    {item.locked ? <span className={soonBadgeClass()}>Soon</span> : null}
+                  </>
+                );
+                return item.locked ? (
+                  <span key={`mobile-drawer-${item.href}`} className={className} aria-disabled="true">
+                    {content}
+                  </span>
+                ) : (
+                  <Link key={`mobile-drawer-${item.href}`} to={item.href} className={className}>
+                    {content}
                   </Link>
                 );
               })}
@@ -363,10 +415,21 @@ export function AppLayout() {
                 <nav className="mt-2 space-y-2">
                   {chatItems.map((item) => {
                     const active = isItemActive(location.pathname, item);
-                    return (
-                      <Link key={`mobile-chat-${item.href}`} to={item.href} className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active))}>
+                    const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active, item.locked));
+                    const content = (
+                      <>
                         <item.icon className="h-4 w-4" />
-                        {item.label}
+                        <span className="truncate">{item.label}</span>
+                        {item.locked ? <span className={soonBadgeClass()}>Soon</span> : null}
+                      </>
+                    );
+                    return item.locked ? (
+                      <span key={`mobile-chat-${item.href}`} className={className} aria-disabled="true">
+                        {content}
+                      </span>
+                    ) : (
+                      <Link key={`mobile-chat-${item.href}`} to={item.href} className={className}>
+                        {content}
                       </Link>
                     );
                   })}
@@ -380,10 +443,21 @@ export function AppLayout() {
                 <nav className="mt-2 space-y-2">
                   {gameItems.map((item) => {
                     const active = isItemActive(location.pathname, item);
-                    return (
-                      <Link key={`mobile-game-${item.href}`} to={item.href} className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active))}>
+                    const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active, item.locked));
+                    const content = (
+                      <>
                         <item.icon className="h-4 w-4" />
-                        {item.label}
+                        <span className="truncate">{item.label}</span>
+                        {item.locked ? <span className={soonBadgeClass()}>Soon</span> : null}
+                      </>
+                    );
+                    return item.locked ? (
+                      <span key={`mobile-game-${item.href}`} className={className} aria-disabled="true">
+                        {content}
+                      </span>
+                    ) : (
+                      <Link key={`mobile-game-${item.href}`} to={item.href} className={className}>
+                        {content}
                       </Link>
                     );
                   })}
