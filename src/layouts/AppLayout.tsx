@@ -1,4 +1,4 @@
-import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, LifeBuoy, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
+import { CreditCard, Gamepad2, GraduationCap, LayoutDashboard, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
@@ -104,14 +104,11 @@ export function AppLayout() {
       { label: t("tabs.group"), href: "/student/group", icon: UsersRound, locked: true },
       { label: t("tabs.global"), href: "/student/top", icon: Trophy },
       { label: t("nav.speaking"), href: "/student/speaking", icon: Mic, locked: true },
-      { label: t("menu.support"), href: "/student/support", icon: LifeBuoy },
-      { label: t("nav.subscription"), href: "/student/subscription", icon: CreditCard, locked: true },
     ];
     mainNavMap.teacher = [
       { label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true, locked: true },
       { label: t("nav.teacherGroups"), href: "/teacher/groups", icon: UsersRound, locked: true },
       { label: t("nav.teacherTop"), href: "/teacher/top", icon: Trophy },
-      { label: t("menu.support"), href: "/teacher/support", icon: LifeBuoy },
     ];
     mainNavMap.parent = [
       { label: t("nav.parent"), href: "/parent", icon: LayoutDashboard, exact: true, locked: true },
@@ -465,23 +462,6 @@ export function AppLayout() {
               </>
             ) : null}
 
-            {supportHref ? (
-              <>
-                <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">Support</p>
-                <nav className="mt-2 space-y-2">
-                  <Link
-                    to={supportHref}
-                    className={cn(
-                      "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold",
-                      navItemClass(isItemActive(location.pathname, { label: "Support", href: supportHref, icon: LifeBuoy })),
-                    )}
-                  >
-                    <LifeBuoy className="h-4 w-4" />
-                    Support
-                  </Link>
-                </nav>
-              </>
-            ) : null}
           </aside>
         </div>
       ) : null}
