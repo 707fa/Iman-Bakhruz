@@ -404,6 +404,13 @@ const RU: Dictionary = {
   "public.privacy": "Публично показывается только позиция и баллы. Личные детали защищены.",
   "public.topList": "Общий топ (публичный)",
   "public.privateAccess": "Для просмотра личного профиля и данных группы войдите в аккаунт.",
+  "levels.beginner": "Beginner",
+  "levels.elementary": "Elementary",
+  "levels.pre-intermediate": "Pre-Intermediate",
+  "levels.intermediate": "Intermediate",
+  "levels.upper-intermediate": "Upper-Intermediate",
+  "levels.advanced": "Advanced",
+  "levels.ielts": "IELTS",
 };
 
 const UZ: Dictionary = {
@@ -799,10 +806,24 @@ const UZ: Dictionary = {
   "public.subtitle": "Top hamma uchun ochiq. Shaxsiy ma'lumotlar va profil tafsilotlari faqat o'quvchi va o'qituvchiga ko'rinadi.",
   "public.privacy": "Ochiq sahifada faqat o'rin va ballar ko'rsatiladi. Shaxsiy ma'lumotlar himoyalangan.",
   "public.topList": "Umumiy top (ochiq)",
-  "public.privateAccess": "Shaxsiy profil va guruh ma'lumotlari uchun akkauntga kiring.",
+  "public.privateAccess": "Shaxsiy profil va guruh ma'lumotlarini ko'rish uchun akkauntga kiring.",
+  "levels.beginner": "Beginner",
+  "levels.elementary": "Elementary",
+  "levels.pre-intermediate": "Pre-Intermediate",
+  "levels.intermediate": "Intermediate",
+  "levels.upper-intermediate": "Upper-Intermediate",
+  "levels.advanced": "Advanced",
+  "levels.ielts": "IELTS",
 };
 
 const EN: Dictionary = {
+  "levels.beginner": "Beginner",
+  "levels.elementary": "Elementary",
+  "levels.pre-intermediate": "Pre-Intermediate",
+  "levels.intermediate": "Intermediate",
+  "levels.upper-intermediate": "Upper-Intermediate",
+  "levels.advanced": "Advanced",
+  "levels.ielts": "IELTS",
   "app.name": "Iman | Bakhruz",
   "app.center": "Education Center",
   "app.workspace": "Workspace",

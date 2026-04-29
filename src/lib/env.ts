@@ -1,8 +1,6 @@
 export type DataProviderMode = "mock" | "api";
 
-function hasExplicitUrl(value: string | undefined): boolean {
-  return Boolean(value?.trim());
-}
+
 
 function isLocalBrowser(): boolean {
   if (typeof window === "undefined") return true;
@@ -10,14 +8,9 @@ function isLocalBrowser(): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || protocol === "file:";
 }
 
+
 function shouldPreferApiMode(apiUrlValue: string | undefined): boolean {
-  if (hasExplicitUrl(apiUrlValue)) return true;
-
-  if (isLocalBrowser()) {
-    return true;
-  }
-
-  return false;
+  return Boolean(apiUrlValue?.trim());
 }
 
 function normalizeProvider(value: string | undefined, apiUrlValue: string | undefined): DataProviderMode {
@@ -94,10 +87,10 @@ function normalizeBoolean(value: string | undefined, fallback: boolean): boolean
 }
 
 const platformApiUrlCandidate = import.meta.env.VITE_PLATFORM_API_URL ?? import.meta.env.VITE_API_URL;
-export const DATA_PROVIDER_MODE: DataProviderMode = "mock";
+export const DATA_PROVIDER_MODE: DataProviderMode = normalizeProvider(import.meta.env.VITE_DATA_PROVIDER, platformApiUrlCandidate);
 const socketUrlCandidate = import.meta.env.VITE_SOCKET_URL ?? import.meta.env.VITE_AI_GATEWAY_URL;
 const gatewayUrlCandidate =
-  import.meta.env.VITE_AI_GATEWAY_URL ?? import.meta.env.VITE_SOCKET_URL ?? (DATA_PROVIDER_MODE === "api" ? platformApiUrlCandidate : undefined);
+  import.meta.env.VITE_AI_GATEWAY_URL ?? import.meta.env.VITE_SOCKET_URL ?? (DATA_PROVIDER_MODE as string === "api" ? platformApiUrlCandidate : undefined);
 const voiceGatewayUrlCandidate = import.meta.env.VITE_VOICE_GATEWAY_URL ?? gatewayUrlCandidate;
 
 export const API_BASE_URL = normalizePlatformApiUrl(platformApiUrlCandidate, "http://127.0.0.1:8000");

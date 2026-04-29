@@ -1,10 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { GroupCard } from "../components/GroupCard";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
-import { Input } from "../components/ui/input";
 import { useAppStore } from "../hooks/useAppStore";
 import { getTeacherAccessibleGroups } from "../lib/teacherGroups";
 import { useToast } from "../hooks/useToast";
@@ -14,7 +11,6 @@ export function TeacherGroupsPage() {
   const { state, currentTeacher, renameGroup } = useAppStore();
   const { showToast } = useToast();
   const { t } = useUi();
-  const [titleDrafts, setTitleDrafts] = useState<Record<string, string>>({});
   const [savingGroupId, setSavingGroupId] = useState<string | null>(null);
 
   const teacherGroups = useMemo(
@@ -22,15 +18,7 @@ export function TeacherGroupsPage() {
     [state, currentTeacher],
   );
 
-  useEffect(() => {
-    setTitleDrafts((prev) => {
-      const next: Record<string, string> = {};
-      teacherGroups.forEach((group) => {
-        next[group.id] = prev[group.id] ?? group.title;
-      });
-      return next;
-    });
-  }, [teacherGroups]);
+
 
   if (!currentTeacher) return null;
 

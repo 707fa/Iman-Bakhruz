@@ -1,6 +1,6 @@
 import type { AppState, Group, Teacher } from "../types";
 
-export function getTeacherAccessibleGroupIds(state: AppState, teacher: Teacher): Set<string> {
+export function getTeacherAccessibleGroupIds(state: AppState, _teacher: Teacher): Set<string> {
   return new Set(state.groups.map(g => g.id));
 }
 
