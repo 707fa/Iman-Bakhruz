@@ -17,6 +17,8 @@ interface NavItem {
   exact?: boolean;
 }
 
+const ONLY_SUPPORT_AND_RATINGS_ENABLED = true;
+
 function isItemActive(pathname: string, item: NavItem): boolean {
   return item.exact ? pathname === item.href : pathname.startsWith(item.href);
 }
@@ -87,6 +89,24 @@ export function AppLayout() {
     gamesNavMap.student = [];
   }
 
+  if (ONLY_SUPPORT_AND_RATINGS_ENABLED) {
+    mainNavMap.student = [
+      { label: t("tabs.global"), href: "/student/top", icon: Trophy },
+      { label: t("menu.support"), href: "/student/support", icon: LifeBuoy },
+    ];
+    mainNavMap.teacher = [
+      { label: t("nav.teacherTop"), href: "/teacher/top", icon: Trophy },
+      { label: t("menu.support"), href: "/teacher/support", icon: LifeBuoy },
+    ];
+    mainNavMap.parent = [{ label: t("tabs.global"), href: "/top", icon: Trophy }];
+    chatNavMap.student = [];
+    chatNavMap.teacher = [];
+    chatNavMap.parent = [];
+    gamesNavMap.student = [];
+    gamesNavMap.teacher = [];
+    gamesNavMap.parent = [];
+  }
+
   const navItems = mainNavMap[session.role];
   const chatItems = chatNavMap[session.role];
   const gameItems = gamesNavMap[session.role];
@@ -112,7 +132,25 @@ export function AppLayout() {
 
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? currentParent?.fullName ?? "User";
   const avatar = currentStudent?.avatarUrl ?? currentTeacher?.avatarUrl ?? currentParent?.avatarUrl;
-  const profileHref = session.role === "student" ? "/profile" : session.role === "teacher" ? "/teacher/profile" : "/parent/profile";
+  const openHomeHref =
+    ONLY_SUPPORT_AND_RATINGS_ENABLED
+      ? session.role === "student"
+        ? "/student/top"
+        : session.role === "teacher"
+          ? "/teacher/top"
+          : "/top"
+      : session.role === "student"
+        ? "/student"
+        : session.role === "teacher"
+          ? "/teacher"
+          : "/parent";
+  const profileHref = ONLY_SUPPORT_AND_RATINGS_ENABLED
+    ? openHomeHref
+    : session.role === "student"
+      ? "/profile"
+      : session.role === "teacher"
+        ? "/teacher/profile"
+        : "/parent/profile";
   const supportHref = session.role === "student" ? "/student/support" : session.role === "teacher" ? "/teacher/support" : undefined;
 
   useEffect(() => {
@@ -125,7 +163,7 @@ export function AppLayout() {
       <div className="pointer-events-none absolute inset-0 hidden sm:block bg-[radial-gradient(circle_at_12%_10%,rgba(95,6,6,0.08),transparent_38%),radial-gradient(circle_at_88%_100%,rgba(95,6,6,0.05),transparent_36%)] dark:bg-[radial-gradient(circle_at_10%_8%,rgba(95,6,6,0.2),transparent_34%),radial-gradient(circle_at_90%_100%,rgba(95,6,6,0.16),transparent_40%)]" />
       <div className="relative grid h-full w-full lg:grid-cols-[264px_minmax(0,1fr)]">
         <aside className="scrollbar-thin hidden border-r border-zinc-200/80 bg-white/90 px-4 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/92 lg:block lg:h-dvh lg:overflow-y-auto">
-          <Link to={session.role === "student" ? "/student" : session.role === "teacher" ? "/teacher" : "/parent"}>
+          <Link to={openHomeHref}>
             <BrandLogo
               title={t("app.name")}
               subtitle={t("app.center")}
@@ -208,11 +246,6 @@ export function AppLayout() {
               Soon
             </span>
             <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100">{t("menu.studySoonTitle")}</p>
-            <div className="hidden">
-            <p className="mt-1 text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-              Скоро добавим. Скоро сайт будет приложением.
-            </p>
-            </div>
             <p className="mt-1 text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">{t("menu.studySoonText")}</p>
           </div>
         </aside>
@@ -230,7 +263,7 @@ export function AppLayout() {
                   <Menu className="h-4 w-4" />
                 </button>
                 <Link
-                  to={session.role === "student" ? "/student" : session.role === "teacher" ? "/teacher" : "/parent"}
+                  to={openHomeHref}
                   className="inline-flex items-center gap-2"
                 >
                   <GraduationCap className="h-5 w-5 text-burgundy-700 dark:text-white" />
