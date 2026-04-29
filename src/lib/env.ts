@@ -38,6 +38,13 @@ function normalizeApiUrl(value: string | undefined, localFallback: string): stri
   return "";
 }
 
+function normalizePlatformApiUrl(value: string | undefined, localFallback: string): string {
+  const normalized = normalizeApiUrl(value, localFallback);
+  if (!normalized) return "";
+  if (/\/api(?:\/|$)/i.test(normalized)) return normalized;
+  return `${normalized}/api`;
+}
+
 function normalizeOptionalText(value: string | undefined): string | null {
   const normalized = value?.trim();
   return normalized ? normalized : null;
@@ -93,7 +100,7 @@ const gatewayUrlCandidate =
   import.meta.env.VITE_AI_GATEWAY_URL ?? import.meta.env.VITE_SOCKET_URL ?? (DATA_PROVIDER_MODE === "api" ? platformApiUrlCandidate : undefined);
 const voiceGatewayUrlCandidate = import.meta.env.VITE_VOICE_GATEWAY_URL ?? gatewayUrlCandidate;
 
-export const API_BASE_URL = normalizeApiUrl(platformApiUrlCandidate, "http://127.0.0.1:8000");
+export const API_BASE_URL = normalizePlatformApiUrl(platformApiUrlCandidate, "http://127.0.0.1:8000");
 export const API_BASE_URL_CONFIGURED = Boolean(API_BASE_URL);
 export const SOCKET_BASE_URL = normalizeOptionalUrl(socketUrlCandidate) ?? (isLocalBrowser() ? "http://127.0.0.1:8080" : null);
 export const API_REQUEST_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_API_TIMEOUT_MS, 65000);
