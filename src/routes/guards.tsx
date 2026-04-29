@@ -32,6 +32,8 @@ function isTemporaryOpenPage(pathname: string, role: UserRole): boolean {
 
   if (role === "student") {
     return (
+      pathname === "/student" ||
+      pathname.startsWith("/student/group") ||
       pathname.startsWith("/student/top") ||
       pathname.startsWith("/student/support") ||
       pathname.startsWith("/student/profile")

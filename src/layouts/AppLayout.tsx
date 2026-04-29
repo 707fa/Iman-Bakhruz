@@ -110,8 +110,8 @@ export function AppLayout() {
 
   if (ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent) {
     mainNavMap.student = [
-      { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true, locked: true },
-      { label: t("tabs.group"), href: "/student/group", icon: UsersRound, locked: true },
+      { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true },
+      { label: t("tabs.group"), href: "/student/group", icon: UsersRound },
       { label: t("tabs.global"), href: "/student/top", icon: Trophy },
       { label: t("nav.speaking"), href: "/student/speaking", icon: Mic, locked: true },
     ];
