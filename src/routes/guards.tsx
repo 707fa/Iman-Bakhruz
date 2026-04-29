@@ -33,6 +33,7 @@ function isTemporaryOpenPage(pathname: string, role: UserRole): boolean {
   if (role === "student") {
     return (
       pathname === "/student" ||
+      pathname === "/profile" ||
       pathname.startsWith("/student/group") ||
       pathname.startsWith("/student/top") ||
       pathname.startsWith("/student/support") ||
@@ -89,7 +90,7 @@ export function AuthGuard({ role }: AuthGuardProps) {
 
     if (!isPaid) {
       const isStudentHome = location.pathname === "/student";
-      const allowedPrefixes = ["/student/top", "/student/group", "/student/subscription", "/student/support"];
+      const allowedPrefixes = ["/profile", "/student/top", "/student/group", "/student/subscription", "/student/support"];
       const isAllowed = isStudentHome || allowedPrefixes.some((path) => location.pathname.startsWith(path));
       if (!isAllowed) {
         return <Navigate to="/student/subscription" replace />;

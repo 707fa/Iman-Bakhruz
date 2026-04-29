@@ -159,9 +159,7 @@ export function AppLayout() {
         : session.role === "teacher"
           ? "/teacher"
           : "/parent";
-  const profileHref = ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent
-    ? openHomeHref
-    : session.role === "student"
+  const profileHref = session.role === "student"
       ? "/profile"
       : session.role === "teacher"
         ? "/teacher/profile"
