@@ -529,6 +529,17 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       return { ok: false, messageKey: "msg.phoneInvalid" };
     }
     const authCollections = getAuthCollections(state);
+    const studentMatch = authCollections.students.find(
+      (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
+    );
+    if (studentMatch) {
+      if (studentMatch.isActive === false) {
+        return { ok: false, messageKey: "msg.loginInvalid" };
+      }
+      setState((prev) => ({ ...withSeedData(prev), session: { role: "student", userId: studentMatch.id } }));
+      return { ok: true, messageKey: "msg.loginStudent" };
+    }
+
     const teacherMatch = authCollections.teachers.find(
       (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
     );
@@ -543,17 +554,6 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     if (parentMatch) {
       setState((prev) => ({ ...withSeedData(prev), session: { role: "parent", userId: parentMatch.id } }));
       return { ok: true, messageKey: "msg.loginParent" };
-    }
-
-    const studentMatch = authCollections.students.find(
-      (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
-    );
-    if (studentMatch) {
-      if (studentMatch.isActive === false) {
-        return { ok: false, messageKey: "msg.loginInvalid" };
-      }
-      setState((prev) => ({ ...withSeedData(prev), session: { role: "student", userId: studentMatch.id } }));
-      return { ok: true, messageKey: "msg.loginStudent" };
     }
 
     return { ok: false, messageKey: "msg.loginInvalid" };
