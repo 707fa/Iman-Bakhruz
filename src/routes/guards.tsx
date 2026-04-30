@@ -4,6 +4,7 @@ import type { UserRole } from "../types";
 
 const ONLY_SUPPORT_AND_RATINGS_ENABLED = true;
 const FULL_ACCESS_STUDENT_PHONES = new Set(["998978778177"]);
+const ADMIN_PHONES = new Set(["998978778177"]);
 
 function normalizePhone(value: string | undefined): string {
   return (value ?? "").replace(/\D/g, "");
@@ -11,6 +12,10 @@ function normalizePhone(value: string | undefined): string {
 
 function isFullAccessStudent(phone: string | undefined): boolean {
   return FULL_ACCESS_STUDENT_PHONES.has(normalizePhone(phone));
+}
+
+function isAdminPhone(phone: string | undefined): boolean {
+  return ADMIN_PHONES.has(normalizePhone(phone));
 }
 
 function roleHome(role: UserRole): string {
@@ -69,6 +74,22 @@ export function AuthGuard({ role }: AuthGuardProps) {
     if (isFullAccessStudent(currentStudent?.phone)) {
       return <Outlet />;
     }
+  }
+
+  return <Outlet />;
+}
+
+export function AdminGuard() {
+  const { state, currentStudent, currentTeacher, currentParent } = useAppStore();
+  const session = state.session;
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const phone = currentStudent?.phone ?? currentTeacher?.phone ?? currentParent?.phone;
+  if (!isAdminPhone(phone)) {
+    return <Navigate to={roleHome(session.role)} replace />;
   }
 
   return <Outlet />;

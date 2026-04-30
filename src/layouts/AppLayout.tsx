@@ -1,4 +1,4 @@
-import { Gamepad2, GraduationCap, LayoutDashboard, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
+import { Gamepad2, GraduationCap, LayoutDashboard, Menu, MessageCircle, Mic, ShieldCheck, Trophy, UsersRound, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
@@ -20,6 +20,7 @@ interface NavItem {
 
 const ONLY_SUPPORT_AND_RATINGS_ENABLED = true;
 const FULL_ACCESS_STUDENT_PHONES = new Set(["998978778177"]);
+const ADMIN_PHONES = new Set(["998978778177"]);
 
 function normalizePhone(value: string | undefined): string {
   return (value ?? "").replace(/\D/g, "");
@@ -27,6 +28,10 @@ function normalizePhone(value: string | undefined): string {
 
 function isFullAccessStudent(phone: string | undefined): boolean {
   return FULL_ACCESS_STUDENT_PHONES.has(normalizePhone(phone));
+}
+
+function isAdminPhone(phone: string | undefined): boolean {
+  return ADMIN_PHONES.has(normalizePhone(phone));
 }
 
 function isItemActive(pathname: string, item: NavItem): boolean {
@@ -96,6 +101,8 @@ export function AppLayout() {
   };
 
   const fullAccessStudent = session.role === "student" && isFullAccessStudent(currentStudent?.phone);
+  const adminPhone = currentStudent?.phone ?? currentTeacher?.phone ?? currentParent?.phone;
+  const hasAdminAccess = isAdminPhone(adminPhone);
   if (ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent) {
     mainNavMap.student = [
       { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true },
@@ -115,12 +122,16 @@ export function AppLayout() {
   const gameItems = gamesNavMap[session.role];
   const hasChatItems = chatItems.length > 0;
   const hasGameItems = gameItems.length > 0;
+  const adminItems = useMemo<NavItem[]>(
+    () => (hasAdminAccess ? [{ label: "Admin", href: "/admin", icon: ShieldCheck, exact: true }] : []),
+    [hasAdminAccess],
+  );
 
   const mobileQuickNav = useMemo<NavItem[]>(() => {
     if (session.role === "student") {
       const byHref = new Map<string, NavItem>([...navItems, ...chatItems, ...gameItems].map((item) => [item.href, item]));
       const preferredOrder = ["/student", "/student/group", "/student/top", "/student/speaking", "/student/games", "/student/ai-chat"];
-      return preferredOrder.map((href) => byHref.get(href)).filter((item): item is NavItem => Boolean(item));
+      return [...preferredOrder.map((href) => byHref.get(href)).filter((item): item is NavItem => Boolean(item)), ...adminItems].slice(0, 7);
     }
 
     const quick: NavItem[] = [...navItems];
@@ -130,8 +141,8 @@ export function AppLayout() {
     if (chatItems[1]) {
       quick.push(chatItems[1]);
     }
-    return quick.slice(0, 5);
-  }, [chatItems, gameItems, navItems, session.role]);
+    return [...quick, ...adminItems].slice(0, 7);
+  }, [adminItems, chatItems, gameItems, navItems, session.role]);
 
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? currentParent?.fullName ?? "User";
   const avatar = currentStudent?.avatarUrl ?? currentTeacher?.avatarUrl ?? currentParent?.avatarUrl;
@@ -206,6 +217,24 @@ export function AppLayout() {
               );
             })}
           </nav>
+
+          {adminItems.length > 0 ? (
+            <>
+              <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">Admin</p>
+              <nav className="mt-2 space-y-2">
+                {adminItems.map((item) => {
+                  const active = isItemActive(location.pathname, item);
+                  const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300", navItemClass(active));
+                  return (
+                    <Link key={`desktop-admin-${item.href}`} to={item.href} className={className}>
+                      <item.icon className="h-4 w-4" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </>
+          ) : null}
 
           {hasChatItems ? (
             <>
@@ -385,6 +414,24 @@ export function AppLayout() {
                 );
               })}
             </nav>
+
+            {adminItems.length > 0 ? (
+              <>
+                <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">Admin</p>
+                <nav className="mt-2 space-y-2">
+                  {adminItems.map((item) => {
+                    const active = isItemActive(location.pathname, item);
+                    const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active));
+                    return (
+                      <Link key={`mobile-admin-${item.href}`} to={item.href} className={className}>
+                        <item.icon className="h-4 w-4" />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </>
+            ) : null}
 
             {hasChatItems ? (
               <>

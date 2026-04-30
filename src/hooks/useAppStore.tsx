@@ -10,6 +10,8 @@ import type {
   ActionResult,
   AppState,
   AuthSession,
+  Group,
+  GroupDaysPattern,
   LoginPayload,
   Parent,
   ParentRegisterPayload,
@@ -414,6 +416,15 @@ interface StoreValue {
   renameGroup: (groupId: string, nextTitle: string) => Promise<ActionResult>;
   applyAiScore: (points: number) => Promise<ActionResult>;
   refreshState: () => Promise<void>;
+  adminCreateGroup: (payload: Pick<Group, "title" | "time" | "daysPattern">) => ActionResult;
+  adminUpdateGroup: (groupId: string, patch: Partial<Pick<Group, "title" | "time" | "daysPattern">>) => ActionResult;
+  adminDeleteGroup: (groupId: string) => ActionResult;
+  adminCreateStudent: (payload: Pick<Student, "fullName" | "phone" | "password" | "groupId">) => ActionResult;
+  adminUpdateStudent: (studentId: string, patch: Partial<Pick<Student, "fullName" | "phone" | "password" | "groupId" | "isActive" | "isPaid">>) => ActionResult;
+  adminDeleteStudent: (studentId: string) => ActionResult;
+  adminCreateTeacher: (payload: Pick<Teacher, "fullName" | "phone" | "password">) => ActionResult;
+  adminUpdateTeacher: (teacherId: string, patch: Partial<Pick<Teacher, "fullName" | "phone" | "password">>) => ActionResult;
+  adminDeleteTeacher: (teacherId: string) => ActionResult;
 }
 
 const StoreContext = createContext<StoreValue | undefined>(undefined);
@@ -1220,6 +1231,176 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     return { ok: true, messageKey: "msg.scoreUpdated" };
   }
 
+  function firstTeacherId(prev: AppState): string {
+    return prev.teachers[0]?.id ?? "t-admin";
+  }
+
+  function cleanAdminText(value: string): string {
+    return value.trim();
+  }
+
+  function adminCreateGroup(payload: Pick<Group, "title" | "time" | "daysPattern">): ActionResult {
+    const title = cleanAdminText(payload.title);
+    const time = cleanAdminText(payload.time);
+    if (title.length < 2 || time.length < 2) {
+      return { ok: false, messageKey: "msg.registerInvalidData" };
+    }
+
+    setState((prev) => ({
+      ...prev,
+      groups: [
+        ...prev.groups,
+        {
+          id: makeId("g"),
+          title,
+          time,
+          daysPattern: payload.daysPattern as GroupDaysPattern,
+          teacherId: firstTeacherId(prev),
+        },
+      ],
+    }));
+
+    return { ok: true, messageKey: "msg.groupRenameSuccess" };
+  }
+
+  function adminUpdateGroup(groupId: string, patch: Partial<Pick<Group, "title" | "time" | "daysPattern">>): ActionResult {
+    setState((prev) => ({
+      ...prev,
+      groups: prev.groups.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              title: patch.title !== undefined ? cleanAdminText(patch.title) : group.title,
+              time: patch.time !== undefined ? cleanAdminText(patch.time) : group.time,
+              daysPattern: patch.daysPattern ?? group.daysPattern,
+            }
+          : group,
+      ),
+    }));
+
+    return { ok: true, messageKey: "msg.groupRenameSuccess" };
+  }
+
+  function adminDeleteGroup(groupId: string): ActionResult {
+    setState((prev) =>
+      syncRankingsWithStudents({
+        ...prev,
+        groups: prev.groups.filter((group) => group.id !== groupId),
+        students: prev.students.map((student) => (student.groupId === groupId ? { ...student, groupId: "" } : student)),
+      }),
+    );
+
+    return { ok: true, messageKey: "msg.studentDisabled" };
+  }
+
+  function adminCreateStudent(payload: Pick<Student, "fullName" | "phone" | "password" | "groupId">): ActionResult {
+    const fullName = cleanAdminText(payload.fullName);
+    const phone = toPhone(payload.phone);
+    const password = cleanAdminText(payload.password);
+    if (fullName.length < 3 || !phone || password.length < 4) {
+      return { ok: false, messageKey: "msg.registerInvalidData" };
+    }
+
+    const id = makeId("s");
+    const student: Student = {
+      id,
+      fullName,
+      phone,
+      password,
+      groupId: payload.groupId,
+      parentInviteCode: makeParentInviteCode(id),
+      points: 0,
+      isActive: true,
+      isImanStudent: true,
+      isPaid: false,
+    };
+
+    setState((prev) => syncRankingsWithStudents({ ...prev, students: [...prev.students, student] }));
+    return { ok: true, messageKey: "msg.registerSuccess" };
+  }
+
+  function adminUpdateStudent(
+    studentId: string,
+    patch: Partial<Pick<Student, "fullName" | "phone" | "password" | "groupId" | "isActive" | "isPaid">>,
+  ): ActionResult {
+    setState((prev) =>
+      syncRankingsWithStudents({
+        ...prev,
+        students: prev.students.map((student) =>
+          student.id === studentId
+            ? {
+                ...student,
+                fullName: patch.fullName !== undefined ? cleanAdminText(patch.fullName) : student.fullName,
+                phone: patch.phone !== undefined ? toPhone(patch.phone) : student.phone,
+                password: patch.password !== undefined ? cleanAdminText(patch.password) : student.password,
+                groupId: patch.groupId !== undefined ? patch.groupId : student.groupId,
+                isActive: patch.isActive !== undefined ? patch.isActive : student.isActive,
+                isPaid: patch.isPaid !== undefined ? patch.isPaid : student.isPaid,
+                paidUntil: patch.isPaid ? student.paidUntil ?? toIsoAfterDays(30) : student.paidUntil,
+              }
+            : student,
+        ),
+      }),
+    );
+
+    return { ok: true, messageKey: "msg.scoreUpdated" };
+  }
+
+  function adminDeleteStudent(studentId: string): ActionResult {
+    setState((prev) =>
+      syncRankingsWithStudents({
+        ...prev,
+        students: prev.students.filter((student) => student.id !== studentId),
+        ratingLogs: prev.ratingLogs.filter((log) => log.studentId !== studentId),
+      }),
+    );
+
+    return { ok: true, messageKey: "msg.studentDisabled" };
+  }
+
+  function adminCreateTeacher(payload: Pick<Teacher, "fullName" | "phone" | "password">): ActionResult {
+    const fullName = cleanAdminText(payload.fullName);
+    const phone = toPhone(payload.phone);
+    const password = cleanAdminText(payload.password);
+    if (fullName.length < 3 || !phone || password.length < 4) {
+      return { ok: false, messageKey: "msg.registerInvalidData" };
+    }
+
+    setState((prev) => ({
+      ...prev,
+      teachers: [...prev.teachers, { id: makeId("t"), fullName, phone, password, groupIds: [] }],
+    }));
+
+    return { ok: true, messageKey: "msg.registerSuccess" };
+  }
+
+  function adminUpdateTeacher(teacherId: string, patch: Partial<Pick<Teacher, "fullName" | "phone" | "password">>): ActionResult {
+    setState((prev) => ({
+      ...prev,
+      teachers: prev.teachers.map((teacher) =>
+        teacher.id === teacherId
+          ? {
+              ...teacher,
+              fullName: patch.fullName !== undefined ? cleanAdminText(patch.fullName) : teacher.fullName,
+              phone: patch.phone !== undefined ? toPhone(patch.phone) : teacher.phone,
+              password: patch.password !== undefined ? cleanAdminText(patch.password) : teacher.password,
+            }
+          : teacher,
+      ),
+    }));
+
+    return { ok: true, messageKey: "msg.scoreUpdated" };
+  }
+
+  function adminDeleteTeacher(teacherId: string): ActionResult {
+    setState((prev) => ({
+      ...prev,
+      teachers: prev.teachers.filter((teacher) => teacher.id !== teacherId),
+    }));
+
+    return { ok: true, messageKey: "msg.studentDisabled" };
+  }
+
   async function refreshState(): Promise<void> {
     if (DATA_PROVIDER_MODE !== "api") return;
     const token = getApiToken();
@@ -1254,6 +1435,15 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       renameGroup,
       applyAiScore,
       refreshState,
+      adminCreateGroup,
+      adminUpdateGroup,
+      adminDeleteGroup,
+      adminCreateStudent,
+      adminUpdateStudent,
+      adminDeleteStudent,
+      adminCreateTeacher,
+      adminUpdateTeacher,
+      adminDeleteTeacher,
     }),
     [state, currentStudent, currentStudentAccess, currentTeacher, currentParent, currentParentStudent, getStudentAccess],
   );

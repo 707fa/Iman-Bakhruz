@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAppStore } from "../hooks/useAppStore";
-import { AuthGuard, PublicOnlyGuard } from "./guards";
+import { AdminGuard, AuthGuard, PublicOnlyGuard } from "./guards";
 
 const AppLayout = lazy(() => import("../layouts/AppLayout").then((module) => ({ default: module.AppLayout })));
 const HomePage = lazy(() => import("../pages/HomePage").then((module) => ({ default: module.HomePage })));
@@ -40,6 +40,7 @@ const TeacherStudentProfilePage = lazy(() =>
 const ParentDashboardPage = lazy(() => import("../pages/ParentDashboardPage").then((module) => ({ default: module.ParentDashboardPage })));
 const ParentProfilePage = lazy(() => import("../pages/ParentProfilePage").then((module) => ({ default: module.ParentProfilePage })));
 const SupportPage = lazy(() => import("../pages/SupportPage").then((module) => ({ default: module.SupportPage })));
+const AdminPanelPage = lazy(() => import("../pages/AdminPanelPage").then((module) => ({ default: module.AdminPanelPage })));
 
 const FriendlyChatPage = lazy(() => import("../pages/FriendlyChatPage").then((module) => ({ default: module.FriendlyChatPage })));
 const ImanAiChatPage = lazy(() => import("../pages/ImanAiChatPage").then((module) => ({ default: module.ImanAiChatPage })));
@@ -82,6 +83,12 @@ export function AppRouter() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/register/parent" element={<ParentRegisterPage />} />
+        </Route>
+
+        <Route element={<AdminGuard />}>
+          <Route element={<AppLayout />}>
+            <Route path="/admin" element={<AdminPanelPage />} />
+          </Route>
         </Route>
 
         <Route element={<AuthGuard role="student" />}>
