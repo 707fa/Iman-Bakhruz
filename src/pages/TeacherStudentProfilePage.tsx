@@ -1,4 +1,4 @@
-﻿import { ChevronLeft, MessageCircle, Save, ShieldCheck } from "lucide-react";
+﻿import { ChevronLeft, MessageCircle, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -53,8 +53,6 @@ export function TeacherStudentProfilePage() {
 
   const [form, setForm] = useState<ProgressFormState>(emptyProgress);
   const [isSaving, setIsSaving] = useState(false);
-  const [grantDays, setGrantDays] = useState(30);
-  const [isGrantingAccess, setIsGrantingAccess] = useState(false);
 
   const student = state.students.find((item) => item.id === id);
   const hasAccess = Boolean(student && currentTeacher && hasTeacherGroupAccess(state, currentTeacher, student.groupId));
@@ -135,26 +133,6 @@ export function TeacherStudentProfilePage() {
     }
   }
 
-  async function handleGrantAccess() {
-    const token = getApiToken();
-    if (!token || !id || !/^\d+$/.test(id)) {
-      showToast({ message: t("msg.serverUnavailable"), tone: "error" });
-      return;
-    }
-
-    setIsGrantingAccess(true);
-    try {
-      const days = Math.max(1, Math.min(365, grantDays));
-      await platformApi.grantStudentSubscription(token, id, days);
-      await refreshState();
-      showToast({ message: t("teacher.accessGranted", { days }), tone: "success" });
-    } catch {
-      showToast({ message: t("msg.serverUnavailable"), tone: "error" });
-    } finally {
-      setIsGrantingAccess(false);
-    }
-  }
-
   if (!currentTeacher) return null;
 
   return (
@@ -211,28 +189,6 @@ export function TeacherStudentProfilePage() {
                 </Button>
               </Link>
 
-              <details className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
-                <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-charcoal dark:text-zinc-100">
-                  <ShieldCheck className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                  {t("teacher.accessControlTitle")}
-                </summary>
-                <p className="mt-2 text-xs text-charcoal/65 dark:text-zinc-400">{t("teacher.accessControlDesc")}</p>
-                <div className="mt-3 flex flex-wrap items-end gap-2">
-                  <div className="w-28">
-                    <Label>{t("teacher.accessDays")}</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={365}
-                      value={grantDays}
-                      onChange={(event) => setGrantDays(Math.max(1, Math.min(365, Number(event.target.value) || 1)))}
-                    />
-                  </div>
-                  <Button onClick={() => void handleGrantAccess()} disabled={isGrantingAccess}>
-                    {isGrantingAccess ? t("teacher.accessGranting") : t("teacher.accessGrant")}
-                  </Button>
-                </div>
-              </details>
             </CardContent>
           </Card>
 
@@ -339,7 +295,6 @@ export function TeacherStudentProfilePage() {
     </div>
   );
 }
-
 
 
 

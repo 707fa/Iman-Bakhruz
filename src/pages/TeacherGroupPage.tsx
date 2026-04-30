@@ -1,4 +1,4 @@
-﻿import { BookOpenCheck, ChevronLeft, Clock3, Crown, Loader2, Mic, Sparkles, UserX } from "lucide-react";
+﻿import { BookOpenCheck, ChevronLeft, Clock3, Crown, Mic, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -34,7 +34,7 @@ function crownClass(rank: number): string {
 
 export function TeacherGroupPage() {
   const { id } = useParams();
-  const { state, currentTeacher, applyScore, disableStudent, renameGroup } = useAppStore();
+  const { state, currentTeacher, applyScore } = useAppStore();
   const { t } = useUi();
   const { showToast } = useToast();
   const token = getApiToken();
@@ -61,10 +61,6 @@ export function TeacherGroupPage() {
   const [speakingQuestionsText, setSpeakingQuestionsText] = useState("");
   const [speakingDueAt, setSpeakingDueAt] = useState("");
 
-  const [groupTitleDraft, setGroupTitleDraft] = useState("");
-  const [renamingGroup, setRenamingGroup] = useState(false);
-  const [deletingStudentId, setDeletingStudentId] = useState<string | null>(null);
-
   if (!currentTeacher) return null;
 
   const group = state.groups.find((entry) => entry.id === id);
@@ -88,10 +84,6 @@ export function TeacherGroupPage() {
     () => homeworkTasks.find((task) => task.id === selectedTaskId) ?? null,
     [homeworkTasks, selectedTaskId],
   );
-
-  useEffect(() => {
-    setGroupTitleDraft(group?.title ?? "");
-  }, [group?.id, group?.title]);
 
   useEffect(() => {
     if (!hasAccess || !canUseApi || !token || !group) {
@@ -300,37 +292,6 @@ export function TeacherGroupPage() {
     }
   }
 
-  async function handleRenameGroup() {
-    if (!group) return;
-    if (renamingGroup) return;
-
-    setRenamingGroup(true);
-    try {
-      const result = await renameGroup(group.id, groupTitleDraft);
-      showToast({
-        tone: result.ok ? "success" : "error",
-        message: t(result.messageKey, result.messageParams),
-      });
-    } finally {
-      setRenamingGroup(false);
-    }
-  }
-
-  async function handleDisableStudent(studentId: string) {
-    if (!window.confirm(t("teacher.disableConfirm"))) return;
-
-    setDeletingStudentId(studentId);
-    try {
-      const result = await disableStudent(studentId);
-      showToast({
-        message: t(result.messageKey, result.messageParams),
-        tone: result.ok ? "success" : "error",
-      });
-    } finally {
-      setDeletingStudentId(null);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -364,32 +325,6 @@ export function TeacherGroupPage() {
       {hasAccess ? (
         <>
           <Card>
-            <CardContent className="grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-end sm:p-5">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">{t("teacher.renameGroupLabel")}</label>
-                <Input
-                  value={groupTitleDraft}
-                  onChange={(event) => setGroupTitleDraft(event.target.value)}
-                  placeholder={t("teacher.renameGroupPlaceholder")}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      void handleRenameGroup();
-                    }
-                  }}
-                />
-              </div>
-
-              <Button
-                onClick={() => void handleRenameGroup()}
-                disabled={renamingGroup || groupTitleDraft.trim().length < 2 || groupTitleDraft.trim() === (group?.title ?? "")}
-              >
-                {renamingGroup ? t("teacher.renaming") : t("teacher.renameGroupSave")}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
             <CardContent className="p-4 sm:p-5">
               <Input
                 value={studentSearch}
@@ -418,18 +353,6 @@ export function TeacherGroupPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <StatusBadge status={student.statusBadge} />
                       <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => void handleDisableStudent(student.id)}
-                          disabled={deletingStudentId === student.id}
-                          aria-label={t("teacher.disableStudent")}
-                          title={t("teacher.disableStudent")}
-                          className="h-8 w-8 rounded-full border border-burgundy-100 p-0 text-burgundy-700 hover:border-burgundy-200 hover:bg-burgundy-50 hover:text-burgundy-800 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-white"
-                        >
-                          {deletingStudentId === student.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserX className="h-3.5 w-3.5" />}
-                        </Button>
                         <Link
                           to={`/teacher/student/${student.id}`}
                           className="text-xs font-semibold text-burgundy-700 transition hover:text-burgundy-600 dark:text-white dark:hover:text-white"
@@ -740,11 +663,6 @@ export function TeacherGroupPage() {
     </div>
   );
 }
-
-
-
-
-
 
 
 
