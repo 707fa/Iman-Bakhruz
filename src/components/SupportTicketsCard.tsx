@@ -1,6 +1,7 @@
 import { AlertCircle, Check, CheckCheck, LifeBuoy, Loader2, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SupportTicket, SupportTicketMessage, SupportTicketStatus, UserRole } from "../types";
+import { ApiError } from "../services/api/http";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken, getSessionUserId } from "../services/tokenStorage";
 import { Button } from "./ui/button";
@@ -119,6 +120,7 @@ function createLocalSupportTicket(role: UserRole, userId: string, text: string):
 
 export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   const token = getApiToken();
+  const [apiBlocked, setApiBlocked] = useState(false);
   const userId = getSessionUserId() || "guest";
   const cacheKey = useMemo(() => getSupportCacheKey(role, userId), [role, userId]);
   const hydratedRef = useRef(false);
@@ -181,7 +183,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   );
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || apiBlocked) return;
     let disposed = false;
 
     const loadTickets = async () => {
@@ -196,6 +198,10 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
             return [...map.values()];
           });
         }
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 402 || error.status === 403)) {
+          setApiBlocked(true);
+        }
       } finally {
         if (!disposed) setLoadingTickets(false);
       }
@@ -207,7 +213,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       disposed = true;
       window.clearInterval(intervalId);
     };
-  }, [token]);
+  }, [token, apiBlocked]);
 
   useEffect(() => {
     if (!activeTicket && sortedTickets.length > 0) {
@@ -216,7 +222,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   }, [activeTicket, sortedTickets]);
 
   useEffect(() => {
-    if (!token || !activeTicket) return;
+    if (!token || apiBlocked || !activeTicket || activeTicket.id.startsWith("local_")) return;
     let disposed = false;
 
     const loadMessages = async () => {
@@ -239,8 +245,10 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
           ...prev,
           [activeTicket.id]: mergeMessages(prev[activeTicket.id] ?? [], normalized),
         }));
-      } catch {
-        // keep previous messages when API temporarily fails
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 402 || error.status === 403)) {
+          setApiBlocked(true);
+        }
       } finally {
         if (!disposed) setLoadingMessages(false);
       }
@@ -253,7 +261,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       disposed = true;
       window.clearInterval(intervalId);
     };
-  }, [token, activeTicket?.id, role]);
+  }, [token, apiBlocked, activeTicket?.id, role]);
 
   useEffect(() => {
     if (!viewportRef.current) return;
@@ -275,7 +283,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     setSending(true);
 
     try {
-      if (!token) {
+      if (!token || apiBlocked) {
         if (!activeTicket) {
           const created = createLocalSupportTicket(role, userId, text);
           setTickets((prev) => [created, ...prev]);
@@ -337,6 +345,15 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
         ),
       }));
     } catch {
+      if (!activeTicket) {
+        const created = createLocalSupportTicket(role, userId, text);
+        setTickets((prev) => [created, ...prev]);
+        setActiveTicketId(created.id);
+        setDraft("");
+        setApiBlocked(true);
+        return;
+      }
+
       if (activeTicket) {
         setMessagesByTicket((prev) => ({
           ...prev,
@@ -351,7 +368,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   }
 
   async function handleStatusChange(status: SupportTicketStatus) {
-    if (!token || !activeTicket || role !== "teacher" || ticketUpdating) return;
+    if (!token || apiBlocked || !activeTicket || activeTicket.id.startsWith("local_") || role !== "teacher" || ticketUpdating) return;
     setTicketUpdating(true);
     try {
       const updated = await platformApi.updateSupportTicket(token, activeTicket.id, status);
