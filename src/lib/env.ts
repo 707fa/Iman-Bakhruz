@@ -9,9 +9,20 @@ function isLocalBrowser(): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || protocol === "file:";
 }
 
+function shouldUseSameOriginApiProxy(): boolean {
+  if (typeof window === "undefined" || isLocalBrowser()) return false;
+  const hostname = window.location.hostname.toLowerCase();
+  return (
+    hostname === "iman-bekhruz.uz" ||
+    hostname === "www.iman-bekhruz.uz" ||
+    hostname === "iman-bakhruz.uz" ||
+    hostname === "www.iman-bakhruz.uz" ||
+    hostname.endsWith(".vercel.app")
+  );
+}
 
 function shouldPreferApiMode(apiUrlValue: string | undefined): boolean {
-  return Boolean(apiUrlValue?.trim());
+  return shouldUseSameOriginApiProxy() || Boolean(apiUrlValue?.trim());
 }
 
 function normalizeProvider(value: string | undefined, apiUrlValue: string | undefined): DataProviderMode {
@@ -22,6 +33,10 @@ function normalizeProvider(value: string | undefined, apiUrlValue: string | unde
 }
 
 function normalizeApiUrl(value: string | undefined, localFallback: string): string {
+  if (shouldUseSameOriginApiProxy()) {
+    return "";
+  }
+
   const explicit = (value?.trim() || "").replace(/\/+$/, "");
   if (explicit) return explicit;
 
@@ -34,7 +49,8 @@ function normalizeApiUrl(value: string | undefined, localFallback: string): stri
 
 function normalizePlatformApiUrl(value: string | undefined, localFallback: string): string {
   const normalized = normalizeApiUrl(value, localFallback);
-  if (!normalized) return "";
+  if (!normalized) return shouldUseSameOriginApiProxy() ? "/api" : "";
+  if (normalized.startsWith("/")) return normalized.replace(/\/+$/, "");
   if (/\/api(?:\/|$)/i.test(normalized)) return normalized;
   return `${normalized}/api`;
 }
