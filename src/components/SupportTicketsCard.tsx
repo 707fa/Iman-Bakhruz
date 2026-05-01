@@ -102,6 +102,21 @@ function messageReadByPeer(role: UserRole, message: UiSupportMessage): boolean {
   return Boolean(message.readByStudentAt);
 }
 
+function createLocalSupportTicket(role: UserRole, userId: string, text: string): SupportTicket {
+  const now = new Date().toISOString();
+  return {
+    id: `local_${role}_${userId}_${Date.now()}`,
+    studentId: role === "student" ? userId : "local-student",
+    studentName: role === "student" ? "You" : "Student",
+    teacherId: role === "teacher" ? userId : "support",
+    teacherName: role === "teacher" ? "You" : "Support",
+    message: text,
+    status: "open",
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   const token = getApiToken();
   const userId = getSessionUserId() || "guest";
@@ -255,11 +270,41 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   }, [draft]);
 
   async function handleSend() {
-    if (!token || !draft.trim() || sending) return;
+    if (!draft.trim() || sending) return;
     const text = draft.trim();
     setSending(true);
 
     try {
+      if (!token) {
+        if (!activeTicket) {
+          const created = createLocalSupportTicket(role, userId, text);
+          setTickets((prev) => [created, ...prev]);
+          setActiveTicketId(created.id);
+          setDraft("");
+          return;
+        }
+
+        const localMessage: UiSupportMessage = {
+          id: `local_${Date.now()}`,
+          ticketId: activeTicket.id,
+          senderType: role === "teacher" ? "teacher" : "student",
+          text,
+          source: "web",
+          createdAt: new Date().toISOString(),
+        };
+        setMessagesByTicket((prev) => ({
+          ...prev,
+          [activeTicket.id]: [...(prev[activeTicket.id] ?? []), localMessage],
+        }));
+        setTickets((prev) =>
+          prev.map((ticket) =>
+            ticket.id === activeTicket.id ? { ...ticket, updatedAt: localMessage.createdAt } : ticket,
+          ),
+        );
+        setDraft("");
+        return;
+      }
+
       if (!activeTicket) {
         const created = await platformApi.createSupportTicket(token, text);
         setTickets((prev) => [created, ...prev]);
@@ -325,12 +370,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!token ? (
-          <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            Please log in to open support chat.
-          </p>
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <div className="grid gap-3 lg:grid-cols-[17rem_minmax(0,1fr)]">
             <aside className="rounded-2xl border border-burgundy-100 bg-white p-2 shadow-soft dark:border-zinc-800 dark:bg-zinc-950/90">
               <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">Dialogs</p>
               <div className="space-y-2">
@@ -466,8 +506,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                 </div>
               ) : null}
             </section>
-          </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

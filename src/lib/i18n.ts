@@ -54,6 +54,7 @@ const RU: Dictionary = {
   "menu.navigation": "Навигация",
   "menu.chats": "Чаты",
   "menu.games": "Игры",
+  "menu.support": "Support",
   "menu.studySoonTitle": "Study",
   "menu.studySoonText": "Скоро добавим. Скоро сайт будет приложением.",
   "landing.badge": "Iman | Bakhruz",
@@ -460,6 +461,7 @@ const UZ: Dictionary = {
   "menu.navigation": "Navigatsiya",
   "menu.chats": "Chatlar",
   "menu.games": "O'yinlar",
+  "menu.support": "Support",
   "menu.studySoonTitle": "Study",
   "menu.studySoonText": "Tez orada qo'shamiz. Tez orada sayt ilovaga aylanadi.",
   "landing.badge": "Iman | Bakhruz",
@@ -870,6 +872,7 @@ const EN: Dictionary = {
   "menu.navigation": "Navigation",
   "menu.chats": "Chats",
   "menu.games": "Games",
+  "menu.support": "Support",
   "menu.studySoonTitle": "Study",
   "menu.studySoonText": "Coming soon. The website will soon become an app.",
   "landing.badge": "Iman | Bakhruz",
@@ -1239,4 +1242,3 @@ export function translate(locale: Locale, key: string, params?: TranslateParams)
     template,
   );
 }
-
