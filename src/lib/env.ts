@@ -1,5 +1,6 @@
 export type DataProviderMode = "mock" | "api";
 
+const PRODUCTION_PLATFORM_API_URL = "https://result-backend-ynme.onrender.com";
 
 
 function isLocalBrowser(): boolean {
@@ -28,7 +29,7 @@ function normalizeApiUrl(value: string | undefined, localFallback: string): stri
     return localFallback;
   }
 
-  return "";
+  return PRODUCTION_PLATFORM_API_URL;
 }
 
 function normalizePlatformApiUrl(value: string | undefined, localFallback: string): string {
