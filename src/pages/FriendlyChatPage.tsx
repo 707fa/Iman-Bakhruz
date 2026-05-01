@@ -366,7 +366,7 @@ export function FriendlyChatPage() {
 
     if (!token) {
       setUseLocalMode(true);
-      setModeNotice(t("chat.localMode"));
+      setModeNotice(null);
       const localId = ensureLocalConversation(targetId);
       if (localId) {
         loadLocalConversations();
@@ -389,7 +389,7 @@ export function FriendlyChatPage() {
         return;
       }
       setUseLocalMode(true);
-      setModeNotice(t("chat.localMode"));
+      setModeNotice(null);
       const localId = ensureLocalConversation(targetId);
       if (localId) {
         loadLocalConversations();
@@ -428,7 +428,7 @@ export function FriendlyChatPage() {
         return;
       }
       setUseLocalMode(true);
-      setModeNotice(t("chat.localMode"));
+      setModeNotice(null);
       loadLocalConversations();
     } finally {
       setLoadingConversations(false);
@@ -501,7 +501,7 @@ export function FriendlyChatPage() {
         }
         if (disposed) return;
         setUseLocalMode(true);
-        setModeNotice(t("chat.localMode"));
+        setModeNotice(null);
         loadLocalMessages(activeConversationId);
       } finally {
         if (!disposed) {
@@ -614,7 +614,7 @@ export function FriendlyChatPage() {
 
     if (!token) {
       setUseLocalMode(true);
-      setModeNotice(t("chat.localMode"));
+      setModeNotice(null);
       setDraft(text);
       setSending(false);
       return;
@@ -649,7 +649,7 @@ export function FriendlyChatPage() {
         return;
       }
       setUseLocalMode(true);
-      setModeNotice(t("chat.localMode"));
+      setModeNotice(null);
       setDraft(text);
     } finally {
       setSending(false);

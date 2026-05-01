@@ -35,8 +35,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (!API_BASE_URL_CONFIGURED) {
     throw new ApiError(
       0,
-      { message: "Platform API URL is not configured. Set VITE_PLATFORM_API_URL in Vercel." },
-      "Platform API URL is not configured",
+      { message: "Service is not ready yet." },
+      "Service is not ready yet",
     );
   }
 

@@ -441,8 +441,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 systemContext,
               });
               setMessages(updatedMessages.map((item) => (item.role === "assistant" ? { ...item, text: normalizeAssistantReply(item.text) } : item)));
-              setStatusHint("Gateway unavailable. Switched to backend AI.");
-              showToast({ message: "Gateway unavailable. Backup AI mode enabled.", tone: "info" });
+              setStatusHint(null);
               return;
             } catch (fallbackError) {
               if (isAuthError(fallbackError)) {
@@ -456,7 +455,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           }
 
           if (isApiMode && !token) {
-            showToast({ message: "Please log in again: backend token is required for AI.", tone: "error" });
+            showToast({ message: "Iltimos, qayta kiring va yana urinib ko'ring.", tone: "error" });
             return;
           }
 
@@ -506,7 +505,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       <CardContent className="space-y-3">
         {!canUseApi ? (
           <p className="rounded-2xl border border-burgundy-100 bg-white px-4 py-3 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            AI chat requires API login or configured gateway URL.
+            Iman Chat hozir tayyorlanmoqda. Iltimos, birozdan keyin qayta urinib ko'ring.
           </p>
         ) : (
           <>

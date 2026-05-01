@@ -462,7 +462,7 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
       lastChallengeFingerprintRef.current = challengeFingerprint(fallback);
       setChallenge(fallback);
       setLoadingChallenge(false);
-      setError("AI mode not connected. Fallback round loaded.");
+      setError(null);
       return;
     }
 
@@ -496,13 +496,13 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
         const fallback = fallbackChallenge(nextType, `${generationKey}:fallback`, lastChallengeFingerprintRef.current);
         lastChallengeFingerprintRef.current = challengeFingerprint(fallback);
         setChallenge(fallback);
-        setError("AI returned invalid format, fallback round loaded.");
+        setError(null);
       }
     } catch {
       const fallback = fallbackChallenge(nextType, `${generationKey}:error`, lastChallengeFingerprintRef.current);
       lastChallengeFingerprintRef.current = challengeFingerprint(fallback);
       setChallenge(fallback);
-      setError("AI temporarily unavailable, fallback round loaded.");
+      setError(null);
     } finally {
       setLoadingChallenge(false);
     }
@@ -654,7 +654,7 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
         <CardContent className="space-y-4">
           {!canUseAi ? (
             <div className="rounded-2xl border border-burgundy-200 bg-burgundy-50 px-4 py-3 text-sm text-burgundy-800 dark:border-burgundy-800 dark:bg-burgundy-950/35 dark:text-white">
-              AI API not connected. Login in API mode for fully dynamic games. Fallback rounds are active.
+              O'yinlar tayyor. Natijalar avtomatik saqlanadi.
             </div>
           ) : null}
 
@@ -854,5 +854,3 @@ export function EnglishGamesArena({ role }: EnglishGamesArenaProps) {
     </div>
   );
 }
-
-

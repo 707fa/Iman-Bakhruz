@@ -288,7 +288,7 @@ export function StudentGroupPage() {
 
         {!canUseApi ? (
           <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            Домашние задания доступны в API режиме.
+            Домашние задания скоро появятся.
           </p>
         ) : loadingHomework ? (
           <p className="text-sm text-charcoal/60 dark:text-zinc-400">Загрузка заданий...</p>

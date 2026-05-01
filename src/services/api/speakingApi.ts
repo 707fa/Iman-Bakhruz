@@ -337,7 +337,7 @@ export function mapSpeakingApiErrorToMessage(error: unknown): string {
     }
   }
   if (error instanceof TypeError) {
-    return "Network error. Check internet or API connection.";
+    return "Connection problem. Please check internet and try again.";
   }
   return "Could not check right now. Please try again.";
 }

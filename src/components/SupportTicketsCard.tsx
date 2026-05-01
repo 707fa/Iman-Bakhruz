@@ -289,7 +289,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     try {
       if (!token || apiBlocked) {
         if (requiresApi) {
-          setSupportError("Support API ulanmagan. Iltimos, qayta kiring va yana yuboring.");
+          setSupportError("Iltimos, qayta kiring va yana yuboring.");
           return;
         }
 
@@ -355,7 +355,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       }));
     } catch {
       if (requiresApi) {
-        setSupportError("Support xabari backendga yuborilmadi. API yoki Telegram sozlamasini tekshiring.");
+        setSupportError("Xabar yuborilmadi. Iltimos, birozdan keyin yana urinib ko'ring.");
       }
 
       if (!activeTicket) {

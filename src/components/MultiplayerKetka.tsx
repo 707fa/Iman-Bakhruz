@@ -718,7 +718,7 @@ function KetkaInviteBox({
 
       {!socketConnected ? (
         <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-          Online game server is not configured yet. Set VITE_SOCKET_URL to the realtime backend and allow your Vercel domain in that backend CORS.
+          Online o'yin hozir tayyorlanmoqda.
         </div>
       ) : null}
 

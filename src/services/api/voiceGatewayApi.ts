@@ -74,7 +74,7 @@ export function isVoiceGatewayReady(): boolean {
 
 export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTtsResponse> {
   if (!isVoiceGatewayReady() || !VOICE_GATEWAY_URL) {
-    throw new ApiError(0, { message: "Voice gateway URL is not configured." }, "Voice gateway is disabled");
+    throw new ApiError(0, { message: "Voice is not ready yet." }, "Voice is not ready yet");
   }
 
   const text = payload.text.trim();

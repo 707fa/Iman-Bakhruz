@@ -65,7 +65,7 @@ export function mapAiGatewayErrorToMessage(error: unknown): string {
     const code = extractErrorCode(error);
 
     if (error.status === 0 || code === "NETWORK_ERROR") {
-      return "Network error. Check internet or gateway URL.";
+      return "Connection problem. Please check internet and try again.";
     }
 
     if (error.status === 408 || code === "AI_GATEWAY_TIMEOUT") {
@@ -81,7 +81,7 @@ export function mapAiGatewayErrorToMessage(error: unknown): string {
     }
 
     if (error.status >= 500) {
-      return "Gateway temporary error. Please retry.";
+      return "Service is temporarily unavailable. Please retry.";
     }
 
     if (error.status >= 400) {
@@ -90,7 +90,7 @@ export function mapAiGatewayErrorToMessage(error: unknown): string {
   }
 
   if (error instanceof TypeError) {
-    return "Network error. Check internet or gateway URL.";
+    return "Connection problem. Please check internet and try again.";
   }
 
   return "Failed to get AI reply. Try again.";
@@ -98,7 +98,7 @@ export function mapAiGatewayErrorToMessage(error: unknown): string {
 
 export async function aiGatewayCheckHomework(payload: AiGatewayCheckPayload): Promise<AiGatewayCheckResponse> {
   if (!AI_GATEWAY_URL) {
-    throw new Error("AI gateway URL is not configured");
+    throw new Error("AI service is not ready yet");
   }
 
   const text = (payload.text || "").trim();
