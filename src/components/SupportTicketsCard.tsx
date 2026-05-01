@@ -1,6 +1,7 @@
 import { AlertCircle, Check, CheckCheck, LifeBuoy, Loader2, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SupportTicket, SupportTicketMessage, SupportTicketStatus, UserRole } from "../types";
+import { DATA_PROVIDER_MODE } from "../lib/env";
 import { ApiError } from "../services/api/http";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken, getSessionUserId } from "../services/tokenStorage";
@@ -120,7 +121,9 @@ function createLocalSupportTicket(role: UserRole, userId: string, text: string):
 
 export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
   const token = getApiToken();
+  const requiresApi = DATA_PROVIDER_MODE === "api";
   const [apiBlocked, setApiBlocked] = useState(false);
+  const [supportError, setSupportError] = useState("");
   const userId = getSessionUserId() || "guest";
   const cacheKey = useMemo(() => getSupportCacheKey(role, userId), [role, userId]);
   const hydratedRef = useRef(false);
@@ -164,12 +167,12 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
 
   const sortedTickets = useMemo(
     () =>
-      [...tickets].sort((a, b) => {
+      [...tickets].filter((ticket) => !requiresApi || !ticket.id.startsWith("local_")).sort((a, b) => {
         const aTime = new Date(a.updatedAt || a.createdAt).getTime();
         const bTime = new Date(b.updatedAt || b.createdAt).getTime();
         return bTime - aTime;
       }),
-    [tickets],
+    [requiresApi, tickets],
   );
 
   const activeTicket = useMemo(
@@ -281,9 +284,15 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     if (!draft.trim() || sending) return;
     const text = draft.trim();
     setSending(true);
+    setSupportError("");
 
     try {
       if (!token || apiBlocked) {
+        if (requiresApi) {
+          setSupportError("Support API ulanmagan. Iltimos, qayta kiring va yana yuboring.");
+          return;
+        }
+
         if (!activeTicket) {
           const created = createLocalSupportTicket(role, userId, text);
           setTickets((prev) => [created, ...prev]);
@@ -313,7 +322,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
         return;
       }
 
-      if (!activeTicket) {
+      if (!activeTicket || activeTicket.id.startsWith("local_")) {
         const created = await platformApi.createSupportTicket(token, text);
         setTickets((prev) => [created, ...prev]);
         setActiveTicketId(created.id);
@@ -345,7 +354,14 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
         ),
       }));
     } catch {
+      if (requiresApi) {
+        setSupportError("Support xabari backendga yuborilmadi. API yoki Telegram sozlamasini tekshiring.");
+      }
+
       if (!activeTicket) {
+        if (requiresApi) {
+          return;
+        }
         const created = createLocalSupportTicket(role, userId, text);
         setTickets((prev) => [created, ...prev]);
         setActiveTicketId(created.id);
@@ -489,7 +505,10 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                     <textarea
                       ref={draftRef}
                       value={draft}
-                      onChange={(event) => setDraft(event.target.value)}
+                      onChange={(event) => {
+                        setDraft(event.target.value);
+                        if (supportError) setSupportError("");
+                      }}
                       placeholder="Write your message to support..."
                       rows={1}
                       className="max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-xl border-0 bg-transparent px-3 py-2.5 text-charcoal shadow-none placeholder:text-charcoal/40 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
@@ -502,13 +521,18 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                     />
                     <Button
                       onClick={() => void handleSend()}
-                      disabled={!draft.trim() || sending}
+                      disabled={!draft.trim() || sending || (requiresApi && (!token || apiBlocked))}
                       className="h-11 w-11 shrink-0 rounded-full border-0 bg-[#6F0000] p-0 text-white hover:bg-[#820000]"
                       aria-label="Send support message"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
+                  {supportError ? (
+                    <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
+                      {supportError}
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
 
