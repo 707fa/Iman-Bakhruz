@@ -93,7 +93,3 @@ export function AnimatedKetkaCard({ card, onCorrect, onWrong }: AnimatedKetkaCar
   );
 }
 
-// CSS for 3D flip effect
-// Add this to index.css or a global stylesheet:
-// .perspective { perspective: 1200px; }
-// .rotate-y-180 { transform: rotateY(180deg); }
