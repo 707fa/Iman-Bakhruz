@@ -12,7 +12,8 @@ VITE_DATA_PROVIDER=api
 VITE_AI_GATEWAY_ENABLED=true
 VITE_VOICE_GATEWAY_URL=https://your-realtime-backend.onrender.com
 VITE_VOICE_GATEWAY_ENABLED=true
-VITE_VOICE_TTS_VOICE=female-natural
+VITE_VOICE_TTS_VOICE=coral
+VITE_VOICE_BROWSER_FALLBACK_ENABLED=false
 ```
 
 `VITE_PLATFORM_API_URL` is your Django backend from `ResaultBac`.

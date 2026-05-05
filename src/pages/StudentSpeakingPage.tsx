@@ -14,8 +14,10 @@ import { useUi } from "../hooks/useUi";
 import { getSpeakingQuestionsForLevel } from "../data/speakingQuestions";
 import { normalizeStudentLevelFromGroupTitle, resolveAiFeedbackLanguage } from "../lib/studentLevel";
 import { checkSpeakingAnswer, generateSpeakingQuestions, mapSpeakingApiErrorToMessage, type GeneratedSpeakingQuestion } from "../services/api/speakingApi";
+import { isVoiceGatewayReady, requestVoiceTts } from "../services/api/voiceGatewayApi";
 import { getApiToken } from "../services/tokenStorage";
 import { platformApi } from "../services/api/platformApi";
+import { pickGatewayVoice } from "../lib/speech";
 import type { HomeworkTask, SpeakingAnalysisResult } from "../types";
 
 type SpeakingStatus = "idle" | "listening" | "processing" | "success" | "error";
@@ -158,6 +160,7 @@ export function StudentSpeakingPage() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [result, setResult] = useState<SpeakingAnalysisResult | null>(null);
   const [speakingNotice, setSpeakingNotice] = useState<string | null>(null);
+  const [questionVoiceLoading, setQuestionVoiceLoading] = useState(false);
   const [mobileSection, setMobileSection] = useState<"practice" | "analysis" | "history">("practice");
   const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
   const wasListeningRef = useRef(false);
@@ -322,29 +325,28 @@ export function StudentSpeakingPage() {
     setSpeakingNotice("Recording is on. Speak clearly, then press Stop.");
   }
 
-  function listenQuestion() {
+  async function listenQuestion() {
     if (!currentQuestion) return;
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+
+    if (!isVoiceGatewayReady()) {
       showToast({ message: t("speaking.listenUnavailable"), tone: "error" });
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(currentQuestion.prompt);
-    utterance.lang = "en-US";
-    utterance.rate = 1.02;
-    utterance.pitch = 1.05;
-
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice =
-      voices.find((voice) => /en-us/i.test(voice.lang) && /(female|samantha|zira|aria|google us english)/i.test(voice.name)) ??
-      voices.find((voice) => /en-us/i.test(voice.lang)) ??
-      voices.find((voice) => /en/i.test(voice.lang));
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
+    setQuestionVoiceLoading(true);
+    try {
+      const response = await requestVoiceTts({
+        text: currentQuestion.prompt,
+        lang: "en-US",
+        voice: pickGatewayVoice("en-US"),
+      });
+      const audio = new Audio(response.audioSrc);
+      await audio.play();
+    } catch {
+      showToast({ message: t("speaking.listenUnavailable"), tone: "error" });
+    } finally {
+      setQuestionVoiceLoading(false);
     }
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
   }
 
   function goToNextQuestionAfterSuccess() {
@@ -503,8 +505,8 @@ export function StudentSpeakingPage() {
             </motion.p>
           </AnimatePresence>
         </div>
-        <Button variant="secondary" onClick={listenQuestion} className="h-11 rounded-full px-4 text-sm sm:px-5">
-          <Volume2 className="mr-2 h-4 w-4" />
+        <Button variant="secondary" onClick={listenQuestion} disabled={questionVoiceLoading} className="h-11 rounded-full px-4 text-sm sm:px-5">
+          {questionVoiceLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Volume2 className="mr-2 h-4 w-4" />}
           {t("speaking.listenQuestion")}
         </Button>
       </CardContent>

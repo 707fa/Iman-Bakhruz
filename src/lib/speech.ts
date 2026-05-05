@@ -4,7 +4,7 @@ export interface BrowserSpeakOptions {
   volume?: number;
 }
 
-const GATEWAY_FEMALE_VOICE = "shimmer";
+const GATEWAY_FEMALE_VOICE = "coral";
 
 function normalizeLang(lang: string): string {
   const safe = (lang || "en-US").trim().toLowerCase();
