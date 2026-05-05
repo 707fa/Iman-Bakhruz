@@ -14,7 +14,7 @@ function toSpeechText(text: string): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  if (normalized.length <= 260) return normalized;
+  if (normalized.length <= 180) return normalized;
 
   const chunks = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
   if (chunks.length === 0) return normalized.slice(0, 260);
@@ -22,12 +22,12 @@ function toSpeechText(text: string): string {
   let combined = "";
   for (let index = 0; index < chunks.length; index += 1) {
     const next = chunks[index];
-    if ((`${combined} ${next}`.trim()).length > 260) break;
+    if ((`${combined} ${next}`.trim()).length > 180) break;
     combined = `${combined} ${next}`.trim();
-    if (index >= 1) break;
+    if (index >= 0) break;
   }
 
-  return combined || normalized.slice(0, 260);
+  return combined || normalized.slice(0, 180);
 }
 
 interface OutputMeterSession {

@@ -334,6 +334,7 @@ export function StudentSpeakingPage() {
     }
 
     setQuestionVoiceLoading(true);
+    setSpeakingNotice("Preparing voice...");
     try {
       const response = await requestVoiceTts({
         text: currentQuestion.prompt,
@@ -346,6 +347,7 @@ export function StudentSpeakingPage() {
       showToast({ message: t("speaking.listenUnavailable"), tone: "error" });
     } finally {
       setQuestionVoiceLoading(false);
+      setSpeakingNotice(null);
     }
   }
 
