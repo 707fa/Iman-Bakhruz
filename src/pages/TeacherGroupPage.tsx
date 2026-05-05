@@ -1,8 +1,7 @@
-﻿import { BookOpenCheck, ChevronLeft, Clock3, Crown, Mic, Sparkles } from "lucide-react";
+﻿import { BookOpenCheck, ChevronLeft, Clock3, Crown, Minus, Mic, Plus, Search, Sparkles, UserCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
-import { ScoreActions } from "../components/ScoreActions";
 import { StatusBadge } from "../components/StatusBadge";
 import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
@@ -52,6 +51,8 @@ export function TeacherGroupPage() {
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, ReviewDraft>>({});
   const [savingSubmissionId, setSavingSubmissionId] = useState<string | null>(null);
+  const [scoreDrafts, setScoreDrafts] = useState<Record<string, string>>({});
+  const [scoringStudentId, setScoringStudentId] = useState<string | null>(null);
 
   const [speakingTasks, setSpeakingTasks] = useState<HomeworkTask[]>([]);
   const [loadingSpeaking, setLoadingSpeaking] = useState(false);
@@ -69,6 +70,7 @@ export function TeacherGroupPage() {
   const students = hasAccess
     ? state.students.filter((student) => student.groupId === group.id).sort((a, b) => b.points - a.points)
     : [];
+  const paidStudentsCount = students.filter((student) => student.isPaid).length;
 
   const top = hasAccess ? getGroupTop(state, group!.id, 10) : [];
   const normalizedStudentSearch = studentSearch.trim().toLowerCase();
@@ -292,6 +294,33 @@ export function TeacherGroupPage() {
     }
   }
 
+  async function handleScore(studentId: string, value: number, label: string) {
+    if (!group || scoringStudentId) return;
+    setScoringStudentId(studentId);
+    try {
+      const result = await applyScore(studentId, group.id, { value, label });
+      showToast({
+        message: t(result.messageKey, result.messageParams),
+        tone: result.ok ? "success" : "error",
+      });
+      if (result.ok) {
+        setScoreDrafts((prev) => ({ ...prev, [studentId]: "" }));
+      }
+    } finally {
+      setScoringStudentId(null);
+    }
+  }
+
+  function handleCustomScore(studentId: string) {
+    const raw = scoreDrafts[studentId] ?? "";
+    const parsed = Number(raw.replace(",", "."));
+    if (!Number.isFinite(parsed) || raw.trim().length === 0) {
+      showToast({ tone: "error", message: "Введите балл." });
+      return;
+    }
+    void handleScore(studentId, Number(parsed.toFixed(2)), "Custom score");
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -324,55 +353,121 @@ export function TeacherGroupPage() {
 
       {hasAccess ? (
         <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card>
+              <CardContent className="p-4">
+                <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/55 dark:text-zinc-400">
+                  <UserCheck className="h-4 w-4 text-burgundy-700 dark:text-white" />
+                  {t("teacher.myStudents")}
+                </p>
+                <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{students.length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/55 dark:text-zinc-400">Full access</p>
+                <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{paidStudentsCount}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/55 dark:text-zinc-400">Average score</p>
+                <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">
+                  {students.length ? (students.reduce((sum, student) => sum + student.points, 0) / students.length).toFixed(1) : "0"}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
-            <CardContent className="p-4 sm:p-5">
-              <Input
-                value={studentSearch}
-                onChange={(event) => setStudentSearch(event.target.value)}
-                placeholder={t("search.studentByName")}
-              />
+            <CardContent className="p-3 sm:p-4">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-charcoal/40 dark:text-zinc-500" />
+                <Input
+                  value={studentSearch}
+                  onChange={(event) => setStudentSearch(event.target.value)}
+                  placeholder={t("search.studentByName")}
+                  className="pl-9"
+                />
+              </div>
             </CardContent>
           </Card>
 
           <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
-            <section className="grid gap-3 md:grid-cols-2">
+            <section className="space-y-2">
               {filteredStudents.map((student) => (
                 <Card key={student.id}>
-                  <CardContent className="space-y-2.5 p-3 sm:p-3.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                      <div className="flex min-w-0 items-center gap-3">
                         <UserAvatar fullName={student.fullName} avatarUrl={student.avatarUrl} size="sm" />
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
-                          <p className="truncate text-xs text-charcoal/55 dark:text-zinc-400">{student.phone}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
+                            <StatusBadge status={student.statusBadge} />
+                            {student.isPaid ? <Badge variant="positive">Full</Badge> : null}
+                          </div>
+                          <p className="mt-0.5 truncate text-xs text-charcoal/55 dark:text-zinc-400">{student.phone}</p>
                         </div>
                       </div>
-                      <Badge variant="soft">{student.points.toFixed(2)}</Badge>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <StatusBadge status={student.statusBadge} />
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Link
-                          to={`/teacher/student/${student.id}`}
-                          className="text-xs font-semibold text-burgundy-700 transition hover:text-burgundy-600 dark:text-white dark:hover:text-white"
+                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                        <Badge variant="soft" className="min-w-[4.5rem] justify-center">{student.points.toFixed(2)}</Badge>
+                        <Button
+                          size="sm"
+                          variant="positive"
+                          onClick={() => void handleScore(student.id, 5, t("score.quickDone"))}
+                          disabled={scoringStudentId === student.id}
+                          className="w-16"
                         >
-                          {t("menu.profile")}
+                          <Plus className="mr-1 h-3.5 w-3.5" />
+                          5
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="positive"
+                          onClick={() => void handleScore(student.id, 3.5, t("score.quickOneLeft"))}
+                          disabled={scoringStudentId === student.id}
+                          className="w-16"
+                        >
+                          <Plus className="mr-1 h-3.5 w-3.5" />
+                          3.5
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => void handleScore(student.id, -2, t("score.quickNotDone"))}
+                          disabled={scoringStudentId === student.id}
+                          className="w-16"
+                        >
+                          <Minus className="mr-1 h-3.5 w-3.5" />
+                          2
+                        </Button>
+                        <Input
+                          value={scoreDrafts[student.id] ?? ""}
+                          onChange={(event) => setScoreDrafts((prev) => ({ ...prev, [student.id]: event.target.value }))}
+                          placeholder="+/-"
+                          inputMode="decimal"
+                          className="h-9 w-20 rounded-xl text-sm"
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              handleCustomScore(student.id);
+                            }
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleCustomScore(student.id)}
+                          disabled={scoringStudentId === student.id}
+                        >
+                          {t("score.apply")}
+                        </Button>
+                        <Link to={`/teacher/student/${student.id}`}>
+                          <Button size="sm" variant="ghost">{t("menu.profile")}</Button>
                         </Link>
                       </div>
                     </div>
-
-                    <ScoreActions
-                      onSelect={(action) => {
-                        void (async () => {
-                          const result = await applyScore(student.id, group.id, action);
-                          showToast({
-                            message: t(result.messageKey, result.messageParams),
-                            tone: result.ok ? "success" : "error",
-                          });
-                        })();
-                      }}
-                    />
                   </CardContent>
                 </Card>
               ))}
@@ -663,7 +758,6 @@ export function TeacherGroupPage() {
     </div>
   );
 }
-
 
 
 
