@@ -69,11 +69,11 @@ function normalizeJsonTts(payload: unknown): VoiceTtsResponse | null {
 }
 
 export function isVoiceGatewayReady(): boolean {
-  return VOICE_GATEWAY_ENABLED && Boolean(VOICE_GATEWAY_URL);
+  return VOICE_GATEWAY_ENABLED && VOICE_GATEWAY_URL !== null;
 }
 
 export async function requestVoiceTts(payload: VoiceTtsPayload): Promise<VoiceTtsResponse> {
-  if (!isVoiceGatewayReady() || !VOICE_GATEWAY_URL) {
+  if (!isVoiceGatewayReady() || VOICE_GATEWAY_URL === null) {
     throw new ApiError(0, { message: "Voice is not ready yet." }, "Voice is not ready yet");
   }
 

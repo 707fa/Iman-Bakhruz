@@ -87,6 +87,12 @@ function normalizeOptionalUrl(value: string | undefined): string | null {
   return cleaned;
 }
 
+function normalizeVoiceGatewayUrl(value: string | undefined): string | null {
+  const normalized = normalizeOptionalUrl(value);
+  if (normalized !== null) return normalized;
+  return shouldUseSameOriginApiProxy() ? "" : null;
+}
+
 function normalizeTimeout(value: string | undefined, fallbackMs: number): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallbackMs;
@@ -117,7 +123,7 @@ export const API_REQUEST_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_API_
 export const AI_GATEWAY_URL = normalizeOptionalUrl(gatewayUrlCandidate);
 export const AI_GATEWAY_ENABLED = normalizeBoolean(import.meta.env.VITE_AI_GATEWAY_ENABLED, AI_GATEWAY_URL !== null);
 export const AI_GATEWAY_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_AI_GATEWAY_TIMEOUT_MS, 90000);
-export const VOICE_GATEWAY_URL = normalizeOptionalUrl(voiceGatewayUrlCandidate);
+export const VOICE_GATEWAY_URL = normalizeVoiceGatewayUrl(voiceGatewayUrlCandidate);
 export const VOICE_GATEWAY_ENABLED = normalizeBoolean(import.meta.env.VITE_VOICE_GATEWAY_ENABLED, VOICE_GATEWAY_URL !== null);
 export const VOICE_TTS_VOICE = normalizeOptionalText(import.meta.env.VITE_VOICE_TTS_VOICE);
 export const VOICE_BROWSER_FALLBACK_ENABLED = normalizeBoolean(import.meta.env.VITE_VOICE_BROWSER_FALLBACK_ENABLED, true);
