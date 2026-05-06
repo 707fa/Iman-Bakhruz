@@ -52,7 +52,7 @@ export function AnimatedKetkaLobby() {
             onChange={e => setPlayerName(e.target.value)}
           />
           <button
-            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+            className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-700"
             onClick={handleAddPlayer}
           >
             Добавить
@@ -77,7 +77,6 @@ export function AnimatedKetkaLobby() {
     );
   }
 
-  // Шаг: ввод карточек учеником
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-xl shadow-lg text-black">
     <h2 className="text-xl font-bold mb-4">Добавьте свои карточки</h2>

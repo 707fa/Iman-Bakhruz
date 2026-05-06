@@ -81,6 +81,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new ApiError(408, { message: "Request timeout" }, "API request timeout");
     }
+
+    // Network-level failures: CORS, refused, offline, DNS, etc.
+    if (error instanceof TypeError) {
+      throw new ApiError(0, { message: error.message || "Network error" }, "API network error");
+    }
+
     throw error;
   } finally {
     clearTimeout(timeoutId);
