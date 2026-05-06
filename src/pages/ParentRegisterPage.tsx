@@ -68,7 +68,7 @@ export function ParentRegisterPage() {
         <CardHeader className="space-y-3">
           <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
             <BrandLogo
-              title="Iman | Bakhruz"
+              title="Iman | Bekhruz"
               subtitle="Parent Access"
               size="sm"
               className="min-w-0 flex-1"

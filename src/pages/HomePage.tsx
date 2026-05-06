@@ -39,19 +39,19 @@ const teacherStoryKeys = [
 const teacherSlides = [
   {
     src: teacherPhoto,
-    alt: "Iman Bakhruz teacher portrait",
+    alt: "Iman | Bekhruz teacher portrait",
     labelKey: "landing.slide1",
     position: "50% 18%",
   },
   {
     src: teacherPhoto,
-    alt: "Iman Bakhruz class mentor portrait",
+    alt: "Iman | Bekhruz class mentor portrait",
     labelKey: "landing.slide2",
     position: "50% 35%",
   },
   {
     src: teacherPhoto,
-    alt: "Iman Bakhruz professional profile portrait",
+    alt: "Iman | Bekhruz professional profile portrait",
     labelKey: "landing.slide3",
     position: "50% 52%",
   },
@@ -109,7 +109,7 @@ export function HomePage() {
 
   const teacher = state.teachers[0];
   const displayPhone = teacher?.phone || DEFAULT_PHONE;
-  const teacherName = "Iman Bakhruz";
+  const teacherName = "Iman | Bekhruz";
   const dashboardHref = state.session ? roleHome(state.session.role) : "/login";
 
   useEffect(() => {

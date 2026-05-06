@@ -26,7 +26,7 @@ export function HomeCenterPage() {
 
   const teacher = state.teachers[0];
   const displayPhone = teacher?.phone || DEFAULT_PHONE;
-  const teacherName = "Iman Bakhruz";
+  const teacherName = "Iman | Bekhruz";
   const dashboardHref = state.session ? roleHome(state.session.role) : "/login";
 
   return (

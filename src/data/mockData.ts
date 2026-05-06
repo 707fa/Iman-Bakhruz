@@ -24,7 +24,7 @@ export const teachers: Teacher[] = [
   },
   {
     id: "t_3",
-    fullName: "Iman | Bakhruz",
+    fullName: "Iman | Bekhruz",
     phone: "+998909788255",
     password: "909788255@@",
     groupIds: ["g_101", "g_102", "g_103", "g_104", "g_105", "g_106", "g_201", "g_202", "g_203", "g_204", "g_205"],
