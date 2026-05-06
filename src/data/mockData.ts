@@ -44,17 +44,6 @@ export const students: Student[] = [
     paidUntil: "2035-01-01T00:00:00+05:00",
   },
   {
-    id: "s_3",
-    fullName: "Axrorov",
-    phone: "+998888888888",
-    password: "qwerty",
-    groupId: "g_104",
-    parentInviteCode: "PARENT-S2",
-    points: 0,
-    isPaid: true,
-    paidUntil: "2035-01-01T00:00:00+05:00",
-  },
-  {
     id: "s_2",
     fullName: "Ахроров Фаррух",
     phone: "+998999999999",

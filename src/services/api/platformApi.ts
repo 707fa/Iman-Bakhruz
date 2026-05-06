@@ -26,7 +26,7 @@ import type {
 } from "../../types";
 import { apiRequest } from "./http";
 
-const AUTH_REQUEST_TIMEOUT_MS = 3000;
+const AUTH_REQUEST_TIMEOUT_MS = 15000;
 
 export interface AuthResponse {
   token: string;
