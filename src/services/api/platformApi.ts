@@ -30,6 +30,7 @@ const AUTH_REQUEST_TIMEOUT_MS = 15000;
 
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   role: UserRole;
   userId: string;
   subscription?: SubscriptionState;
@@ -321,6 +322,7 @@ function normalizeAuthResponse(payload: unknown): AuthResponse {
 
   const user = asRecord(data.user);
   const token = data.token ?? data.accessToken;
+  const refreshToken = data.refreshToken ?? data.refresh;
   const role = normalizeRole(data.role ?? user?.role);
   const userId = data.userId ?? user?.id;
 
@@ -330,10 +332,20 @@ function normalizeAuthResponse(payload: unknown): AuthResponse {
 
   return {
     token: str(token),
+    refreshToken: refreshToken ? str(refreshToken) : undefined,
     role,
     userId: str(userId),
     subscription: normalizeSubscription(data.subscription),
   };
+}
+
+function normalizeRefreshResponse(payload: unknown): string {
+  const data = getDataObject(payload) ?? asRecord(payload);
+  const token = data?.access ?? data?.accessToken ?? data?.token;
+  if (!token) {
+    throw new Error("Invalid token refresh response");
+  }
+  return str(token);
 }
 
 function normalizeStatePayload(payload: unknown): RemoteStatePayload {
@@ -621,6 +633,15 @@ export const platformApi = {
       token,
     });
     return normalizeStatePayload(response);
+  },
+
+  async refreshToken(refreshToken: string) {
+    const response = await apiRequest<unknown>("/token/refresh/", {
+      method: "POST",
+      body: { refresh: refreshToken },
+      timeoutMs: AUTH_REQUEST_TIMEOUT_MS,
+    });
+    return normalizeRefreshResponse(response);
   },
 
   async createPayment(token: string, provider: PaymentProvider) {

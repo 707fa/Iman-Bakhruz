@@ -5,7 +5,7 @@ import { getTeacherAccessibleGroupIds } from "../lib/teacherGroups";
 import { makeId, toPhone } from "../lib/utils";
 import { ApiError } from "../services/api/http";
 import { platformApi, toAppStatePayload, type AuthResponse, type RemoteStatePayload } from "../services/api/platformApi";
-import { clearApiToken, getApiToken, setApiToken } from "../services/tokenStorage";
+import { clearApiToken, getApiRefreshToken, getApiToken, setApiRefreshToken, setApiToken } from "../services/tokenStorage";
 import type {
   ActionResult,
   AppState,
@@ -446,8 +446,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (DATA_PROVIDER_MODE !== "api") return;
 
-    const token = getApiToken();
-    if (!token) {
+    const storedToken = getApiToken();
+    const storedRefreshToken = getApiRefreshToken();
+    if (!storedToken && !storedRefreshToken) {
       setState((prev) => (prev.session ? { ...prev, session: null } : prev));
       return;
     }
@@ -455,14 +456,22 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     let disposed = false;
 
     const syncFromApi = async () => {
+      let token = storedToken;
       try {
-        const remote = await platformApi.getState(token);
+        if (!token && storedRefreshToken) {
+          token = await platformApi.refreshToken(storedRefreshToken);
+          setApiToken(token);
+        }
+        if (!token) return;
+
+        const activeToken = token;
+        const remote = await platformApi.getState(activeToken);
         if (disposed) return;
 
         setState((prev) => {
           const restoredSession =
             prev.session ??
-            resolveSessionFromToken(token, remote);
+            resolveSessionFromToken(activeToken, remote);
 
           return withRemoteState(prev, remote, restoredSession);
         });
@@ -470,6 +479,21 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         if (disposed) return;
 
         if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          if (storedRefreshToken) {
+            try {
+              const nextToken = await platformApi.refreshToken(storedRefreshToken);
+              setApiToken(nextToken);
+              const remote = await platformApi.getState(nextToken);
+              if (disposed) return;
+              setState((prev) => {
+                const restoredSession = prev.session ?? resolveSessionFromToken(nextToken, remote);
+                return withRemoteState(prev, remote, restoredSession);
+              });
+              return;
+            } catch {
+              // Refresh token is expired or invalid; clear auth below.
+            }
+          }
           clearApiToken();
           setState((prev) => (prev.session ? { ...prev, session: null } : prev));
           return;
@@ -888,6 +912,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       try {
         const auth = await platformApi.login(normalizedPayload);
         setApiToken(auth.token);
+        if (auth.refreshToken) {
+          setApiRefreshToken(auth.refreshToken);
+        }
         const nextSession = buildSessionFromAuth(auth);
         // Fast first paint: open workspace immediately, sync full state in background.
         setState((prev) => ({ ...withSeedData(prev), session: nextSession }));
@@ -967,6 +994,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       try {
         const auth = await platformApi.register(normalizedPayload);
         setApiToken(auth.token);
+        if (auth.refreshToken) {
+          setApiRefreshToken(auth.refreshToken);
+        }
         const nextSession = buildSessionFromAuth(auth);
 
         // Immediate local update for fast UX. Remote state sync runs in background.
