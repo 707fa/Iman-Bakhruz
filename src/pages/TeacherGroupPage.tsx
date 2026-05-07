@@ -31,6 +31,27 @@ function crownClass(rank: number): string {
   return "text-charcoal/50 dark:text-zinc-400";
 }
 
+const speakingPresets = [
+  {
+    label: "Warm up",
+    title: "Speaking Warm Up",
+    topic: "Daily English",
+    questions: ["How was your day?", "What did you learn today?", "What will you do after class?"],
+  },
+  {
+    label: "Grammar",
+    title: "Speaking Grammar Check",
+    topic: "Lesson grammar",
+    questions: ["Make three sentences with today's grammar.", "Tell a short story using today's grammar.", "Ask your teacher two questions."],
+  },
+  {
+    label: "IELTS",
+    title: "IELTS Speaking Practice",
+    topic: "IELTS Part 2",
+    questions: ["Describe a person who helped you.", "Explain why this person was important.", "What did you learn from this experience?"],
+  },
+];
+
 export function TeacherGroupPage() {
   const { id } = useParams();
   const { state, currentTeacher, applyScore } = useAppStore();
@@ -270,6 +291,12 @@ export function TeacherGroupPage() {
     }
   }
 
+  function applySpeakingPreset(preset: (typeof speakingPresets)[number]) {
+    setSpeakingTitle(preset.title);
+    setSpeakingTopic(preset.topic);
+    setSpeakingQuestionsText(preset.questions.join("\n"));
+  }
+
   async function handleSaveReview(submissionId: string) {
     if (!token) return;
     const draft = reviewDrafts[submissionId];
@@ -499,12 +526,19 @@ export function TeacherGroupPage() {
             </Card>
           </div>
 
-          <Card>
-            <CardContent className="space-y-4 p-4 sm:p-5">
-              <h3 className="inline-flex items-center gap-2 text-lg font-semibold text-charcoal dark:text-zinc-100">
-                <Mic className="h-4 w-4 text-burgundy-700 dark:text-white" />
-                Speaking задания урока
-              </h3>
+          <div className="grid gap-5 xl:grid-cols-2">
+            <Card>
+              <CardContent className="space-y-4 p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="inline-flex items-center gap-2 text-lg font-semibold text-charcoal dark:text-zinc-100">
+                      <Mic className="h-4 w-4 text-burgundy-700 dark:text-white" />
+                      Speaking
+                    </h3>
+                    <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Вопросы для голосовой практики ученикам этой группы.</p>
+                  </div>
+                  <Badge variant="soft">{speakingTasks.length}</Badge>
+                </div>
 
               {!canUseApi ? (
                 <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
@@ -512,7 +546,16 @@ export function TeacherGroupPage() {
                 </p>
               ) : (
                 <>
-                  <div className="grid gap-3 rounded-2xl border border-burgundy-100 p-4 dark:border-zinc-700 md:grid-cols-2">
+                  <div className="space-y-4 rounded-2xl border border-burgundy-100 bg-white/60 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+                    <div className="flex flex-wrap gap-2">
+                      {speakingPresets.map((preset) => (
+                        <Button key={preset.label} type="button" size="sm" variant="secondary" onClick={() => applySpeakingPreset(preset)}>
+                          {preset.label}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Название</label>
                       <Input
@@ -530,25 +573,25 @@ export function TeacherGroupPage() {
                         placeholder="Например: Was/Were"
                       />
                     </div>
+                    </div>
 
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2">
                       <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Вопросы (каждый с новой строки)</label>
                       <textarea
                         value={speakingQuestionsText}
                         onChange={(event) => setSpeakingQuestionsText(event.target.value)}
-                        rows={6}
+                        rows={5}
                         className="w-full resize-y rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-base text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-100 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-burgundy-700 dark:focus:ring-burgundy-900/40"
                         placeholder={"1) What were you doing yesterday evening?\n2) Tell me about your last weekend."}
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Дедлайн</label>
-                      <Input type="datetime-local" value={speakingDueAt} onChange={(event) => setSpeakingDueAt(event.target.value)} />
-                    </div>
-
-                    <div className="flex items-end">
-                      <Button onClick={() => void handleCreateSpeakingTask()} disabled={creatingSpeaking || speakingTitle.trim().length < 3}>
+                    <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Дедлайн</label>
+                        <Input type="datetime-local" value={speakingDueAt} onChange={(event) => setSpeakingDueAt(event.target.value)} />
+                      </div>
+                      <Button onClick={() => void handleCreateSpeakingTask()} disabled={creatingSpeaking || speakingTitle.trim().length < 3} className="w-full md:w-auto">
                         {creatingSpeaking ? "Создаем..." : "Создать speaking"}
                       </Button>
                     </div>
@@ -590,12 +633,21 @@ export function TeacherGroupPage() {
                   )}
                 </>
               )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="space-y-4 p-4 sm:p-5">
-              <h3 className="text-lg font-semibold text-charcoal dark:text-zinc-100">Домашние задания группы</h3>
+            <Card>
+              <CardContent className="space-y-4 p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="inline-flex items-center gap-2 text-lg font-semibold text-charcoal dark:text-zinc-100">
+                      <BookOpenCheck className="h-4 w-4 text-burgundy-700 dark:text-white" />
+                      Домашние задания
+                    </h3>
+                    <p className="mt-1 text-sm text-charcoal/60 dark:text-zinc-400">Обычные задания и проверка ответов учеников.</p>
+                  </div>
+                  <Badge variant="soft">{homeworkTasks.length}</Badge>
+                </div>
 
               {!canUseApi ? (
                 <p className="rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-sm text-charcoal/70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
@@ -603,30 +655,29 @@ export function TeacherGroupPage() {
                 </p>
               ) : (
                 <>
-                  <div className="grid gap-3 rounded-2xl border border-burgundy-100 p-4 dark:border-zinc-700 md:grid-cols-2">
-                    <div className="space-y-2 md:col-span-2">
+                  <div className="space-y-4 rounded-2xl border border-burgundy-100 bg-white/60 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+                    <div className="space-y-2">
                       <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Название задания</label>
                       <Input value={homeworkTitle} onChange={(event) => setHomeworkTitle(event.target.value)} placeholder="Например: Unit 3 Writing" />
                     </div>
 
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2">
                       <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Описание</label>
                       <textarea
                         value={homeworkDescription}
                         onChange={(event) => setHomeworkDescription(event.target.value)}
-                        rows={3}
+                        rows={4}
                         className="w-full resize-y rounded-xl border border-burgundy-100 bg-white px-3 py-2 text-base text-charcoal outline-none transition focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-100 sm:text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-burgundy-700 dark:focus:ring-burgundy-900/40"
                         placeholder="Что нужно сделать ученикам..."
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Дедлайн</label>
-                      <Input type="datetime-local" value={homeworkDueAt} onChange={(event) => setHomeworkDueAt(event.target.value)} />
-                    </div>
-
-                    <div className="flex items-end">
-                      <Button onClick={() => void handleCreateHomework()} disabled={creatingHomework || homeworkTitle.trim().length < 3}>
+                    <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-charcoal dark:text-zinc-100">Дедлайн</label>
+                        <Input type="datetime-local" value={homeworkDueAt} onChange={(event) => setHomeworkDueAt(event.target.value)} />
+                      </div>
+                      <Button onClick={() => void handleCreateHomework()} disabled={creatingHomework || homeworkTitle.trim().length < 3} className="w-full md:w-auto">
                         {creatingHomework ? "Создаем..." : "Создать задание"}
                       </Button>
                     </div>
@@ -639,7 +690,7 @@ export function TeacherGroupPage() {
                       В этой группе пока нет заданий.
                     </p>
                   ) : (
-                    <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+                    <div className="grid gap-4">
                       <div className="space-y-2">
                         {homeworkTasks.map((task) => (
                           <button
@@ -742,15 +793,14 @@ export function TeacherGroupPage() {
                   )}
                 </>
               )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </>
       ) : null}
     </div>
   );
 }
-
-
 
 
 
