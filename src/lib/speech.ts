@@ -104,9 +104,22 @@ export async function speakWithBestBrowserVoice(text: string, lang: string, opti
     utterance.voice = voice;
   }
 
+  const resumeInterval = window.setInterval(() => {
+    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+      window.speechSynthesis.pause();
+      window.speechSynthesis.resume();
+    }
+  }, 10000);
+
   await new Promise<void>((resolve) => {
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
+    utterance.onend = () => {
+      window.clearInterval(resumeInterval);
+      resolve();
+    };
+    utterance.onerror = () => {
+      window.clearInterval(resumeInterval);
+      resolve();
+    };
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   });

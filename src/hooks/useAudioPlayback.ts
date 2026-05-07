@@ -211,10 +211,12 @@ export function useAudioPlayback() {
   );
 
   const playViaBrowserTts = useCallback(
-    async (text: string, lang: string) => {
+    async (chunks: string[], lang: string) => {
       meterRef.current = window.requestAnimationFrame(animateSyntheticMeter);
       try {
-        await speakWithBestBrowserVoice(text, lang, { rate: 0.9, pitch: 1.03, volume: 1 });
+        for (const chunk of chunks) {
+          await speakWithBestBrowserVoice(chunk, lang, { rate: 0.9, pitch: 1.03, volume: 1 });
+        }
       } finally {
         setSpeaking(false);
         stopMeter();
@@ -252,7 +254,7 @@ export function useAudioPlayback() {
         stopMeter();
       }
 
-      await playViaBrowserTts(speechChunks.join(" "), lang);
+      await playViaBrowserTts(speechChunks, lang);
     },
     [cleanupObjectUrl, muted, playViaBrowserTts, playViaGateway, stop, stopMeter],
   );
