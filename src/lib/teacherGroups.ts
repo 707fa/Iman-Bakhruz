@@ -1,7 +1,12 @@
 import type { AppState, Group, Teacher } from "../types";
 
 export function getTeacherAccessibleGroupIds(state: AppState, _teacher: Teacher): Set<string> {
-  return new Set(state.groups.map(g => g.id));
+  const ownGroupIds = state.groups
+    .filter((group) => String(group.teacherId) === String(_teacher.id))
+    .map((group) => group.id);
+  const listedGroupIds = _teacher.groupIds.filter((groupId) => state.groups.some((group) => group.id === groupId));
+  const ids = new Set([...ownGroupIds, ...listedGroupIds]);
+  return ids.size > 0 ? ids : new Set();
 }
 
 export function getTeacherAccessibleGroups(state: AppState, teacher: Teacher): Group[] {
