@@ -7,26 +7,71 @@ function randomWave() {
   return 0.22 + Math.random() * 0.76;
 }
 
-function toSpeechText(text: string): string {
-  const maxLength = 300;
-  const normalized = text
+function cleanSpeechText(text: string): string {
+  return text
     .replace(/\[[^\]]+\]/g, " ")
+    .replace(/[*_`#>•]+/g, " ")
+    .replace(/\s*[-–]\s+/g, " ")
     .replace(/\s+/g, " ")
+    .replace(/\s+([,.!?;:])/g, "$1")
     .trim();
+}
 
-  if (normalized.length <= maxLength) return normalized;
+function splitLongText(text: string, maxLength: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const chunks: string[] = [];
+  let current = "";
 
-  const chunks = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
-  if (chunks.length === 0) return normalized.slice(0, maxLength);
-
-  let combined = "";
-  for (let index = 0; index < chunks.length; index += 1) {
-    const next = chunks[index];
-    if ((`${combined} ${next}`.trim()).length > maxLength) break;
-    combined = `${combined} ${next}`.trim();
+  for (const word of words) {
+    const next = `${current} ${word}`.trim();
+    if (next.length > maxLength && current) {
+      chunks.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
   }
 
-  return combined || normalized.slice(0, maxLength);
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+function toSpeechChunks(text: string): string[] {
+  const maxLength = 260;
+  const normalized = text
+    .split(/\n+/)
+    .map(cleanSpeechText)
+    .filter(Boolean)
+    .join(" ");
+
+  if (!normalized) return [];
+  if (normalized.length <= maxLength) return [normalized];
+
+  const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const sentence of sentences.length ? sentences : [normalized]) {
+    if (sentence.length > maxLength) {
+      if (current) {
+        chunks.push(current);
+        current = "";
+      }
+      chunks.push(...splitLongText(sentence, maxLength));
+      continue;
+    }
+
+    const next = `${current} ${sentence}`.trim();
+    if (next.length > maxLength && current) {
+      chunks.push(current);
+      current = sentence;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
 }
 
 interface OutputMeterSession {
@@ -184,11 +229,19 @@ export function useAudioPlayback() {
 
       stop();
       setSpeaking(true);
-      const speechText = toSpeechText(text);
+      const speechChunks = toSpeechChunks(text);
+      if (speechChunks.length === 0) {
+        setSpeaking(false);
+        stopMeter();
+        return;
+      }
 
       try {
-        const played = await playViaGateway(speechText, lang);
-        if (played) {
+        if (isVoiceGatewayReady()) {
+          for (const chunk of speechChunks) {
+            await playViaGateway(chunk, lang);
+            cleanupObjectUrl();
+          }
           setSpeaking(false);
           stopMeter();
           return;
@@ -199,7 +252,7 @@ export function useAudioPlayback() {
         stopMeter();
       }
 
-      await playViaBrowserTts(speechText, lang);
+      await playViaBrowserTts(speechChunks.join(" "), lang);
     },
     [cleanupObjectUrl, muted, playViaBrowserTts, playViaGateway, stop, stopMeter],
   );

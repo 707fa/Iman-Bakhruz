@@ -34,12 +34,15 @@ function withVoiceTimeout<T>(promise: Promise<T>): Promise<T> {
 function normalizeVoiceReply(raw: string): string {
   const text = normalizeAssistantReply(raw)
     .replace(/^(hello|hi|hey)(\s+there|\s+teacher|\s+student|\s+friend)?[!,.:\s-]+/i, "")
+    .replace(/[*_`#>]+/g, "")
+    .replace(/\s*[-–]\s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
   return text || "I'm listening. Say it again in English.";
 }
 
 const VOICE_CONVERSATION_RULE =
-  "Voice mode: act like a friendly native English-speaking tutor. First answer the user's question or continue the conversation naturally. Then, only if the user's English has a clear mistake, add one short correction after 'Correction:'. If there is no clear mistake, ask one natural follow-up question. Do not only correct grammar. Do not start with hello, hi, hey, or any greeting. Reply only in natural English, under 45 words.";
+  "Voice mode: act like a friendly native English-speaking tutor. First answer the user's question or continue the conversation naturally. Then, only if the user's English has a clear mistake, add one short correction after 'Correction:'. If there is no clear mistake, ask one natural follow-up question. Do not only correct grammar. Do not start with hello, hi, hey, or any greeting. Reply only in natural English, under 32 words. Use plain spoken sentences only: no markdown, no bullets, no lists.";
 
 function escapeHtml(value: string): string {
   return value
