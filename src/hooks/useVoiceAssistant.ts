@@ -55,6 +55,11 @@ interface UseVoiceAssistantOptions {
 
 type RecognitionMode = "conversation" | "interrupt";
 
+interface NormalizedVoiceInput {
+  displayText: string;
+  aiText: string;
+}
+
 const SPEECH_SILENCE_MS = 2200;
 const QUESTION_SILENCE_MS = 1200;
 const STOP_SILENCE_MS = 250;
@@ -92,7 +97,7 @@ function hasCyrillic(text: string): boolean {
 
 function hasUzbekLatin(text: string): boolean {
   const clean = normalizeForCommand(text);
-  return /\b(nima|qanday|nega|qachon|qayerda|kim|menga|tushuntir|degani|qilib|bo'ladi|boladi|o'zi|uzi|misol|gap|xato|to'g'ri|togri|inglizcha)\b/i.test(clean);
+  return /\b(salom|assalomu|rahmat|ha|yoq|yo'q|nima|qanday|nega|qachon|qayerda|kim|menga|tushuntir|degani|qilib|bo'ladi|boladi|o'zi|uzi|misol|gap|xato|to'g'ri|togri|inglizcha)\b/i.test(clean);
 }
 
 function formatTopic(raw: string): string {
@@ -117,7 +122,7 @@ function extractTopic(text: string): string {
   return "it";
 }
 
-function normalizeVoiceInput(text: string): string {
+function normalizeVoiceInput(text: string): NormalizedVoiceInput {
   const clean = normalizeSpokenText(text);
   const cyrillicLower = clean.toLowerCase();
   const normalized = normalizeForCommand(clean);
@@ -139,19 +144,26 @@ function normalizeVoiceInput(text: string): string {
       /\bкак\b/i.test(cyrillicLower) ||
       /\b(ibs|i\s*b\s*s|ice|eyes)\s+(meme|mean|mini|me)\s+(yesterday|simple|simply|symbol)\b/i.test(clean)
     ) {
-      return "What is the present simple and how do I use it?";
+      return {
+        displayText: /\b(ibs|i\s*b\s*s|ice|eyes)\s+(meme|mean|mini|me)\s+(yesterday|simple|simply|symbol)\b/i.test(clean)
+          ? "What is the present simple and how do I use it?"
+          : clean,
+        aiText: "What is the present simple and how do I use it?",
+      };
     }
   }
 
   if (/^what\s+do\s+you\s+do\s+present\s+simple\b/i.test(clean)) {
-    return "What is the present simple and how do I use it?";
+    return {
+      displayText: clean,
+      aiText: "What is the present simple and how do I use it?",
+    };
   }
 
-  if (hasCyrillic(clean) || hasUzbekLatin(clean)) {
-    return `The student said in Russian, Uzbek, or mixed language: "${clean}". Understand the meaning and answer in simple English. If they made an English mistake, correct only the English part shortly.`;
-  }
-
-  return clean;
+  return {
+    displayText: clean,
+    aiText: clean,
+  };
 }
 
 function correctionFor(text: string, topic: string): string {
@@ -170,7 +182,9 @@ function mockReply(userText: string): string {
   const correction = correctionFor(clean, topic);
 
   let answer = "Sure. Let's talk naturally in English. Ask me anything, and I will answer first, then correct only important mistakes.";
-  if (lower.includes("present simple")) {
+  if (/^(привет|салом|salom|assalomu|hello|hi|hey)\b/i.test(clean)) {
+    answer = "Hi. Nice to hear you. Let's practice English together. What do you want to talk about today?";
+  } else if (lower.includes("present simple")) {
     answer = "The present simple is a verb tense for habits, routines, facts, and schedules. Use the base verb: I study, you work, we play. With he, she, or it, add -s or -es: she studies, he works. For negatives, use do not or does not. For questions, use do or does.";
   } else if (lower.includes("past simple")) {
     answer = "The past simple is for finished actions in the past. Use verb-ed for regular verbs, and the second form for irregular verbs. For example, I watched a movie, or I went home.";
@@ -547,12 +561,14 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
 
   const handleFinalText = useCallback(
     async (finalText: string) => {
-      const clean = normalizeVoiceInput(finalText);
-      if (!clean) return;
+      const normalizedInput = normalizeVoiceInput(finalText);
+      const clean = normalizedInput.displayText.trim();
+      const aiText = normalizedInput.aiText.trim();
+      if (!clean || !aiText) return;
       const languages = recognitionLangsRef.current;
       recognitionLangIndexRef.current = resolveRecognitionLanguageIndex(finalText, languages, recognitionLangIndexRef.current);
 
-      if (isStopCommand(clean)) {
+      if (isStopCommand(clean) || isStopCommand(aiText)) {
         await handleStopCommand();
         return;
       }
@@ -575,9 +591,9 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
 
       let assistantText = "";
       try {
-        assistantText = onExchange ? normalizeAssistantReply(await onExchange(clean)) : normalizeAssistantReply(mockReply(clean));
+        assistantText = onExchange ? normalizeAssistantReply(await onExchange(aiText)) : normalizeAssistantReply(mockReply(aiText));
       } catch {
-        assistantText = normalizeAssistantReply(mockReply(clean));
+        assistantText = normalizeAssistantReply(mockReply(aiText));
       }
 
       if (runId !== exchangeRunRef.current) return;
