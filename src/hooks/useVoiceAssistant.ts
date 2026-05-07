@@ -20,10 +20,11 @@ interface SpeechRecognitionLike {
   interimResults: boolean;
   maxAlternatives?: number;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event?: { error?: string }) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
+  abort?: () => void;
 }
 
 interface SpeechRecognitionConstructorLike {
@@ -51,7 +52,8 @@ function makeId(prefix: string) {
 function mockReply(userText: string): string {
   const clean = userText.trim();
   if (!clean) return "I am here with you. Tell me what to practice in English.";
-  return `Great, I heard you. Let's practice this in better English together.`;
+  const natural = clean.charAt(0).toUpperCase() + clean.slice(1).replace(/[.!?]*$/, ".");
+  return `I heard you. A more natural way to say it is: "${natural}" Now say it again smoothly.`;
 }
 
 export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: UseVoiceAssistantOptions) {
@@ -66,16 +68,25 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
   const processingRef = useRef(false);
   const silenceTimerRef = useRef<number | null>(null);
   const lastInterimRef = useRef("");
+  const restartingRef = useRef(false);
 
   const visualLevel = state === "listening" ? mic.level : state === "speaking" ? audio.outputLevel : state === "thinking" ? 0.45 : 0.14;
 
+  const clearSilenceTimer = useCallback(() => {
+    if (!silenceTimerRef.current) return;
+    window.clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = null;
+  }, []);
+
+  const finishProcessing = useCallback(() => {
+    processingRef.current = false;
+    restartingRef.current = false;
+  }, []);
+
   const stopListening = useCallback(async () => {
     keepListeningRef.current = false;
-    processingRef.current = false;
-    if (silenceTimerRef.current) {
-      window.clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
+    finishProcessing();
+    clearSilenceTimer();
     try {
       recognitionRef.current?.stop();
     } catch {
@@ -85,17 +96,14 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
     if (state !== "speaking") {
       setState(audio.muted ? "muted" : "idle");
     }
-  }, [audio.muted, mic, state]);
+  }, [audio.muted, clearSilenceTimer, finishProcessing, mic, state]);
 
   const handleFinalText = useCallback(
     async (finalText: string) => {
       const clean = finalText.trim();
       if (!clean || processingRef.current) return;
       processingRef.current = true;
-      if (silenceTimerRef.current) {
-        window.clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = null;
-      }
+      clearSilenceTimer();
       lastInterimRef.current = "";
 
       setTranscript((prev) => [...prev.slice(-7).filter((item) => !item.partial), { id: makeId("u"), role: "user", text: clean }]);
@@ -121,6 +129,7 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
       });
       if (audio.muted) {
         setState("muted");
+        finishProcessing();
         return;
       }
       setState("speaking");
@@ -128,6 +137,7 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
         await audio.play(assistantText, outputLang || lang);
       } catch {
         setState("idle");
+        finishProcessing();
         onError?.("Neural voice is unavailable right now. Please retry in a few seconds.");
         return;
       }
@@ -135,18 +145,20 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
 
       if (open && keepListeningRef.current) {
         try {
-          processingRef.current = false;
+          finishProcessing();
+          restartingRef.current = true;
           recognitionRef.current?.start();
+          restartingRef.current = false;
           setState("listening");
         } catch {
-          processingRef.current = false;
+          finishProcessing();
           setState("idle");
         }
       } else {
-        processingRef.current = false;
+        finishProcessing();
       }
     },
-    [audio, lang, onExchange, open, outputLang],
+    [audio, clearSilenceTimer, finishProcessing, lang, onExchange, onError, open, outputLang],
   );
 
   const startListening = useCallback(async () => {
@@ -162,6 +174,12 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
       setState("error");
       onError?.("Microphone permission is blocked. Please allow microphone access.");
       return;
+    }
+
+    try {
+      recognitionRef.current?.abort?.();
+    } catch {
+      // noop
     }
 
     const recognition = new RecognitionCtor();
@@ -182,9 +200,7 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
       if (interim) {
         lastInterimRef.current = interim;
         setTranscript((prev) => [...prev.slice(-7).filter((item) => !item.partial), { id: makeId("p"), role: "user", text: interim, partial: true }]);
-        if (silenceTimerRef.current) {
-          window.clearTimeout(silenceTimerRef.current);
-        }
+        clearSilenceTimer();
         silenceTimerRef.current = window.setTimeout(() => {
           const fallbackText = lastInterimRef.current.trim();
           if (!fallbackText || processingRef.current) return;
@@ -207,11 +223,17 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
         void handleFinalText(finalText);
       }
     };
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
+      const code = String(event?.error || "");
+      if (code === "aborted" || code === "no-speech") {
+        if (!processingRef.current) setState(audio.muted ? "muted" : "idle");
+        return;
+      }
       setState("error");
       onError?.("Voice recognition error. Please retry and check microphone permission.");
     };
     recognition.onend = () => {
+      if (restartingRef.current || processingRef.current) return;
       if (!keepListeningRef.current && state !== "speaking") {
         setState(audio.muted ? "muted" : "idle");
       }
@@ -220,7 +242,7 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
     keepListeningRef.current = true;
     recognition.start();
     setState(audio.muted ? "muted" : "listening");
-  }, [audio.muted, handleFinalText, lang, mic, onError, state]);
+  }, [audio.muted, clearSilenceTimer, handleFinalText, lang, mic, onError, state]);
 
   const toggleMic = useCallback(() => {
     if (state === "listening") {
