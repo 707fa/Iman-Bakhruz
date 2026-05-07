@@ -31,6 +31,13 @@ function withVoiceTimeout<T>(promise: Promise<T>): Promise<T> {
   });
 }
 
+function normalizeVoiceReply(raw: string): string {
+  const text = normalizeAssistantReply(raw)
+    .replace(/^(hello|hi|hey)(\s+there|\s+teacher|\s+student|\s+friend)?[!,.:\s-]+/i, "")
+    .trim();
+  return text || "I'm listening. Say it again in English.";
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -224,7 +231,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
   const voiceExchange = useCallback(
     async (userText: string) => {
-      const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${voiceLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nmode=voice\nrule=Reply only in natural English. Do not answer in Russian or Uzbek.\n[/CONTEXT]\n\n${userText}`;
+      const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${voiceLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nmode=voice\nrule=Reply only in natural English. Do not answer in Russian or Uzbek. Do not start with hello, hi, hey, or any greeting. Answer directly.\n[/CONTEXT]\n\n${userText}`;
 
       if (isApiMode && token) {
         const updatedMessages = await withVoiceTimeout(
@@ -234,10 +241,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             language: voiceLanguage,
             groupTitle: currentGroup?.title,
             groupTime: currentGroup?.time,
-            systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 25 words. Do not use Russian or Uzbek.`,
+            systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 25 words. Do not use Russian or Uzbek. Do not start with hello, hi, hey, or any greeting. Answer directly.`,
           }),
         );
-        return normalizeAssistantReply(getLastAssistantText(updatedMessages));
+        return normalizeVoiceReply(getLastAssistantText(updatedMessages));
       }
 
       if (useGatewayMode) {
@@ -248,7 +255,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
               userId: sessionUserId,
             }),
           );
-          return normalizeAssistantReply(response.result);
+          return normalizeVoiceReply(response.result);
         } catch {
           if (isApiMode && token) {
             const updatedMessages = await withVoiceTimeout(
@@ -258,10 +265,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 language: voiceLanguage,
                 groupTitle: currentGroup?.title,
                 groupTime: currentGroup?.time,
-                systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 25 words. Do not use Russian or Uzbek.`,
+                systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 25 words. Do not use Russian or Uzbek. Do not start with hello, hi, hey, or any greeting. Answer directly.`,
               }),
             );
-            return normalizeAssistantReply(getLastAssistantText(updatedMessages));
+            return normalizeVoiceReply(getLastAssistantText(updatedMessages));
           }
           throw new Error("Voice gateway error");
         }
@@ -278,10 +285,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           language: voiceLanguage,
           groupTitle: currentGroup?.title,
           groupTime: currentGroup?.time,
-          systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 25 words. Do not use Russian or Uzbek.`,
+          systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 25 words. Do not use Russian or Uzbek. Do not start with hello, hi, hey, or any greeting. Answer directly.`,
         }),
       );
-      return normalizeAssistantReply(getLastAssistantText(updatedMessages));
+      return normalizeVoiceReply(getLastAssistantText(updatedMessages));
     },
     [currentGroup?.time, currentGroup?.title, isApiMode, sessionUserId, studentLevel, systemContext, token, useGatewayMode, voiceLanguage],
   );

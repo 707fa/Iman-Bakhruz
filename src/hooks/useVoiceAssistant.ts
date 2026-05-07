@@ -45,8 +45,17 @@ interface UseVoiceAssistantOptions {
   onError?: (message: string) => void;
 }
 
+const SPEECH_SILENCE_MS = 2800;
+
 function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function normalizeSpokenText(text: string): string {
+  return text
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.!?;:])/g, "$1")
+    .trim();
 }
 
 function mockReply(userText: string): string {
@@ -67,6 +76,7 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
   const sessionMessagesRef = useRef<VoiceSessionMessage[]>([]);
   const processingRef = useRef(false);
   const silenceTimerRef = useRef<number | null>(null);
+  const finalSpeechRef = useRef("");
   const lastInterimRef = useRef("");
   const restartingRef = useRef(false);
 
@@ -81,6 +91,18 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
   const finishProcessing = useCallback(() => {
     processingRef.current = false;
     restartingRef.current = false;
+  }, []);
+
+  const getBufferedSpeech = useCallback(() => normalizeSpokenText(`${finalSpeechRef.current} ${lastInterimRef.current}`), []);
+
+  const clearBufferedSpeech = useCallback(() => {
+    finalSpeechRef.current = "";
+    lastInterimRef.current = "";
+  }, []);
+
+  const showBufferedSpeech = useCallback((text: string) => {
+    if (!text.trim()) return;
+    setTranscript((prev) => [...prev.slice(-7).filter((item) => !item.partial), { id: makeId("p"), role: "user", text, partial: true }]);
   }, []);
 
   const stopListening = useCallback(async () => {
@@ -104,7 +126,7 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
       if (!clean || processingRef.current) return;
       processingRef.current = true;
       clearSilenceTimer();
-      lastInterimRef.current = "";
+      clearBufferedSpeech();
 
       setTranscript((prev) => [...prev.slice(-7).filter((item) => !item.partial), { id: makeId("u"), role: "user", text: clean }]);
       sessionMessagesRef.current.push({
@@ -158,7 +180,34 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
         finishProcessing();
       }
     },
-    [audio, clearSilenceTimer, finishProcessing, lang, onExchange, onError, open, outputLang],
+    [audio, clearBufferedSpeech, clearSilenceTimer, finishProcessing, lang, onExchange, onError, open, outputLang],
+  );
+
+  const submitBufferedSpeech = useCallback(
+    (recognition: SpeechRecognitionLike, shouldRestart: boolean) => {
+      const buffered = getBufferedSpeech();
+      if (!buffered || processingRef.current) return false;
+      keepListeningRef.current = shouldRestart;
+      clearSilenceTimer();
+      try {
+        recognition.stop();
+      } catch {
+        // noop
+      }
+      void handleFinalText(buffered);
+      return true;
+    },
+    [clearSilenceTimer, getBufferedSpeech, handleFinalText],
+  );
+
+  const scheduleBufferedSpeechSubmit = useCallback(
+    (recognition: SpeechRecognitionLike) => {
+      clearSilenceTimer();
+      silenceTimerRef.current = window.setTimeout(() => {
+        void submitBufferedSpeech(recognition, true);
+      }, SPEECH_SILENCE_MS);
+    },
+    [clearSilenceTimer, submitBufferedSpeech],
   );
 
   const startListening = useCallback(async () => {
@@ -184,7 +233,7 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
 
     const recognition = new RecognitionCtor();
     recognition.lang = lang;
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     recognition.onresult = (event) => {
@@ -197,30 +246,17 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
         if (result.isFinal) finalText += `${finalText ? " " : ""}${chunk}`;
         else interim += `${interim ? " " : ""}${chunk}`;
       }
-      if (interim) {
-        lastInterimRef.current = interim;
-        setTranscript((prev) => [...prev.slice(-7).filter((item) => !item.partial), { id: makeId("p"), role: "user", text: interim, partial: true }]);
-        clearSilenceTimer();
-        silenceTimerRef.current = window.setTimeout(() => {
-          const fallbackText = lastInterimRef.current.trim();
-          if (!fallbackText || processingRef.current) return;
-          keepListeningRef.current = true;
-          try {
-            recognition.stop();
-          } catch {
-            // noop
-          }
-          void handleFinalText(fallbackText);
-        }, 1300);
-      }
       if (finalText) {
-        keepListeningRef.current = true;
-        try {
-          recognition.stop();
-        } catch {
-          // noop
-        }
-        void handleFinalText(finalText);
+        finalSpeechRef.current = normalizeSpokenText(`${finalSpeechRef.current} ${finalText}`);
+        lastInterimRef.current = "";
+      } else {
+        lastInterimRef.current = interim;
+      }
+
+      const buffered = getBufferedSpeech();
+      if (buffered) {
+        showBufferedSpeech(buffered);
+        scheduleBufferedSpeechSubmit(recognition);
       }
     };
     recognition.onerror = (event) => {
@@ -234,6 +270,7 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
     };
     recognition.onend = () => {
       if (restartingRef.current || processingRef.current) return;
+      if (submitBufferedSpeech(recognition, true)) return;
       if (!keepListeningRef.current && state !== "speaking") {
         setState(audio.muted ? "muted" : "idle");
       }
@@ -242,15 +279,17 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
     keepListeningRef.current = true;
     recognition.start();
     setState(audio.muted ? "muted" : "listening");
-  }, [audio.muted, clearSilenceTimer, handleFinalText, lang, mic, onError, state]);
+  }, [audio.muted, getBufferedSpeech, handleFinalText, lang, mic, onError, scheduleBufferedSpeechSubmit, showBufferedSpeech, state, submitBufferedSpeech]);
 
   const toggleMic = useCallback(() => {
     if (state === "listening") {
+      const recognition = recognitionRef.current;
+      if (recognition && submitBufferedSpeech(recognition, false)) return;
       void stopListening();
       return;
     }
     void startListening();
-  }, [startListening, state, stopListening]);
+  }, [startListening, state, stopListening, submitBufferedSpeech]);
 
   const toggleAudio = useCallback(() => {
     audio.toggleMuted();
