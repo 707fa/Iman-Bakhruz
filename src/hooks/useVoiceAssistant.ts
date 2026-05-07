@@ -99,6 +99,34 @@ function extractTopic(text: string): string {
   return "it";
 }
 
+function normalizeVoiceInput(text: string): string {
+  const clean = normalizeSpokenText(text);
+  const cyrillicLower = clean.toLowerCase();
+
+  const asksAboutPresentSimple =
+    /\bpresent\s+simple\b/i.test(clean) ||
+    /\bпр[еи]з[еэ]нт\s+симпл\b/i.test(cyrillicLower) ||
+    /\bпресент\s+симпле\b/i.test(cyrillicLower) ||
+    /\b(ibs|i\s*b\s*s|ice|eyes)\s+(meme|mean|mini|me)\s+(yesterday|simple|simply|symbol)\b/i.test(clean);
+
+  if (asksAboutPresentSimple) {
+    if (
+      /\b(what|explain|tell|how|do|does|is|are|mean|means)\b/i.test(clean) ||
+      /\bчто\s+такое\b/i.test(cyrillicLower) ||
+      /\bкак\b/i.test(cyrillicLower) ||
+      /\b(ibs|i\s*b\s*s|ice|eyes)\s+(meme|mean|mini|me)\s+(yesterday|simple|simply|symbol)\b/i.test(clean)
+    ) {
+      return "What is the present simple and how do I use it?";
+    }
+  }
+
+  if (/^what\s+do\s+you\s+do\s+present\s+simple\b/i.test(clean)) {
+    return "What is the present simple and how do I use it?";
+  }
+
+  return clean;
+}
+
 function correctionFor(text: string, topic: string): string {
   const clean = text.trim();
   if (/\bexplain me\b/i.test(clean)) {
@@ -116,11 +144,14 @@ function mockReply(userText: string): string {
 
   let answer = "Sure. Let's talk naturally in English. Ask me anything, and I will answer first, then correct only important mistakes.";
   if (lower.includes("present simple")) {
-    answer = "The present simple is for habits, routines, facts, and schedules. Use the base verb, but add -s or -es with he, she, and it. For example, I study every day, but she studies every day.";
+    answer = "The present simple is a verb tense for habits, routines, facts, and schedules. Use the base verb: I study, you work, we play. With he, she, or it, add -s or -es: she studies, he works. For negatives, use do not or does not. For questions, use do or does.";
   } else if (lower.includes("past simple")) {
     answer = "The past simple is for finished actions in the past. Use verb-ed for regular verbs, and the second form for irregular verbs. For example, I watched a movie, or I went home.";
   } else if (lower.includes("present continuous")) {
     answer = "The present continuous is for actions happening now or temporary situations. Use am, is, or are plus verb-ing. For example, I am speaking now.";
+  } else if (/\b(my name is|i am|i'm|years old|learning english|engineer|school)\b/i.test(clean)) {
+    answer =
+      'Nice to meet you. A natural version is: "My name is Farrux. I am 16 years old. I am learning English because I want to fly to London. I want to work as an engineer, and I am good at school." Correction: say "I want to fly to London," not "I am go to fly in London."';
   } else if (/\b(what|why|how|when|where|can|could|do|does|is|are)\b/i.test(clean)) {
     answer = `Sure. About ${topic}: I can explain it simply and give examples. Tell me one sentence, and I will help you make it natural.`;
   }
@@ -453,7 +484,7 @@ export function useVoiceAssistant({ lang, outputLang, speechHints = [], onExchan
 
   const handleFinalText = useCallback(
     async (finalText: string) => {
-      const clean = finalText.trim();
+      const clean = normalizeVoiceInput(finalText);
       if (!clean) return;
 
       if (isStopCommand(clean)) {
