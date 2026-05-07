@@ -1,10 +1,9 @@
-import { BookOpenCheck, Clock3, MessageCircle, Phone, ShieldCheck, Sparkles, Trophy, Users2 } from "lucide-react";
+import { BookOpenCheck, Clock3, Phone, ShieldCheck, Users2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TeacherSpotlightCard } from "../components/TeacherSpotlightCard";
 import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { getTeacherAccessibleGroups } from "../lib/teacherGroups";
@@ -140,51 +139,6 @@ export function TeacherHomePage() {
         )}
       </CardContent>
     </Card>
-
-      <Card>
-        <CardContent className="space-y-3 p-4 sm:p-5">
-          <p className="inline-flex items-center gap-2 text-base font-semibold text-charcoal dark:text-white">
-            <Sparkles className="h-4 w-4 text-charcoal dark:text-white" />
-            {t("teacher.quickActions")}
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <Link to="/teacher/groups">
-              <Button variant="secondary" className="w-full justify-between">
-                {t("nav.teacherGroups")}
-              </Button>
-            </Link>
-            <Link to="/teacher/top">
-              <Button variant="secondary" className="w-full justify-between">
-                <span className="inline-flex items-center gap-2">
-                  <Trophy className="h-4 w-4" />
-                  {t("nav.teacherTop")}
-                </span>
-              </Button>
-            </Link>
-            <Link to="/teacher/chat">
-              <Button className="w-full justify-between">
-                <span className="inline-flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  {t("nav.friendly")}
-                </span>
-              </Button>
-            </Link>
-            <Link to="/teacher/ai-chat">
-              <Button className="w-full justify-between">
-                <span className="inline-flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  {t("nav.aiChat")}
-                </span>
-              </Button>
-            </Link>
-            <Link to="/teacher/support">
-              <Button variant="secondary" className="w-full justify-between">
-                {t("menu.support")}
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
