@@ -102,7 +102,7 @@ function extractTopic(text: string): string {
 function correctionFor(text: string, topic: string): string {
   const clean = text.trim();
   if (/\bexplain me\b/i.test(clean)) {
-    return `Correction: "Can you explain ${topic} to me in more detail?"`;
+    return `Correction: say "explain ${topic} to me," not "explain me."`;
   }
   return "";
 }

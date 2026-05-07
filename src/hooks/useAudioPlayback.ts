@@ -240,7 +240,7 @@ export function useAudioPlayback() {
       try {
         for (const chunk of chunks) {
           if (!shouldContinue()) break;
-          await speakWithBestBrowserVoice(chunk, lang, { rate: 0.9, pitch: 1.03, volume: 1 });
+          await speakWithBestBrowserVoice(chunk, lang, { rate: 0.95, pitch: 1, volume: 1 });
           if (!shouldContinue()) break;
         }
       } finally {

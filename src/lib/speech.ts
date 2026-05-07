@@ -4,7 +4,24 @@ export interface BrowserSpeakOptions {
   volume?: number;
 }
 
-const GATEWAY_FEMALE_VOICE = "coral";
+const HIGH_QUALITY_ENGLISH_HINTS = [
+  "google us english",
+  "microsoft ava",
+  "microsoft aria",
+  "microsoft jenny",
+  "microsoft emma",
+  "microsoft sonia",
+  "samantha",
+  "ava",
+  "jenny",
+  "aria",
+  "victoria",
+  "daniel",
+  "enhanced",
+  "premium",
+  "neural",
+  "natural",
+];
 
 function normalizeLang(lang: string): string {
   const safe = (lang || "en-US").trim().toLowerCase();
@@ -36,10 +53,14 @@ function scoreVoice(voice: SpeechSynthesisVoice, lang: string): number {
   const name = `${voice.name} ${voice.voiceURI}`.toLowerCase();
 
   let score = 0;
+  if (langPrefix === "en" && !voiceLang.startsWith("en")) score -= 160;
+  if (normalized === "en-us" && voiceLang === "en-us") score += 60;
   if (voiceLang === normalized) score += 42;
   if (voiceLang.startsWith(langPrefix)) score += 24;
   if (voice.localService) score += 10;
-  if (name.includes("neural") || name.includes("natural") || name.includes("premium")) score += 18;
+  if (langPrefix === "en" && HIGH_QUALITY_ENGLISH_HINTS.some((hint) => name.includes(hint))) score += 42;
+  if (name.includes("compact")) score -= 24;
+  if (name.includes("novelty")) score -= 80;
 
   const femaleHints = FEMALE_NAME_HINTS_BY_LANG[langPrefix] ?? FEMALE_NAME_HINTS_BY_LANG.en;
   if (femaleHints.some((hint) => name.includes(hint))) score += 28;
@@ -80,8 +101,8 @@ export function pickBestBrowserVoice(lang: string, voices: SpeechSynthesisVoice[
   return ranked[0] ?? null;
 }
 
-export function pickGatewayVoice(_lang: string): string {
-  return GATEWAY_FEMALE_VOICE;
+export function pickGatewayVoice(_lang: string): string | null {
+  return null;
 }
 
 export async function speakWithBestBrowserVoice(text: string, lang: string, options?: BrowserSpeakOptions): Promise<void> {
@@ -94,8 +115,8 @@ export async function speakWithBestBrowserVoice(text: string, lang: string, opti
 
   const utterance = new SpeechSynthesisUtterance(transcript);
   utterance.lang = lang;
-  utterance.rate = options?.rate ?? 0.9;
-  utterance.pitch = options?.pitch ?? 1.03;
+  utterance.rate = options?.rate ?? 0.95;
+  utterance.pitch = options?.pitch ?? 1;
   utterance.volume = options?.volume ?? 1;
 
   const voices = await waitForSpeechVoices();

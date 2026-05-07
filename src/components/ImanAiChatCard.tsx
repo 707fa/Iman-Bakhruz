@@ -34,6 +34,9 @@ function withVoiceTimeout<T>(promise: Promise<T>): Promise<T> {
 function normalizeVoiceReply(raw: string): string {
   const text = normalizeAssistantReply(raw)
     .replace(/^(hello|hi|hey)(\s+there|\s+teacher|\s+student|\s+friend)?[!,.:\s-]+/i, "")
+    .replace(/\b(?:you said|you asked|i heard|your sentence was|you wrote)\s*:?\s*["\u201c][^"\u201d]{1,160}["\u201d][.,!?\s]*/gi, "")
+    .replace(/\b(?:you said|you asked|i heard|your sentence was|you wrote)\s*:?\s*/gi, "")
+    .replace(/Correction:\s*["\u201c]can you explain me\b[^"\u201d]*["\u201d][.]?/gi, 'Correction: Say "explain it to me," not "explain me."')
     .replace(/[*_`#>]+/g, "")
     .replace(/\s*[-–]\s+/g, " ")
     .replace(/\s+/g, " ")
@@ -42,7 +45,7 @@ function normalizeVoiceReply(raw: string): string {
 }
 
 const VOICE_CONVERSATION_RULE =
-  "Voice mode: you are a fast, friendly native English conversation partner and tutor. Reply immediately in natural spoken English. First answer the user's question or continue the conversation, then add one short correction only if there is a clear mistake. Do not correct names. Do not begin with hello unless the user greeted you. Never use Russian or Uzbek. No markdown, no bullets, no lists. Keep casual replies under 35 words and explanations around 45-65 words. End with one natural follow-up question when useful.";
+  "Voice mode: you are a fast, friendly native English conversation partner and tutor. Reply immediately in natural spoken English. First answer the user's question or continue the conversation, then add one short correction only if there is a clear mistake. Never repeat, quote, or read the user's whole sentence aloud. For corrections, say a short phrase like: Correction: say 'explain it to me,' not 'explain me.' Do not correct names. Do not begin with hello unless the user greeted you. Never use Russian or Uzbek. No markdown, no bullets, no lists. Keep casual replies under 30 words and explanations around 40-55 words. End with one natural follow-up question when useful.";
 
 function escapeHtml(value: string): string {
   return value
