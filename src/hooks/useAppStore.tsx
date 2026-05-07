@@ -218,6 +218,27 @@ function withSeedData(state: AppState): AppState {
   return syncRankingsWithStudents(merged);
 }
 
+function apiShellState(session: AuthSession | null = null): AppState {
+  return {
+    students: [],
+    teachers: [],
+    parents: [],
+    groups: initialState.groups,
+    rankings: [],
+    ratingLogs: [],
+    session,
+  };
+}
+
+function sanitizeApiState(state: AppState): AppState {
+  return {
+    ...state,
+    students: state.students.map((student) => ({ ...student, password: "" })),
+    teachers: state.teachers.map((teacher) => ({ ...teacher, password: "" })),
+    parents: state.parents.map((parent) => ({ ...parent, password: "" })),
+  };
+}
+
 function mergeForAuth<T extends { id: string; phone: string; password: string }>(seed: T[], current: T[]): T[] {
   const map = new Map<string, T>();
 
@@ -251,12 +272,24 @@ function getAuthCollections(state: AppState): Pick<AppState, "students" | "teach
 }
 
 function readState(): AppState {
-  if (typeof window === "undefined") return initialState;
+  if (typeof window === "undefined") return DATA_PROVIDER_MODE === "api" ? apiShellState() : initialState;
   const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) return initialState;
+  if (!raw) return DATA_PROVIDER_MODE === "api" ? apiShellState() : initialState;
 
   try {
     const parsed = JSON.parse(raw) as Partial<AppState>;
+    if (DATA_PROVIDER_MODE === "api") {
+      return {
+        students: toArrayOrFallback(parsed.students, []),
+        teachers: toArrayOrFallback(parsed.teachers, []),
+        parents: toArrayOrFallback(parsed.parents, []),
+        groups: toArrayOrFallback(parsed.groups, initialState.groups),
+        rankings: toArrayOrFallback(parsed.rankings, []),
+        ratingLogs: toArrayOrFallback(parsed.ratingLogs, []),
+        session: isAuthSession(parsed.session) ? parsed.session : null,
+      };
+    }
+
     const normalized: AppState = {
       students: toArrayOrFallback(parsed.students, initialState.students).map(ensureStudentInviteCode),
       teachers: toArrayOrFallback(parsed.teachers, initialState.teachers),
@@ -268,13 +301,13 @@ function readState(): AppState {
     };
     return withSeedData(normalized);
   } catch {
-    return initialState;
+    return DATA_PROVIDER_MODE === "api" ? apiShellState() : initialState;
   }
 }
 
 function saveState(state: AppState) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA_PROVIDER_MODE === "api" ? sanitizeApiState(state) : state));
 }
 
 function buildSessionFromAuth(auth: AuthResponse): AuthSession {
@@ -449,7 +482,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     const storedToken = getApiToken();
     const storedRefreshToken = getApiRefreshToken();
     if (!storedToken && !storedRefreshToken) {
-      setState((prev) => (prev.session ? { ...prev, session: null } : prev));
+      setState((prev) => ({ ...apiShellState(null), groups: prev.groups.length > 0 ? prev.groups : initialState.groups }));
       return;
     }
 
@@ -495,7 +528,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             }
           }
           clearApiToken();
-          setState((prev) => (prev.session ? { ...prev, session: null } : prev));
+          setState((prev) => ({ ...apiShellState(null), groups: prev.groups.length > 0 ? prev.groups : initialState.groups }));
           return;
         }
 
@@ -917,7 +950,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         }
         const nextSession = buildSessionFromAuth(auth);
         // Fast first paint: open workspace immediately, sync full state in background.
-        setState((prev) => ({ ...withSeedData(prev), session: nextSession }));
+        setState((prev) => ({ ...apiShellState(nextSession), groups: prev.groups.length > 0 ? prev.groups : initialState.groups }));
 
         void (async () => {
           try {
@@ -938,20 +971,6 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         };
       } catch (error) {
         if (error instanceof ApiError) {
-          // Allow local fallback only when backend is temporarily unavailable.
-          // For auth errors (400/401/403), keep strict API login so token is always present.
-          if (
-            error.status >= 500 ||
-            error.status === 0 ||
-            error.status === 408
-          ) {
-            clearApiToken();
-            const localFallback = loginMock(payload);
-            if (localFallback.ok) {
-              return localFallback;
-            }
-          }
-
           if (error.status === 400 || error.status === 401 || error.status === 403) {
             return { ok: false, messageKey: "msg.loginInvalid" };
           }
@@ -1000,8 +1019,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         const nextSession = buildSessionFromAuth(auth);
 
         // Immediate local update for fast UX. Remote state sync runs in background.
-        setState((prev) => {
-          const base = withSeedData(prev);
+        setState(() => {
+          const base = apiShellState(nextSession);
 
           if (nextSession.role !== "student") {
             return { ...base, session: nextSession };
@@ -1106,13 +1125,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             return { ok: false, messageKey: "msg.registerGroupInvalid" };
           }
 
-          if (error.status >= 500 || error.status === 0 || error.status === 408) {
-            return registerStudentMock(normalizedPayload);
-          }
-
           return { ok: false, messageKey: "msg.registerInvalidData" };
         }
-        return registerStudentMock(normalizedPayload);
+        return { ok: false, messageKey: "msg.serverUnavailable" };
       }
     }
 
