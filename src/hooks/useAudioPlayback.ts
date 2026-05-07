@@ -9,25 +9,25 @@ function randomWave() {
 }
 
 function toSpeechText(text: string): string {
+  const maxLength = 300;
   const normalized = text
     .replace(/\[[^\]]+\]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  if (normalized.length <= 180) return normalized;
+  if (normalized.length <= maxLength) return normalized;
 
   const chunks = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
-  if (chunks.length === 0) return normalized.slice(0, 260);
+  if (chunks.length === 0) return normalized.slice(0, maxLength);
 
   let combined = "";
   for (let index = 0; index < chunks.length; index += 1) {
     const next = chunks[index];
-    if ((`${combined} ${next}`.trim()).length > 180) break;
+    if ((`${combined} ${next}`.trim()).length > maxLength) break;
     combined = `${combined} ${next}`.trim();
-    if (index >= 0) break;
   }
 
-  return combined || normalized.slice(0, 180);
+  return combined || normalized.slice(0, maxLength);
 }
 
 interface OutputMeterSession {

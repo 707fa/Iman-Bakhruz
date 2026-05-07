@@ -172,6 +172,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const currentGroup = currentStudent ? state.groups.find((item) => item.id === currentStudent.groupId) : null;
   const studentLevel = isTeacherMode ? "intermediate" : normalizeStudentLevelFromGroupTitle(currentGroup?.title);
   const aiLanguage = isTeacherMode ? (locale === "uz" ? "uz" : locale === "en" ? "en" : "ru") : resolveAiFeedbackLanguage(studentLevel, locale);
+  const voiceLanguage = "en";
   const systemContext = isTeacherMode
     ? [
         "You are Iman Chat, a teacher assistant for English lessons.",
@@ -211,7 +212,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
   const voiceExchange = useCallback(
     async (userText: string) => {
-      const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${aiLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\n[/CONTEXT]\n\n${userText}`;
+      const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${voiceLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nmode=voice\nrule=Reply only in natural English. Do not answer in Russian or Uzbek.\n[/CONTEXT]\n\n${userText}`;
 
       if (useGatewayMode) {
         try {
@@ -225,10 +226,10 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             const updatedMessages = await platformApi.sendAiMessage(token, {
               text: userText,
               level: studentLevel,
-              language: aiLanguage,
+              language: voiceLanguage,
               groupTitle: currentGroup?.title,
               groupTime: currentGroup?.time,
-              systemContext,
+              systemContext: `${systemContext}\nVoice mode: reply only in natural English. Do not use Russian or Uzbek.`,
             });
             return normalizeAssistantReply(getLastAssistantText(updatedMessages));
           }
@@ -243,18 +244,18 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       const updatedMessages = await platformApi.sendAiMessage(token, {
         text: userText,
         level: studentLevel,
-        language: aiLanguage,
+        language: voiceLanguage,
         groupTitle: currentGroup?.title,
         groupTime: currentGroup?.time,
-        systemContext,
+        systemContext: `${systemContext}\nVoice mode: reply only in natural English. Do not use Russian or Uzbek.`,
       });
       return normalizeAssistantReply(getLastAssistantText(updatedMessages));
     },
-    [aiLanguage, currentGroup?.time, currentGroup?.title, isApiMode, sessionUserId, studentLevel, systemContext, token, useGatewayMode],
+    [currentGroup?.time, currentGroup?.title, isApiMode, sessionUserId, studentLevel, systemContext, token, useGatewayMode, voiceLanguage],
   );
 
   const voice = useVoiceAssistant({
-    lang: aiLanguage === "ru" ? "ru-RU" : aiLanguage === "uz" ? "uz-UZ" : "en-US",
+    lang: "en-US",
     outputLang: "en-US",
     onExchange: voiceExchange,
     onError: (message) => showToast({ message, tone: "error" }),
