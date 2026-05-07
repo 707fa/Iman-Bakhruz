@@ -22,7 +22,8 @@ import type {
   SubscriptionState,
 } from "../types";
 
-const STORAGE_KEY = "result-dashboard-v9";
+const STORAGE_KEY = "result-dashboard-v10";
+const LEGACY_STORAGE_KEYS = ["result-dashboard-v6", "result-dashboard-v7", "result-dashboard-v8", "result-dashboard-v9"];
 const TOP5_GRANTS_KEY = "result-top5-grants-v1";
 const TOP5_GRANT_DAYS = 30;
 const TOP5_LIMIT = 5;
@@ -273,6 +274,11 @@ function getAuthCollections(state: AppState): Pick<AppState, "students" | "teach
 
 function readState(): AppState {
   if (typeof window === "undefined") return DATA_PROVIDER_MODE === "api" ? apiShellState() : initialState;
+  if (DATA_PROVIDER_MODE === "api") {
+    for (const key of LEGACY_STORAGE_KEYS) {
+      window.localStorage.removeItem(key);
+    }
+  }
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) return DATA_PROVIDER_MODE === "api" ? apiShellState() : initialState;
 

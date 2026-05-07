@@ -1,6 +1,6 @@
 const TOKEN_KEY = "result-api-token";
 const REFRESH_TOKEN_KEY = "result-api-refresh-token";
-const DASHBOARD_STATE_KEY = "result-dashboard-v9";
+const DASHBOARD_STATE_KEY = "result-dashboard-v10";
 
 export function getApiToken(): string | null {
   if (typeof window === "undefined") return null;
