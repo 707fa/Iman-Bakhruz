@@ -71,9 +71,9 @@ function writeSupportCache(cacheKey: string, state: SupportChatCacheState) {
 }
 
 function statusLabel(value: SupportTicketStatus): string {
-  if (value === "in_progress") return "In progress";
-  if (value === "closed") return "Closed";
-  return "Open";
+  if (value === "in_progress") return "В работе";
+  if (value === "closed") return "Закрыт";
+  return "Открыт";
 }
 
 function statusClass(value: SupportTicketStatus): string {
@@ -83,8 +83,8 @@ function statusClass(value: SupportTicketStatus): string {
 }
 
 function senderTitle(role: UserRole, message: UiSupportMessage): string {
-  if (message.senderType === "student") return role === "student" ? "You" : "Student";
-  if (message.senderType === "teacher") return role === "teacher" ? "You" : "Teacher";
+  if (message.senderType === "student") return role === "student" ? "Вы" : "Ученик";
+  if (message.senderType === "teacher") return role === "teacher" ? "Вы" : "Учитель";
   return "Support";
 }
 
@@ -289,7 +289,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
     try {
       if (!token || apiBlocked) {
         if (requiresApi) {
-          setSupportError("Iltimos, qayta kiring va yana yuboring.");
+          setSupportError("Войдите заново и отправьте сообщение ещё раз.");
           return;
         }
 
@@ -355,7 +355,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       }));
     } catch {
       if (requiresApi) {
-        setSupportError("Xabar yuborilmadi. Iltimos, birozdan keyin yana urinib ko'ring.");
+        setSupportError("Сообщение не отправилось. Проверьте настройки Telegram support и попробуйте ещё раз.");
       }
 
       if (!activeTicket) {
@@ -399,18 +399,18 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
       <CardHeader>
         <CardTitle className="inline-flex items-center gap-2">
           <LifeBuoy className="h-5 w-5 text-burgundy-700 dark:text-white" />
-          Live Support Chat
+          Support chat
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 lg:grid-cols-[17rem_minmax(0,1fr)]">
             <aside className="rounded-2xl border border-burgundy-100 bg-white p-2 shadow-soft dark:border-zinc-800 dark:bg-zinc-950/90">
-              <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">Dialogs</p>
+              <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.08em] text-charcoal/55 dark:text-zinc-400">Диалоги</p>
               <div className="space-y-2">
                 {loadingTickets && sortedTickets.length === 0 ? (
-                  <p className="rounded-xl border border-burgundy-100 bg-burgundy-50 px-3 py-2 text-xs text-charcoal/60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">Loading dialogs...</p>
+                  <p className="rounded-xl border border-burgundy-100 bg-burgundy-50 px-3 py-2 text-xs text-charcoal/60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">Загружаем диалоги...</p>
                 ) : sortedTickets.length === 0 ? (
-                  <p className="rounded-xl border border-burgundy-100 bg-burgundy-50 px-3 py-2 text-xs text-charcoal/60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">No dialogs yet.</p>
+                  <p className="rounded-xl border border-burgundy-100 bg-burgundy-50 px-3 py-2 text-xs text-charcoal/60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">Диалогов пока нет.</p>
                 ) : (
                   sortedTickets.map((ticket) => {
                     const isActive = ticket.id === activeTicket?.id;
@@ -440,20 +440,20 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
             <section className="grid min-h-[32rem] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 rounded-2xl border border-burgundy-100 bg-white p-3 shadow-soft dark:border-zinc-800 dark:bg-zinc-950/90">
               <div className="flex items-center justify-between gap-2 border-b border-burgundy-100 pb-2 dark:border-zinc-800">
                 <div>
-                  <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{role === "teacher" ? "Teacher Support Inbox" : "My Support Chat"}</p>
-                  <p className="text-xs text-charcoal/55 dark:text-zinc-400">{activeTicket ? new Date(activeTicket.createdAt).toLocaleString() : "Start conversation with support"}</p>
+                  <p className="text-sm font-semibold text-charcoal dark:text-zinc-100">{role === "teacher" ? "Поддержка учителя" : "Мой support chat"}</p>
+                  <p className="text-xs text-charcoal/55 dark:text-zinc-400">{activeTicket ? new Date(activeTicket.createdAt).toLocaleString() : "Напишите сообщение, чтобы начать диалог"}</p>
                 </div>
                 {activeTicket ? <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusClass(activeTicket.status)}`}>{statusLabel(activeTicket.status)}</span> : null}
               </div>
 
               <div ref={viewportRef} className="space-y-3 overflow-x-hidden overflow-y-auto rounded-2xl border border-burgundy-100 bg-burgundy-50/35 p-3 dark:border-zinc-800 dark:bg-zinc-950">
                 {loadingMessages && activeMessages.length === 0 ? (
-                  <p className="text-xs text-charcoal/55 dark:text-zinc-400">Loading messages...</p>
+                  <p className="text-xs text-charcoal/55 dark:text-zinc-400">Загружаем сообщения...</p>
                 ) : activeMessages.length === 0 ? (
                   activeTicket ? (
                     <div className="flex justify-end transition-all duration-200">
                       <div className="max-w-[78%] rounded-2xl rounded-br-md bg-[#6F0000] px-3 py-2.5 text-sm text-white shadow-[0_10px_22px_-18px_rgba(111,0,0,0.65)]">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70">You</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70">Вы</p>
                         <p className="mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white">{activeTicket.message}</p>
                         <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-white/75">
                           <span>{new Date(activeTicket.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
@@ -462,7 +462,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-charcoal/55 dark:text-zinc-400">No messages yet.</p>
+                    <p className="text-xs text-charcoal/55 dark:text-zinc-400">Сообщений пока нет.</p>
                   )
                 ) : (
                   activeMessages.map((message) => {
@@ -496,7 +496,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                     );
                   })
                 )}
-                {typingHint ? <p className="text-xs text-charcoal/45 dark:text-zinc-500">Support is typing...</p> : null}
+                {typingHint ? <p className="text-xs text-charcoal/45 dark:text-zinc-500">Support печатает...</p> : null}
               </div>
 
               {role === "student" || role === "teacher" ? (
@@ -509,7 +509,7 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
                         setDraft(event.target.value);
                         if (supportError) setSupportError("");
                       }}
-                      placeholder="Write your message to support..."
+                      placeholder="Напишите сообщение в поддержку..."
                       rows={1}
                       className="max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-xl border-0 bg-transparent px-3 py-2.5 text-charcoal shadow-none placeholder:text-charcoal/40 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
                       onKeyDown={(event) => {
@@ -539,10 +539,10 @@ export function SupportTicketsCard({ role }: SupportTicketsCardProps) {
               {role === "teacher" && activeTicket ? (
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" size="sm" onClick={() => void handleStatusChange("in_progress")} disabled={ticketUpdating}>
-                    In progress
+                    В работе
                   </Button>
                   <Button variant="positive" size="sm" onClick={() => void handleStatusChange("closed")} disabled={ticketUpdating}>
-                    Close
+                    Закрыть
                   </Button>
                 </div>
               ) : null}
