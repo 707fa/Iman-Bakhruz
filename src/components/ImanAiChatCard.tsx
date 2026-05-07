@@ -38,6 +38,9 @@ function normalizeVoiceReply(raw: string): string {
   return text || "I'm listening. Say it again in English.";
 }
 
+const VOICE_CONVERSATION_RULE =
+  "Voice mode: act like a friendly native English-speaking tutor. First answer the user's question or continue the conversation naturally. Then, only if the user's English has a clear mistake, add one short correction after 'Correction:'. If there is no clear mistake, ask one natural follow-up question. Do not only correct grammar. Do not start with hello, hi, hey, or any greeting. Reply only in natural English, under 45 words.";
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -231,7 +234,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
   const voiceExchange = useCallback(
     async (userText: string) => {
-      const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${voiceLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nmode=voice\nrule=Reply only in natural English. Do not answer in Russian or Uzbek. Do not start with hello, hi, hey, or any greeting. Answer directly.\n[/CONTEXT]\n\n${userText}`;
+      const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${voiceLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nmode=voice\nrule=${VOICE_CONVERSATION_RULE}\n[/CONTEXT]\n\n${userText}`;
 
       if (isApiMode && token) {
         const updatedMessages = await withVoiceTimeout(
@@ -241,7 +244,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             language: voiceLanguage,
             groupTitle: currentGroup?.title,
             groupTime: currentGroup?.time,
-            systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 25 words. Do not use Russian or Uzbek. Do not start with hello, hi, hey, or any greeting. Answer directly.`,
+            systemContext: `${systemContext}\n${VOICE_CONVERSATION_RULE}`,
           }),
         );
         return normalizeVoiceReply(getLastAssistantText(updatedMessages));
@@ -265,7 +268,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 language: voiceLanguage,
                 groupTitle: currentGroup?.title,
                 groupTime: currentGroup?.time,
-                systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 25 words. Do not use Russian or Uzbek. Do not start with hello, hi, hey, or any greeting. Answer directly.`,
+                systemContext: `${systemContext}\n${VOICE_CONVERSATION_RULE}`,
               }),
             );
             return normalizeVoiceReply(getLastAssistantText(updatedMessages));
@@ -285,7 +288,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           language: voiceLanguage,
           groupTitle: currentGroup?.title,
           groupTime: currentGroup?.time,
-          systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 25 words. Do not use Russian or Uzbek. Do not start with hello, hi, hey, or any greeting. Answer directly.`,
+          systemContext: `${systemContext}\n${VOICE_CONVERSATION_RULE}`,
         }),
       );
       return normalizeVoiceReply(getLastAssistantText(updatedMessages));

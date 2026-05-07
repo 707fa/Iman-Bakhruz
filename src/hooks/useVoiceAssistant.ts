@@ -62,7 +62,7 @@ function mockReply(userText: string): string {
   const clean = userText.trim();
   if (!clean) return "I am here with you. Tell me what to practice in English.";
   const natural = clean.charAt(0).toUpperCase() + clean.slice(1).replace(/[.!?]*$/, ".");
-  return `I heard you. A more natural way to say it is: "${natural}" Now say it again smoothly.`;
+  return `I understand. My answer: let's keep talking in English. Correction if needed: "${natural}"`;
 }
 
 export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: UseVoiceAssistantOptions) {
