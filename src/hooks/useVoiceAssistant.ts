@@ -58,11 +58,58 @@ function normalizeSpokenText(text: string): string {
     .trim();
 }
 
+function formatTopic(raw: string): string {
+  const topic = raw
+    .replace(/[?.!]+$/g, "")
+    .replace(/\b(more|please|again|to me|for me)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!topic) return "it";
+  if (/^(present|past|future)\s+/i.test(topic)) return `the ${topic}`;
+  return topic;
+}
+
+function extractTopic(text: string): string {
+  const clean = text.trim();
+  const aboutMatch = clean.match(/\babout\s+(.+)$/i);
+  if (aboutMatch?.[1]) return formatTopic(aboutMatch[1]);
+
+  const explainMatch = clean.match(/\bexplain(?:\s+to\s+me|\s+me)?\s+(.+)$/i);
+  if (explainMatch?.[1]) return formatTopic(explainMatch[1]);
+
+  return "it";
+}
+
+function correctionFor(text: string, topic: string): string {
+  const clean = text.trim();
+  if (/\bexplain me\b/i.test(clean)) {
+    return `Correction: "Can you explain ${topic} to me in more detail?"`;
+  }
+  if (!/[?.!]$/.test(clean)) {
+    return `Correction: "${clean.charAt(0).toUpperCase()}${clean.slice(1)}?"`;
+  }
+  return "";
+}
+
 function mockReply(userText: string): string {
   const clean = userText.trim();
   if (!clean) return "I am here with you. Tell me what to practice in English.";
-  const natural = clean.charAt(0).toUpperCase() + clean.slice(1).replace(/[.!?]*$/, ".");
-  return `I understand. My answer: let's keep talking in English. Correction if needed: "${natural}"`;
+  const lower = clean.toLowerCase();
+  const topic = extractTopic(clean);
+  const correction = correctionFor(clean, topic);
+
+  let answer = "Sure. Ask me your question, and I will answer in English with a short correction if needed.";
+  if (lower.includes("present simple")) {
+    answer = "The present simple is for habits, routines, facts, and schedules. Use the base verb, but add -s or -es with he, she, and it.";
+  } else if (lower.includes("past simple")) {
+    answer = "The past simple is for finished actions in the past. Use verb-ed for regular verbs, and the second form for irregular verbs.";
+  } else if (lower.includes("present continuous")) {
+    answer = "The present continuous is for actions happening now or temporary situations. Use am, is, or are plus verb-ing.";
+  } else if (/\b(what|why|how|when|where|can|could|do|does|is|are)\b/i.test(clean)) {
+    answer = `Sure. About ${topic}: I can explain it with simple examples. Give me one sentence, and I will help you use it naturally.`;
+  }
+
+  return correction ? `${answer} ${correction}` : `${answer} What example should we practice?`;
 }
 
 export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: UseVoiceAssistantOptions) {
