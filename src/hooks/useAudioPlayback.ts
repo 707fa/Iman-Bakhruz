@@ -91,6 +91,8 @@ export function useAudioPlayback() {
   const audioElRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const outputMeterRef = useRef<OutputMeterSession | null>(null);
+  const playbackCancelRef = useRef<(() => void) | null>(null);
+  const playbackRunRef = useRef(0);
 
   const stopMeter = useCallback(() => {
     if (meterRef.current) {
@@ -172,6 +174,10 @@ export function useAudioPlayback() {
   }, []);
 
   const stop = useCallback(() => {
+    playbackRunRef.current += 1;
+    playbackCancelRef.current?.();
+    playbackCancelRef.current = null;
+
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -200,10 +206,28 @@ export function useAudioPlayback() {
       }
 
       await setupAudioMeter(audio);
-      await audio.play();
       await new Promise<void>((resolve, reject) => {
-        audio.onended = () => resolve();
-        audio.onerror = () => reject(new Error("Failed to play gateway TTS audio"));
+        let settled = false;
+        const settle = () => {
+          if (settled) return;
+          settled = true;
+          playbackCancelRef.current = null;
+          resolve();
+        };
+        playbackCancelRef.current = settle;
+        audio.onended = settle;
+        audio.onerror = () => {
+          if (settled) return;
+          settled = true;
+          playbackCancelRef.current = null;
+          reject(new Error("Failed to play gateway TTS audio"));
+        };
+        audio.play().catch(() => {
+          if (settled) return;
+          settled = true;
+          playbackCancelRef.current = null;
+          reject(new Error("Failed to play gateway TTS audio"));
+        });
       });
       return true;
     },
@@ -211,11 +235,13 @@ export function useAudioPlayback() {
   );
 
   const playViaBrowserTts = useCallback(
-    async (chunks: string[], lang: string) => {
+    async (chunks: string[], lang: string, shouldContinue: () => boolean) => {
       meterRef.current = window.requestAnimationFrame(animateSyntheticMeter);
       try {
         for (const chunk of chunks) {
+          if (!shouldContinue()) break;
           await speakWithBestBrowserVoice(chunk, lang, { rate: 0.9, pitch: 1.03, volume: 1 });
+          if (!shouldContinue()) break;
         }
       } finally {
         setSpeaking(false);
@@ -230,6 +256,7 @@ export function useAudioPlayback() {
       if (!text.trim() || muted) return;
 
       stop();
+      const runId = playbackRunRef.current;
       setSpeaking(true);
       const speechChunks = toSpeechChunks(text);
       if (speechChunks.length === 0) {
@@ -241,7 +268,9 @@ export function useAudioPlayback() {
       try {
         if (isVoiceGatewayReady()) {
           for (const chunk of speechChunks) {
+            if (runId !== playbackRunRef.current) return;
             await playViaGateway(chunk, lang);
+            if (runId !== playbackRunRef.current) return;
             cleanupObjectUrl();
           }
           setSpeaking(false);
@@ -254,7 +283,9 @@ export function useAudioPlayback() {
         stopMeter();
       }
 
-      await playViaBrowserTts(speechChunks, lang);
+      if (runId === playbackRunRef.current) {
+        await playViaBrowserTts(speechChunks, lang, () => runId === playbackRunRef.current);
+      }
     },
     [cleanupObjectUrl, muted, playViaBrowserTts, playViaGateway, stop, stopMeter],
   );

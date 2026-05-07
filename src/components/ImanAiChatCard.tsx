@@ -19,7 +19,7 @@ interface ImanAiChatCardProps {
   title?: string;
 }
 
-const VOICE_REPLY_TIMEOUT_MS = 16000;
+const VOICE_REPLY_TIMEOUT_MS = 9000;
 
 function withVoiceTimeout<T>(promise: Promise<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -42,7 +42,7 @@ function normalizeVoiceReply(raw: string): string {
 }
 
 const VOICE_CONVERSATION_RULE =
-  "Voice mode: you are a friendly English-speaking conversation partner and tutor. Talk naturally like a real person — you can greet back, react, joke, and be casual. When the user asks about a topic, explain it clearly with simple examples. Only correct clear grammar mistakes, and keep corrections very short after 'Correction:'. Don't over-correct or turn every casual phrase into a lesson. End with a natural follow-up question to keep the conversation going. Reply in natural spoken English. No markdown, no bullets, no lists. Aim for 60-90 words when explaining a topic, shorter for casual chat.";
+  "Voice mode: you are a fast, friendly native English conversation partner and tutor. Reply immediately in natural spoken English. First answer the user's question or continue the conversation, then add one short correction only if there is a clear mistake. Do not correct names. Do not begin with hello unless the user greeted you. Never use Russian or Uzbek. No markdown, no bullets, no lists. Keep casual replies under 35 words and explanations around 45-65 words. End with one natural follow-up question when useful.";
 
 function escapeHtml(value: string): string {
   return value
@@ -178,7 +178,7 @@ function writeLocalMessages(storageKey: string, messages: AiChatMessage[]) {
 }
 
 export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) {
-  const { state, currentStudent } = useAppStore();
+  const { state, currentStudent, currentTeacher } = useAppStore();
   const { locale } = useUi();
   const token = getApiToken();
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
@@ -227,6 +227,22 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     ],
     [],
   );
+  const voiceSpeechHints = useMemo(() => {
+    const values = [
+      currentStudent?.fullName,
+      currentTeacher?.fullName,
+      "Farrux",
+      "Farrukh",
+      "Farukh",
+      "Farruh",
+      "Iman",
+      "Bekhruz",
+    ];
+    return values
+      .flatMap((value) => String(value || "").split(/\s+/))
+      .map((value) => value.trim())
+      .filter((value) => value.length > 1);
+  }, [currentStudent?.fullName, currentTeacher?.fullName]);
 
   const resizeComposer = useCallback(() => {
     const node = textareaRef.current;
@@ -302,6 +318,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const voice = useVoiceAssistant({
     lang: "en-US",
     outputLang: "en-US",
+    speechHints: voiceSpeechHints,
     onExchange: voiceExchange,
     onError: (message) => showToast({ message, tone: "error" }),
   });
