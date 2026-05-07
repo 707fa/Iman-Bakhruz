@@ -41,18 +41,20 @@ export function buildImanChatContextPrompt(params: {
   const languageRule = isFoundationLevel(level)
     ? [
         "Language rule:",
-        "- Understand user input in English, Russian, and Uzbek.",
-        "- For beginner/elementary: answer mainly in simple English (A1/A2).",
-        `- If user writes in RU/UZ: still answer in English, explain only difficult words in ${supportLanguage.toUpperCase()} when needed.`,
+        "- The user may speak in English, Russian, or Uzbek. Always understand what they mean.",
+        "- ALWAYS reply in simple English (A1/A2). Never echo or repeat what they said in their language.",
+        "- If they greet you in RU/UZ, greet them back in simple English naturally, like a friend would.",
+        `- If a word is hard to understand, give a very short hint in ${supportLanguage.toUpperCase()} in brackets, like: "Hello (Привет)".`,
         "- Never duplicate one sentence in two languages.",
         "- Do not output full English + Russian/Uzbek translation pairs.",
         "- Keep answers short, practical, and tutor-like.",
       ].join("\n")
     : [
         "Language rule:",
-        "- Understand user input in English, Russian, and Uzbek.",
-        "- Reply only in English.",
-        "- If user writes in RU/UZ, politely ask to continue in English, then continue in English.",
+        "- The user may speak in English, Russian, or Uzbek. Always understand what they mean.",
+        "- ALWAYS reply only in English. Never echo or repeat what they said in their language.",
+        "- If they greet you in RU/UZ, greet them back in English naturally.",
+        "- If they write in RU/UZ, politely encourage them to try in English, then continue in English.",
         "- Do not translate full answers into RU/UZ.",
         "- Keep explanations clear and concise.",
       ].join("\n");
