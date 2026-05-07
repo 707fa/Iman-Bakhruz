@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, Clock3, CreditCard, Search, Trophy, Users2 } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, Search, Trophy, Users2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -46,10 +46,9 @@ export function TeacherGroupsPage() {
           const students = state.students
             .filter((student) => student.groupId === group.id && student.isActive !== false && student.isImanStudent !== false)
             .sort((a, b) => b.points - a.points || a.fullName.localeCompare(b.fullName));
-          const paidCount = students.filter((student) => student.isPaid).length;
           const leader = students[0] ?? null;
           const today = isGroupToday(group.daysPattern);
-          return { group, students, paidCount, leader, today };
+          return { group, students, leader, today };
         })
         .filter(({ group, students }) => {
           if (dayFilter !== "all" && group.daysPattern !== dayFilter) return false;
@@ -65,7 +64,6 @@ export function TeacherGroupsPage() {
   );
 
   const studentsTotal = groupRows.reduce((sum, row) => sum + row.students.length, 0);
-  const paidTotal = groupRows.reduce((sum, row) => sum + row.paidCount, 0);
   const groupsToday = teacherGroups.filter((group) => isGroupToday(group.daysPattern)).length;
 
   if (!currentTeacher) return null;
@@ -100,12 +98,10 @@ export function TeacherGroupsPage() {
         <Card>
           <CardContent className="p-4">
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/55 dark:text-zinc-400">
-              <CreditCard className="h-4 w-4 text-burgundy-700 dark:text-white" />
-              Paid / Today
+              <Clock3 className="h-4 w-4 text-burgundy-700 dark:text-white" />
+              {t("teacher.groupsTodayTitle")}
             </p>
-            <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">
-              {paidTotal} / {groupsToday}
-            </p>
+            <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{groupsToday}</p>
           </CardContent>
         </Card>
       </div>
@@ -146,11 +142,11 @@ export function TeacherGroupsPage() {
         </p>
       ) : (
         <div className="overflow-hidden rounded-xl border border-burgundy-100 bg-white shadow-soft dark:border-zinc-800 dark:bg-zinc-950">
-          {groupRows.map(({ group, students, paidCount, leader, today }, index) => (
+          {groupRows.map(({ group, students, leader, today }, index) => (
             <Link
               key={group.id}
               to={`/teacher/group/${group.id}`}
-              className={`grid gap-3 px-4 py-4 transition hover:bg-burgundy-50 dark:hover:bg-zinc-900 md:grid-cols-[1.15fr_0.9fr_0.7fr_auto] md:items-center ${
+              className={`grid gap-3 px-4 py-4 transition hover:bg-burgundy-50 dark:hover:bg-zinc-900 md:grid-cols-[1.15fr_0.55fr_0.9fr_auto] md:items-center ${
                 index > 0 ? "border-t border-burgundy-100 dark:border-zinc-800" : ""
               }`}
             >
@@ -169,10 +165,6 @@ export function TeacherGroupsPage() {
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-burgundy-50 px-2.5 py-1 font-semibold dark:bg-zinc-900">
                   <Users2 className="h-4 w-4" />
                   {students.length}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                  <CreditCard className="h-4 w-4" />
-                  {paidCount}
                 </span>
               </div>
 

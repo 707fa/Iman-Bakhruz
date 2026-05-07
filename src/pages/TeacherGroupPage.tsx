@@ -70,8 +70,6 @@ export function TeacherGroupPage() {
   const students = hasAccess
     ? state.students.filter((student) => student.groupId === group.id).sort((a, b) => b.points - a.points)
     : [];
-  const paidStudentsCount = students.filter((student) => student.isPaid).length;
-
   const top = hasAccess ? getGroupTop(state, group!.id, 10) : [];
   const normalizedStudentSearch = studentSearch.trim().toLowerCase();
   const filteredStudents = normalizedStudentSearch
@@ -353,7 +351,7 @@ export function TeacherGroupPage() {
 
       {hasAccess ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Card>
               <CardContent className="p-4">
                 <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/55 dark:text-zinc-400">
@@ -361,12 +359,6 @@ export function TeacherGroupPage() {
                   {t("teacher.myStudents")}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{students.length}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/55 dark:text-zinc-400">Full access</p>
-                <p className="mt-1 text-2xl font-bold text-burgundy-700 dark:text-white">{paidStudentsCount}</p>
               </CardContent>
             </Card>
             <Card>
@@ -405,7 +397,6 @@ export function TeacherGroupPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="truncate text-sm font-semibold text-charcoal dark:text-zinc-100">{student.fullName}</p>
                             <StatusBadge status={student.statusBadge} />
-                            {student.isPaid ? <Badge variant="positive">Full</Badge> : null}
                           </div>
                           <p className="mt-0.5 truncate text-xs text-charcoal/55 dark:text-zinc-400">{student.phone}</p>
                         </div>
@@ -758,7 +749,6 @@ export function TeacherGroupPage() {
     </div>
   );
 }
-
 
 
 
