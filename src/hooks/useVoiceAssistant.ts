@@ -215,10 +215,60 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
       if (open && keepListeningRef.current) {
         try {
           finishProcessing();
-          restartingRef.current = true;
-          recognitionRef.current?.start();
-          restartingRef.current = false;
-          setState("listening");
+          const RecognitionCtor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+          if (RecognitionCtor) {
+            const recognition = new RecognitionCtor();
+            recognition.lang = lang;
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+            recognition.onresult = (event: SpeechRecognitionEventLike) => {
+              let interim = "";
+              let finalText = "";
+              for (let i = event.resultIndex; i < event.results.length; i += 1) {
+                const result = event.results[i];
+                const chunk = result?.[0]?.transcript?.trim() ?? "";
+                if (!chunk) continue;
+                if (result.isFinal) finalText += `${finalText ? " " : ""}${chunk}`;
+                else interim += `${interim ? " " : ""}${chunk}`;
+              }
+              if (finalText) {
+                finalSpeechRef.current = normalizeSpokenText(`${finalSpeechRef.current} ${finalText}`);
+                lastInterimRef.current = "";
+              } else {
+                lastInterimRef.current = interim;
+              }
+              const buffered = getBufferedSpeech();
+              if (buffered) {
+                showBufferedSpeech(buffered);
+                scheduleBufferedSpeechSubmit(recognition);
+              }
+            };
+            recognition.onerror = (event) => {
+              const code = String(event?.error || "");
+              if (code === "aborted" || code === "no-speech") {
+                if (!processingRef.current) setState(audio.muted ? "muted" : "idle");
+                return;
+              }
+              setState("error");
+              onError?.("Voice recognition error. Please retry and check microphone permission.");
+            };
+            recognition.onend = () => {
+              if (restartingRef.current || processingRef.current) return;
+              if (submitBufferedSpeech(recognition, true)) return;
+              if (!keepListeningRef.current && state !== "speaking") {
+                setState(audio.muted ? "muted" : "idle");
+              }
+            };
+            restartingRef.current = true;
+            recognitionRef.current = recognition;
+            recognition.start();
+            restartingRef.current = false;
+            setState("listening");
+          } else {
+            finishProcessing();
+            setState("idle");
+          }
         } catch {
           finishProcessing();
           setState("idle");
