@@ -94,6 +94,13 @@ export function useAudioPlayback() {
   const playbackCancelRef = useRef<(() => void) | null>(null);
   const playbackRunRef = useRef(0);
 
+  const cancelBrowserSpeech = useCallback(() => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    window.setTimeout(() => window.speechSynthesis.cancel(), 40);
+    window.setTimeout(() => window.speechSynthesis.cancel(), 160);
+  }, []);
+
   const stopMeter = useCallback(() => {
     if (meterRef.current) {
       window.cancelAnimationFrame(meterRef.current);
@@ -178,9 +185,7 @@ export function useAudioPlayback() {
     playbackCancelRef.current?.();
     playbackCancelRef.current = null;
 
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    cancelBrowserSpeech();
 
     if (audioElRef.current) {
       audioElRef.current.pause();
@@ -191,13 +196,15 @@ export function useAudioPlayback() {
     cleanupObjectUrl();
     setSpeaking(false);
     stopMeter();
-  }, [cleanupObjectUrl, stopMeter]);
+  }, [cancelBrowserSpeech, cleanupObjectUrl, stopMeter]);
 
   const playViaGateway = useCallback(
-    async (text: string, lang: string): Promise<boolean> => {
+    async (text: string, lang: string, shouldContinue: () => boolean): Promise<boolean> => {
       if (!isVoiceGatewayReady()) return false;
 
       const response = await requestVoiceTts({ text, lang, voice: pickGatewayVoice(lang) });
+      if (!shouldContinue()) return false;
+
       const audio = new Audio(response.audioSrc);
       audio.preload = "auto";
       audioElRef.current = audio;
@@ -206,6 +213,8 @@ export function useAudioPlayback() {
       }
 
       await setupAudioMeter(audio);
+      if (!shouldContinue()) return false;
+
       await new Promise<void>((resolve, reject) => {
         let settled = false;
         const settle = () => {
@@ -222,6 +231,10 @@ export function useAudioPlayback() {
           playbackCancelRef.current = null;
           reject(new Error("Failed to play gateway TTS audio"));
         };
+        if (!shouldContinue()) {
+          settle();
+          return;
+        }
         audio.play().catch(() => {
           if (settled) return;
           settled = true;
@@ -269,7 +282,7 @@ export function useAudioPlayback() {
         if (isVoiceGatewayReady()) {
           for (const chunk of speechChunks) {
             if (runId !== playbackRunRef.current) return;
-            await playViaGateway(chunk, lang);
+            await playViaGateway(chunk, lang, () => runId === playbackRunRef.current);
             if (runId !== playbackRunRef.current) return;
             cleanupObjectUrl();
           }

@@ -357,8 +357,12 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
     recognition.onerror = null;
     recognition.onend = null;
     try {
-      if (method === "abort") recognition.abort?.();
-      else recognition.stop();
+      if (method === "abort") {
+        recognition.abort?.();
+        recognition.stop();
+      } else {
+        recognition.stop();
+      }
     } catch {
       // noop
     }
@@ -397,6 +401,8 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
 
   const startRecognition = useCallback(
     async (mode: RecognitionMode = "conversation") => {
+      if (!openRef.current) return;
+
       const RecognitionCtor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
       if (!RecognitionCtor) {
         updateState("error");
@@ -655,11 +661,13 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
   }, [audio, clearBufferedSpeech, clearSilenceTimer, finishProcessing, mic, stopRecognition, updateState]);
 
   const startListening = useCallback(async () => {
+    if (!openRef.current) return;
     keepListeningRef.current = true;
     await startRecognition("conversation");
   }, [startRecognition]);
 
   const toggleMic = useCallback(() => {
+    if (!openRef.current) return;
     if (keepListeningRef.current) {
       void stopListening();
       return;
@@ -682,11 +690,22 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
   const close = useCallback(async () => {
     setOpen(false);
     openRef.current = false;
+    keepListeningRef.current = false;
+    exchangeRunRef.current += 1;
+    clearSilenceTimer();
+    clearBufferedSpeech();
+    stopRecognition("abort");
+    audio.stop();
     await stopListening();
     audio.stop();
     updateState("idle");
     setTranscript([]);
-  }, [audio, stopListening, updateState]);
+  }, [audio, clearBufferedSpeech, clearSilenceTimer, stopListening, stopRecognition, updateState]);
+
+  const setVoiceOpen = useCallback((nextOpen: boolean) => {
+    openRef.current = nextOpen;
+    setOpen(nextOpen);
+  }, []);
 
   const consumeSessionMessages = useCallback(() => {
     const snapshot = [...sessionMessagesRef.current];
@@ -697,7 +716,7 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
   return useMemo(
     () => ({
       open,
-      setOpen,
+      setOpen: setVoiceOpen,
       close,
       state,
       transcript,
@@ -708,6 +727,6 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
       toggleAudio,
       consumeSessionMessages,
     }),
-    [audio.muted, close, consumeSessionMessages, open, state, toggleAudio, toggleMic, transcript, visualLevel],
+    [audio.muted, close, consumeSessionMessages, open, setVoiceOpen, state, toggleAudio, toggleMic, transcript, visualLevel],
   );
 }

@@ -448,8 +448,8 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   }
 
   async function handleCloseVoice() {
-    const voiceMessages = voice.consumeSessionMessages();
     await voice.close();
+    const voiceMessages = voice.consumeSessionMessages();
 
     if (voiceMessages.length === 0) return;
 
