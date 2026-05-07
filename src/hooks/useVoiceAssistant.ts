@@ -47,6 +47,7 @@ declare global {
 interface UseVoiceAssistantOptions {
   lang: string;
   outputLang?: string;
+  recognitionLangs?: string[];
   speechHints?: string[];
   onExchange?: (userText: string) => Promise<string>;
   onError?: (message: string) => void;
@@ -77,6 +78,23 @@ function normalizeForCommand(text: string): string {
     .trim();
 }
 
+function uniqueLanguages(values: string[], fallback: string): string[] {
+  const normalized = values
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const unique = [...new Set(normalized.length ? normalized : [fallback])];
+  return unique.includes(fallback) ? unique : [...unique, fallback];
+}
+
+function hasCyrillic(text: string): boolean {
+  return /[а-яё]/i.test(text);
+}
+
+function hasUzbekLatin(text: string): boolean {
+  const clean = normalizeForCommand(text);
+  return /\b(nima|qanday|nega|qachon|qayerda|kim|menga|tushuntir|degani|qilib|bo'ladi|boladi|o'zi|uzi|misol|gap|xato|to'g'ri|togri|inglizcha)\b/i.test(clean);
+}
+
 function formatTopic(raw: string): string {
   const topic = raw
     .replace(/[?.!]+$/g, "")
@@ -102,17 +120,22 @@ function extractTopic(text: string): string {
 function normalizeVoiceInput(text: string): string {
   const clean = normalizeSpokenText(text);
   const cyrillicLower = clean.toLowerCase();
+  const normalized = normalizeForCommand(clean);
 
   const asksAboutPresentSimple =
     /\bpresent\s+simple\b/i.test(clean) ||
     /\bпр[еи]з[еэ]нт\s+симпл\b/i.test(cyrillicLower) ||
     /\bпресент\s+симпле\b/i.test(cyrillicLower) ||
+    /\bpresent\s+simple\s+(nima|degani|qanday|tushuntir)\b/i.test(normalized) ||
+    /\b(nima|degani|qanday|tushuntir)\s+present\s+simple\b/i.test(normalized) ||
     /\b(ibs|i\s*b\s*s|ice|eyes)\s+(meme|mean|mini|me)\s+(yesterday|simple|simply|symbol)\b/i.test(clean);
 
   if (asksAboutPresentSimple) {
     if (
       /\b(what|explain|tell|how|do|does|is|are|mean|means)\b/i.test(clean) ||
       /\bчто\s+такое\b/i.test(cyrillicLower) ||
+      /\b(объясни|обьясни|расскажи|как|зачем|когда|для\s+чего)\b/i.test(cyrillicLower) ||
+      /\b(nima|degani|qanday|menga|tushuntir|ishlat|qachon|misol)\b/i.test(normalized) ||
       /\bкак\b/i.test(cyrillicLower) ||
       /\b(ibs|i\s*b\s*s|ice|eyes)\s+(meme|mean|mini|me)\s+(yesterday|simple|simply|symbol)\b/i.test(clean)
     ) {
@@ -122,6 +145,10 @@ function normalizeVoiceInput(text: string): string {
 
   if (/^what\s+do\s+you\s+do\s+present\s+simple\b/i.test(clean)) {
     return "What is the present simple and how do I use it?";
+  }
+
+  if (hasCyrillic(clean) || hasUzbekLatin(clean)) {
+    return `The student said in Russian, Uzbek, or mixed language: "${clean}". Understand the meaning and answer in simple English. If they made an English mistake, correct only the English part shortly.`;
   }
 
   return clean;
@@ -161,13 +188,30 @@ function mockReply(userText: string): string {
 
 function isStopCommand(text: string): boolean {
   const clean = normalizeForCommand(text);
-  return /^(iman\s+)?(stop|pause|wait|cancel|enough|be quiet|silent|shut up)(\s+iman)?$/.test(clean);
+  return /^(iman\s+)?(stop|pause|wait|cancel|enough|be quiet|silent|shut up|стоп|остановись|подожди|хватит|молчи|замолчи|bas|toxta|to'xta|kut|yetarli|jim)(\s+iman)?$/.test(clean);
 }
 
 function looksLikeQuestionOrNewTurn(text: string): boolean {
   const clean = normalizeForCommand(text);
   if (clean.length < 8) return false;
-  return /^(iman\s+)?(can|could|what|why|how|when|where|who|which|do|does|did|is|are|am|tell|explain|help|no|wait|actually|but)\b/.test(clean);
+  return /^(iman\s+)?(can|could|what|why|how|when|where|who|which|do|does|did|is|are|am|tell|explain|help|no|wait|actually|but|что|почему|как|когда|где|кто|какой|объясни|обьясни|расскажи|помоги|nima|nega|qanday|qachon|qayerda|kim|menga|tushuntir|ayt|yordam)\b/.test(clean);
+}
+
+function resolveRecognitionLanguageIndex(text: string, languages: string[], fallbackIndex: number): number {
+  const lower = text.toLowerCase();
+  if (hasCyrillic(lower)) {
+    const ruIndex = languages.findIndex((item) => item.toLowerCase().startsWith("ru"));
+    if (ruIndex >= 0) return ruIndex;
+  }
+  if (hasUzbekLatin(lower)) {
+    const uzIndex = languages.findIndex((item) => item.toLowerCase().startsWith("uz"));
+    if (uzIndex >= 0) return uzIndex;
+  }
+  if (/[a-z]/i.test(text)) {
+    const enIndex = languages.findIndex((item) => item.toLowerCase().startsWith("en"));
+    if (enIndex >= 0) return enIndex;
+  }
+  return fallbackIndex;
 }
 
 function getSilenceDelay(text: string): number {
@@ -238,7 +282,7 @@ function isLikelyAssistantEcho(heard: string, assistantText: string): boolean {
   return overlap / heardWords.length >= 0.68;
 }
 
-export function useVoiceAssistant({ lang, outputLang, speechHints = [], onExchange, onError }: UseVoiceAssistantOptions) {
+export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHints = [], onExchange, onError }: UseVoiceAssistantOptions) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState<VoiceTranscriptItem[]>([]);
@@ -255,6 +299,8 @@ export function useVoiceAssistant({ lang, outputLang, speechHints = [], onExchan
   const stateRef = useRef<VoiceState>("idle");
   const openRef = useRef(false);
   const speechHintsRef = useRef<string[]>(speechHints);
+  const recognitionLangsRef = useRef<string[]>(uniqueLanguages(recognitionLangs ?? [lang], lang));
+  const recognitionLangIndexRef = useRef(0);
   const currentAssistantTextRef = useRef("");
   const exchangeRunRef = useRef(0);
   const startRecognitionRef = useRef<(mode?: RecognitionMode) => Promise<void>>(async () => undefined);
@@ -267,6 +313,11 @@ export function useVoiceAssistant({ lang, outputLang, speechHints = [], onExchan
   useEffect(() => {
     speechHintsRef.current = speechHints;
   }, [speechHints]);
+
+  useEffect(() => {
+    recognitionLangsRef.current = uniqueLanguages(recognitionLangs ?? [lang], lang);
+    recognitionLangIndexRef.current = 0;
+  }, [lang, recognitionLangs]);
 
   const updateState = useCallback((next: VoiceState) => {
     stateRef.current = next;
@@ -365,7 +416,7 @@ export function useVoiceAssistant({ lang, outputLang, speechHints = [], onExchan
       const recognition = new RecognitionCtor();
       recognitionRef.current = recognition;
       recognitionModeRef.current = mode;
-      recognition.lang = lang;
+      recognition.lang = recognitionLangsRef.current[recognitionLangIndexRef.current] ?? lang;
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.maxAlternatives = 5;
@@ -420,6 +471,12 @@ export function useVoiceAssistant({ lang, outputLang, speechHints = [], onExchan
       recognition.onerror = (event) => {
         const code = String(event?.error || "");
         if (code === "aborted" || code === "no-speech") {
+          if (keepListeningRef.current && openRef.current && !processingRef.current) restartConversationSoon();
+          return;
+        }
+        if (code === "language-not-supported") {
+          const langs = recognitionLangsRef.current;
+          recognitionLangIndexRef.current = (recognitionLangIndexRef.current + 1) % Math.max(1, langs.length);
           if (keepListeningRef.current && openRef.current && !processingRef.current) restartConversationSoon();
           return;
         }
@@ -486,6 +543,8 @@ export function useVoiceAssistant({ lang, outputLang, speechHints = [], onExchan
     async (finalText: string) => {
       const clean = normalizeVoiceInput(finalText);
       if (!clean) return;
+      const languages = recognitionLangsRef.current;
+      recognitionLangIndexRef.current = resolveRecognitionLanguageIndex(finalText, languages, recognitionLangIndexRef.current);
 
       if (isStopCommand(clean)) {
         await handleStopCommand();

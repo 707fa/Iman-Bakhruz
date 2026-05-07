@@ -255,6 +255,11 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       .map((value) => value.trim())
       .filter((value) => value.length > 1);
   }, [currentStudent?.fullName, currentTeacher?.fullName]);
+  const voiceRecognitionLangs = useMemo(() => {
+    if (locale === "ru") return ["ru-RU", "en-US", "uz-UZ"];
+    if (locale === "uz") return ["uz-UZ", "ru-RU", "en-US"];
+    return ["en-US", "ru-RU", "uz-UZ"];
+  }, [locale]);
 
   const resizeComposer = useCallback(() => {
     const node = textareaRef.current;
@@ -330,6 +335,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
   const voice = useVoiceAssistant({
     lang: "en-US",
     outputLang: "en-US",
+    recognitionLangs: voiceRecognitionLangs,
     speechHints: voiceSpeechHints,
     onExchange: voiceExchange,
     onError: (message) => showToast({ message, tone: "error" }),
