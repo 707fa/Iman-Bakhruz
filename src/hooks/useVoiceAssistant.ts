@@ -63,11 +63,19 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const keepListeningRef = useRef(false);
   const sessionMessagesRef = useRef<VoiceSessionMessage[]>([]);
+  const processingRef = useRef(false);
+  const silenceTimerRef = useRef<number | null>(null);
+  const lastInterimRef = useRef("");
 
   const visualLevel = state === "listening" ? mic.level : state === "speaking" ? audio.outputLevel : state === "thinking" ? 0.45 : 0.14;
 
   const stopListening = useCallback(async () => {
     keepListeningRef.current = false;
+    processingRef.current = false;
+    if (silenceTimerRef.current) {
+      window.clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     try {
       recognitionRef.current?.stop();
     } catch {
@@ -82,7 +90,13 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
   const handleFinalText = useCallback(
     async (finalText: string) => {
       const clean = finalText.trim();
-      if (!clean) return;
+      if (!clean || processingRef.current) return;
+      processingRef.current = true;
+      if (silenceTimerRef.current) {
+        window.clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+      lastInterimRef.current = "";
 
       setTranscript((prev) => [...prev.slice(-7).filter((item) => !item.partial), { id: makeId("u"), role: "user", text: clean }]);
       sessionMessagesRef.current.push({
@@ -121,11 +135,15 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
 
       if (open && keepListeningRef.current) {
         try {
+          processingRef.current = false;
           recognitionRef.current?.start();
           setState("listening");
         } catch {
+          processingRef.current = false;
           setState("idle");
         }
+      } else {
+        processingRef.current = false;
       }
     },
     [audio, lang, onExchange, open, outputLang],
@@ -148,7 +166,7 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
 
     const recognition = new RecognitionCtor();
     recognition.lang = lang;
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     recognition.onresult = (event) => {
@@ -162,7 +180,22 @@ export function useVoiceAssistant({ lang, outputLang, onExchange, onError }: Use
         else interim += `${interim ? " " : ""}${chunk}`;
       }
       if (interim) {
+        lastInterimRef.current = interim;
         setTranscript((prev) => [...prev.slice(-7).filter((item) => !item.partial), { id: makeId("p"), role: "user", text: interim, partial: true }]);
+        if (silenceTimerRef.current) {
+          window.clearTimeout(silenceTimerRef.current);
+        }
+        silenceTimerRef.current = window.setTimeout(() => {
+          const fallbackText = lastInterimRef.current.trim();
+          if (!fallbackText || processingRef.current) return;
+          keepListeningRef.current = true;
+          try {
+            recognition.stop();
+          } catch {
+            // noop
+          }
+          void handleFinalText(fallbackText);
+        }, 1300);
       }
       if (finalText) {
         keepListeningRef.current = true;

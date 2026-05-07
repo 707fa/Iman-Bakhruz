@@ -214,6 +214,18 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
     async (userText: string) => {
       const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${voiceLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nmode=voice\nrule=Reply only in natural English. Do not answer in Russian or Uzbek.\n[/CONTEXT]\n\n${userText}`;
 
+      if (isApiMode && token) {
+        const updatedMessages = await platformApi.sendAiMessage(token, {
+          text: userText,
+          level: studentLevel,
+          language: voiceLanguage,
+          groupTitle: currentGroup?.title,
+          groupTime: currentGroup?.time,
+          systemContext: `${systemContext}\nVoice mode: reply only in natural English. Keep it under 35 words. Do not use Russian or Uzbek.`,
+        });
+        return normalizeAssistantReply(getLastAssistantText(updatedMessages));
+      }
+
       if (useGatewayMode) {
         try {
           const response = await aiGatewayCheckHomework({
