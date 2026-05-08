@@ -25,6 +25,7 @@ interface SpeechRecognitionLike {
   continuous: boolean;
   interimResults: boolean;
   maxAlternatives?: number;
+  phrases?: Array<{ phrase: string; boost?: number }>;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onerror: ((event?: { error?: string }) => void) | null;
   onend: (() => void) | null;
@@ -63,6 +64,12 @@ interface NormalizedVoiceInput {
 const SPEECH_SILENCE_MS = 2200;
 const QUESTION_SILENCE_MS = 1200;
 const STOP_SILENCE_MS = 250;
+const DEFAULT_RECOGNITION_LANGUAGES = ["en-US", "ru-RU", "uz-UZ"];
+const FARRUX_LATIN_VARIANT_RE =
+  /\b(faro|faroq|farok|farook|farouk|farouq|farrow|farooq|faruk|farukh|farux|farruk|farruh|fahrux|feruz|pharaoh)\b/gi;
+const FARRUX_CYRILLIC_VARIANT_RE = /\b(фаро+к|фарук|фарух|фаррух|фаррукс|фаруқ|феруз|фаро)\b/gi;
+const FARRUX_VARIANT_TEST_RE =
+  /\b(faro|faroq|farok|farook|farouk|farouq|farrow|farooq|faruk|farukh|farux|farruk|farruh|fahrux|feruz|pharaoh|фаро+к|фарук|фарух|фаррух|фаррукс|фаруқ|феруз|фаро)\b/i;
 
 function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -83,12 +90,29 @@ function normalizeForCommand(text: string): string {
     .trim();
 }
 
+function normalizeRecognitionLanguage(value: string): string | null {
+  const safe = value.trim().replace("_", "-");
+  if (!safe) return null;
+  const lower = safe.toLowerCase();
+  if (lower.startsWith("en")) return "en-US";
+  if (lower.startsWith("ru")) return "ru-RU";
+  if (lower.startsWith("uz")) return "uz-UZ";
+  return safe;
+}
+
+function getBrowserRecognitionLanguages(): string[] {
+  if (typeof navigator === "undefined") return [];
+  const values = Array.isArray(navigator.languages) && navigator.languages.length > 0 ? navigator.languages : [navigator.language];
+  return values
+    .map((value) => normalizeRecognitionLanguage(value || ""))
+    .filter((value): value is string => Boolean(value));
+}
+
 function uniqueLanguages(values: string[], fallback: string): string[] {
-  const normalized = values
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const unique = [...new Set(normalized.length ? normalized : [fallback])];
-  return unique.includes(fallback) ? unique : [...unique, fallback];
+  const normalized = [...values, ...getBrowserRecognitionLanguages(), fallback, ...DEFAULT_RECOGNITION_LANGUAGES]
+    .map((value) => normalizeRecognitionLanguage(value))
+    .filter((value): value is string => Boolean(value));
+  return [...new Set(normalized)];
 }
 
 function hasCyrillic(text: string): boolean {
@@ -97,7 +121,7 @@ function hasCyrillic(text: string): boolean {
 
 function hasUzbekLatin(text: string): boolean {
   const clean = normalizeForCommand(text);
-  return /\b(salom|assalomu|rahmat|ha|yoq|yo'q|nima|qanday|nega|qachon|qayerda|kim|menga|tushuntir|degani|qilib|bo'ladi|boladi|o'zi|uzi|misol|gap|xato|to'g'ri|togri|inglizcha)\b/i.test(clean);
+  return /\b(salom|assalomu|rahmat|ha|yoq|yo\s*q|nima|qanday|nega|qachon|qayerda|kim|menga|mening|meni|ismim|tushuntir|degani|qilib|bo\s*ladi|boladi|o\s*zi|uzi|misol|gap|xato|to\s*gri|togri|inglizcha|organ|o\s*rgan|urgan)\b/i.test(clean);
 }
 
 function formatTopic(raw: string): string {
@@ -122,10 +146,121 @@ function extractTopic(text: string): string {
   return "it";
 }
 
-function normalizeVoiceInput(text: string): NormalizedVoiceInput {
-  const clean = normalizeSpokenText(text);
+function getPreferredName(hints: string[]): string {
+  const knownNames = new Set(["Farrux", "Farrukh", "Farukh", "Farruh"]);
+  for (const hint of hints) {
+    const first = hint.trim().split(/\s+/)[0];
+    if (!first) continue;
+    if (/^farr?u[hkx]$/i.test(first) || /^faru[hkx]$/i.test(first)) {
+      knownNames.add(first);
+    }
+    if (/^фар/i.test(first)) {
+      knownNames.add("Farrux");
+    }
+  }
+
+  return [...knownNames].find((name) => /^farrux$/i.test(name)) ?? [...knownNames][0] ?? "Farrux";
+}
+
+function normalizeMisheardIntro(text: string, preferredName: string): string {
+  if (!/\b(my name is|i am|i'm)\b/i.test(text)) return text;
+  if (!/\b(my name is|name is)\b/i.test(text) && !/^\s*i\s+am\s+far\s+(?:to|too|two)\s*$/i.test(text)) return text;
+  return text.replace(/\bfar\s+(?:to|too|two)\b/gi, preferredName);
+}
+
+function looksLikeGreeting(text: string): boolean {
+  const clean = normalizeForCommand(text);
+  return /^(hello|hi|hey|привет|здравствуйте|салом|ассалому(?:\s+алейкум)?|assalomu(?:\s+alaykum)?|salom|salam|salem|salon|privet|private|prevet|прив[еэ]т)$/.test(clean);
+}
+
+function normalizeNameIntro(clean: string, preferredName: string): NormalizedVoiceInput | null {
+  const hasName = FARRUX_VARIANT_TEST_RE.test(clean) || clean.toLowerCase().includes(preferredName.toLowerCase());
+  if (!hasName) return null;
+
+  const isIntro =
+    /\b(my name is|i am|i'm)\b/i.test(clean) ||
+    /\b(меня\s+зовут|мо[её]\s+имя|я\s+.*зовут)\b/i.test(clean) ||
+    /\b(mening\s+ismim|ismim|meni\s+ismim)\b/i.test(clean);
+
+  if (!isIntro) return null;
+
+  const wordCount = normalizeForCommand(clean).split(/\s+/).filter(Boolean).length;
+  if (wordCount <= 8) {
+    return {
+      displayText: clean,
+      aiText: `My name is ${preferredName}.`,
+    };
+  }
+
+  return {
+    displayText: clean,
+    aiText: clean,
+  };
+}
+
+function normalizeLocalizedExplainIntent(clean: string): NormalizedVoiceInput | null {
+  const cyrillicLower = clean.toLowerCase();
+  const command = normalizeForCommand(clean);
+
+  const ruWhat = clean.match(/\bчто\s+такое\s+(.+)$/i);
+  if (ruWhat?.[1]) {
+    return {
+      displayText: clean,
+      aiText: `What is ${formatTopic(ruWhat[1])}?`,
+    };
+  }
+
+  const ruExplain = clean.match(/\b(?:объясни|обьясни|расскажи|покажи)\s+(?:мне\s+)?(.+)$/i);
+  if (ruExplain?.[1]) {
+    return {
+      displayText: clean,
+      aiText: `Can you explain ${formatTopic(ruExplain[1])} to me?`,
+    };
+  }
+
+  if (hasUzbekLatin(clean)) {
+    const uzExplain = clean.match(/\b(?:menga\s+)?(.+?)\s+(?:tushuntir|tushuntirib\s+ber|aytib\s+ber|ayt)\b/i);
+    if (uzExplain?.[1]) {
+      return {
+        displayText: clean,
+        aiText: `Can you explain ${formatTopic(uzExplain[1])} to me?`,
+      };
+    }
+
+    const uzWhat = command.match(/\b(.+?)\s+(?:nima|degani|nimani\s+anglatadi)\b/i);
+    if (uzWhat?.[1] && uzWhat[1].length > 2) {
+      return {
+        displayText: clean,
+        aiText: `What is ${formatTopic(uzWhat[1])}?`,
+      };
+    }
+  }
+
+  if (/\b(почему|зачем|как|когда|где|кто|какой|какая|какие)\b/i.test(cyrillicLower)) {
+    return {
+      displayText: clean,
+      aiText: clean,
+    };
+  }
+
+  return null;
+}
+
+function normalizeVoiceInput(text: string, hints: string[] = []): NormalizedVoiceInput {
+  const preferredName = getPreferredName(hints);
+  const clean = normalizeSpokenText(normalizeMisheardIntro(replaceNameMistakes(text, hints), preferredName));
   const cyrillicLower = clean.toLowerCase();
   const normalized = normalizeForCommand(clean);
+
+  if (looksLikeGreeting(clean)) {
+    return {
+      displayText: /^(private|privet|prevet|salon|salam|salem)$/i.test(normalized) ? "Hi" : clean,
+      aiText: "Hi.",
+    };
+  }
+
+  const normalizedNameIntro = normalizeNameIntro(clean, preferredName);
+  if (normalizedNameIntro) return normalizedNameIntro;
 
   const asksAboutPresentSimple =
     /\bpresent\s+simple\b/i.test(clean) ||
@@ -152,6 +287,9 @@ function normalizeVoiceInput(text: string): NormalizedVoiceInput {
       };
     }
   }
+
+  const localizedExplainIntent = normalizeLocalizedExplainIntent(clean);
+  if (localizedExplainIntent) return localizedExplainIntent;
 
   if (/^what\s+do\s+you\s+do\s+present\s+simple\b/i.test(clean)) {
     return {
@@ -235,16 +373,48 @@ function getSilenceDelay(text: string): number {
 }
 
 function replaceNameMistakes(text: string, hints: string[]): string {
-  const knownNames = new Set(["Farrux", "Farrukh", "Farukh", "Farruh"]);
-  for (const hint of hints) {
-    const first = hint.trim().split(/\s+/)[0];
-    if (/^farr?u[hkx]/i.test(first) || /^faru[hkx]/i.test(first)) {
-      knownNames.add(first);
-    }
-  }
+  const preferredName = getPreferredName(hints);
+  return text
+    .replace(FARRUX_LATIN_VARIANT_RE, preferredName)
+    .replace(FARRUX_CYRILLIC_VARIANT_RE, preferredName);
+}
 
-  const preferredName = [...knownNames].find((name) => /^farrux$/i.test(name)) ?? [...knownNames][0] ?? "Farrux";
-  return text.replace(/\b(faro|farrow|farooq|faruk|farukh|farruk|farruh|fahrux|feruz|pharaoh)\b/gi, preferredName);
+function buildRecognitionPhrases(hints: string[]): Array<{ phrase: string; boost: number }> {
+  const preferredName = getPreferredName(hints);
+  const values = [
+    ...hints,
+    preferredName,
+    "Farrux",
+    "Farrukh",
+    "Farukh",
+    "Farooq",
+    "Фаррух",
+    "Салом",
+    "Привет",
+    "Assalomu alaykum",
+    "present simple",
+    "past simple",
+    "present continuous",
+  ];
+
+  return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 1))]
+    .slice(0, 40)
+    .map((phrase) => ({ phrase, boost: 15 }));
+}
+
+function scoreTranscript(transcript: string, confidence: number | undefined, hints: string[]): number {
+  const text = transcript.toLowerCase();
+  const normalized = normalizeForCommand(transcript);
+  const normalizedHints = hints.map((hint) => hint.toLowerCase()).filter(Boolean);
+
+  let score = confidence ?? 0;
+  if (normalizedHints.some((hint) => text.includes(hint))) score += 3;
+  if (FARRUX_VARIANT_TEST_RE.test(transcript)) score += 5;
+  if (/\b(my name is|i am|i'm|меня\s+зовут|мо[её]\s+имя|mening\s+ismim|ismim)\b/i.test(transcript)) score += 2;
+  if (/\bpresent\s+simple\b/i.test(transcript)) score += 3;
+  if (/\b(ibs|i\s*b\s*s|ice|eyes)\s+(meme|mean|mini|me)\s+(yesterday|simple|simply|symbol)\b/i.test(transcript)) score += 4;
+  if (/^(private|privet|prevet|salon|salam|salem|salom|привет|салом)$/i.test(normalized)) score += 2;
+  return score;
 }
 
 function pickBestTranscript(result: SpeechRecognitionResultLike, hints: string[]): string {
@@ -255,13 +425,8 @@ function pickBestTranscript(result: SpeechRecognitionResultLike, hints: string[]
   }
 
   if (alternatives.length === 0) return "";
-  const normalizedHints = hints.map((hint) => hint.toLowerCase()).filter(Boolean);
   const ranked = [...alternatives].sort((a, b) => {
-    const aText = a.transcript.toLowerCase();
-    const bText = b.transcript.toLowerCase();
-    const aHintScore = normalizedHints.some((hint) => aText.includes(hint)) ? 3 : 0;
-    const bHintScore = normalizedHints.some((hint) => bText.includes(hint)) ? 3 : 0;
-    return bHintScore + (b.confidence ?? 0) - (aHintScore + (a.confidence ?? 0));
+    return scoreTranscript(b.transcript, b.confidence, hints) - scoreTranscript(a.transcript, a.confidence, hints);
   });
 
   return replaceNameMistakes(ranked[0]?.transcript ?? "", hints);
@@ -439,7 +604,13 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
       recognition.lang = recognitionLangsRef.current[recognitionLangIndexRef.current] ?? lang;
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.maxAlternatives = 5;
+      recognition.maxAlternatives = 10;
+      try {
+        const phrases = buildRecognitionPhrases(speechHintsRef.current);
+        if (phrases.length > 0) recognition.phrases = phrases;
+      } catch {
+        // Contextual phrase bias is experimental; ignore when the browser does not support it.
+      }
 
       recognition.onresult = (event) => {
         const { finalText, interim } = readRecognitionEvent(event, speechHintsRef.current);
@@ -561,7 +732,7 @@ export function useVoiceAssistant({ lang, outputLang, recognitionLangs, speechHi
 
   const handleFinalText = useCallback(
     async (finalText: string) => {
-      const normalizedInput = normalizeVoiceInput(finalText);
+      const normalizedInput = normalizeVoiceInput(finalText, speechHintsRef.current);
       const clean = normalizedInput.displayText.trim();
       const aiText = normalizedInput.aiText.trim();
       if (!clean || !aiText) return;

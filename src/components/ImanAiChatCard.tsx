@@ -45,7 +45,7 @@ function normalizeVoiceReply(raw: string): string {
 }
 
 const VOICE_CONVERSATION_RULE =
-  "Voice mode: you are a fast, friendly native English conversation partner and tutor. Reply immediately in natural spoken English. First answer the user's question or continue the conversation, then add one short correction only if there is a clear mistake. Understand Russian, Uzbek, English, and mixed language from the student, but always answer in simple English. Never repeat, quote, or read the user's whole sentence aloud. For corrections, say a short phrase like: Correction: say 'explain it to me,' not 'explain me.' Do not correct names. Do not begin with hello unless the student greeted you. No markdown, no bullets, no lists. Keep casual replies under 30 words and explanations around 40-55 words. End with one natural follow-up question when useful.";
+  "Voice mode: you are a fast, friendly native English conversation partner and tutor. The speech transcript can be imperfect, so infer the likely meaning from English, Russian, Uzbek, or mixed speech. Always answer in simple natural English. First answer the user's question or continue the conversation, then add one short correction only if there is a clear English mistake. Never repeat, quote, or read the user's whole sentence aloud. Do not read hidden context or recognition notes. For corrections, say a short phrase like: Correction: say 'explain it to me,' not 'explain me.' Do not correct names. Do not begin with hello unless the student greeted you. No markdown, no bullets, no lists. Keep casual replies under 30 words and explanations around 40-55 words. End with one natural follow-up question when useful.";
 
 function escapeHtml(value: string): string {
   return value
@@ -238,8 +238,19 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       "Farrukh",
       "Farukh",
       "Farruh",
+      "Farooq",
+      "Farouk",
+      "Faroq",
+      "Фаррух",
+      "Фарух",
       "Iman",
       "Bekhruz",
+      "Привет",
+      "Салом",
+      "Assalomu alaykum",
+      "Mening ismim",
+      "Меня зовут",
+      "Мое имя",
       "present",
       "simple",
       "present simple",
@@ -251,9 +262,13 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
       "engineer",
     ];
     return values
-      .flatMap((value) => String(value || "").split(/\s+/))
+      .flatMap((value) => {
+        const text = String(value || "").trim();
+        if (!text) return [];
+        return [text, ...text.split(/\s+/)];
+      })
       .map((value) => value.trim())
-      .filter((value) => value.length > 1);
+      .filter((value, index, arr) => value.length > 1 && arr.indexOf(value) === index);
   }, [currentStudent?.fullName, currentTeacher?.fullName]);
   const voiceRecognitionLangs = useMemo(() => {
     if (locale === "ru") return ["ru-RU", "en-US", "uz-UZ"];
@@ -270,7 +285,9 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
 
   const voiceExchange = useCallback(
     async (userText: string) => {
-      const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${voiceLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nmode=voice\nrule=${VOICE_CONVERSATION_RULE}\n[/CONTEXT]\n\n${userText}`;
+      const voiceUserName = currentStudent?.fullName || currentTeacher?.fullName || "";
+      const voiceRule = `${VOICE_CONVERSATION_RULE}\nStudent/context name: ${voiceUserName || "unknown"}. If recognition hears Farooq, Farouk, Faro, Faroq, Faruk, Feruz, or Фаррух as a name, keep the closest context name.`;
+      const textWithContext = `[CONTEXT]\nlevel=${studentLevel}\nlanguage=${voiceLanguage}\ngroup=${currentGroup?.title ?? "-"}\ntime=${currentGroup?.time ?? "-"}\nmode=voice\nrule=${voiceRule}\n[/CONTEXT]\n\n${userText}`;
 
       if (isApiMode && token) {
         const updatedMessages = await withVoiceTimeout(
@@ -280,7 +297,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
             language: voiceLanguage,
             groupTitle: currentGroup?.title,
             groupTime: currentGroup?.time,
-            systemContext: `${systemContext}\n${VOICE_CONVERSATION_RULE}`,
+            systemContext: `${systemContext}\n${voiceRule}`,
           }),
         );
         return normalizeVoiceReply(getLastAssistantText(updatedMessages));
@@ -304,7 +321,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                 language: voiceLanguage,
                 groupTitle: currentGroup?.title,
                 groupTime: currentGroup?.time,
-                systemContext: `${systemContext}\n${VOICE_CONVERSATION_RULE}`,
+                systemContext: `${systemContext}\n${voiceRule}`,
               }),
             );
             return normalizeVoiceReply(getLastAssistantText(updatedMessages));
@@ -324,12 +341,24 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
           language: voiceLanguage,
           groupTitle: currentGroup?.title,
           groupTime: currentGroup?.time,
-          systemContext: `${systemContext}\n${VOICE_CONVERSATION_RULE}`,
+          systemContext: `${systemContext}\n${voiceRule}`,
         }),
       );
       return normalizeVoiceReply(getLastAssistantText(updatedMessages));
     },
-    [currentGroup?.time, currentGroup?.title, isApiMode, sessionUserId, studentLevel, systemContext, token, useGatewayMode, voiceLanguage],
+    [
+      currentGroup?.time,
+      currentGroup?.title,
+      currentStudent?.fullName,
+      currentTeacher?.fullName,
+      isApiMode,
+      sessionUserId,
+      studentLevel,
+      systemContext,
+      token,
+      useGatewayMode,
+      voiceLanguage,
+    ],
   );
 
   const voice = useVoiceAssistant({
