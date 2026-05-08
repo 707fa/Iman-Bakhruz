@@ -31,8 +31,8 @@ export function useSocket(): Socket | null {
         setIsConnected(false);
       });
 
-      socket.on("error", (error) => {
-        console.error("Socket error:", error);
+      socket.on("connect_error", () => {
+        setIsConnected(false);
       });
     }
 
