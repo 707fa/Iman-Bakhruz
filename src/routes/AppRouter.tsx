@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAppStore } from "../hooks/useAppStore";
-import { AuthGuard, PublicOnlyGuard } from "./guards";
+import { AuthGuard, AuthLoading, PublicOnlyGuard } from "./guards";
 
 const AppLayout = lazy(() => import("../layouts/AppLayout").then((module) => ({ default: module.AppLayout })));
 const HomePage = lazy(() => import("../pages/HomePage").then((module) => ({ default: module.HomePage })));
@@ -45,8 +45,12 @@ const FriendlyChatPage = lazy(() => import("../pages/FriendlyChatPage").then((mo
 const ImanAiChatPage = lazy(() => import("../pages/ImanAiChatPage").then((module) => ({ default: module.ImanAiChatPage })));
 
 function RootRedirect() {
-  const { state } = useAppStore();
+  const { state, authRestoring } = useAppStore();
   const session = state.session;
+
+  if (!session && authRestoring) {
+    return <AuthLoading />;
+  }
 
   if (!session) {
     return <Navigate to="/" replace />;
@@ -65,13 +69,7 @@ function RootRedirect() {
 
 export function AppRouter() {
   return (
-    <Suspense
-      fallback={
-        <div className="grid min-h-dvh place-items-center bg-white px-4 text-center text-charcoal dark:bg-black dark:text-white">
-          <p className="text-sm font-semibold">Loading...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthLoading />}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/home-center" element={<HomeCenterPage />} />

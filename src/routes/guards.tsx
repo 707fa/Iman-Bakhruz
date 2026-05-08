@@ -28,9 +28,21 @@ function isLockedStudentPage(pathname: string): boolean {
   );
 }
 
+export function AuthLoading() {
+  return (
+    <div className="grid min-h-dvh place-items-center bg-white px-4 text-center text-charcoal dark:bg-black dark:text-white">
+      <p className="text-sm font-semibold">Loading...</p>
+    </div>
+  );
+}
+
 export function PublicOnlyGuard() {
-  const { state } = useAppStore();
+  const { state, authRestoring } = useAppStore();
   const session = state.session;
+
+  if (!session && authRestoring) {
+    return <AuthLoading />;
+  }
 
   if (!session) {
     return <Outlet />;
@@ -45,8 +57,12 @@ interface AuthGuardProps {
 
 export function AuthGuard({ role }: AuthGuardProps) {
   const location = useLocation();
-  const { state, currentStudent } = useAppStore();
+  const { state, currentStudent, authRestoring } = useAppStore();
   const session = state.session;
+
+  if (!session && authRestoring) {
+    return <AuthLoading />;
+  }
 
   if (!session) {
     return <Navigate to="/login" replace />;

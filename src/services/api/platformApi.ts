@@ -321,10 +321,10 @@ function normalizeAuthResponse(payload: unknown): AuthResponse {
   }
 
   const user = asRecord(data.user);
-  const token = data.token ?? data.accessToken;
-  const refreshToken = data.refreshToken ?? data.refresh;
-  const role = normalizeRole(data.role ?? user?.role);
-  const userId = data.userId ?? user?.id;
+  const token = data.token ?? data.accessToken ?? data.access;
+  const refreshToken = data.refreshToken ?? data.refresh_token ?? data.refresh;
+  const role = normalizeRole(data.role ?? data.userRole ?? data.user_role ?? user?.role);
+  const userId = data.userId ?? data.user_id ?? data.id ?? user?.id ?? user?.user_id;
 
   if (!token || !userId) {
     throw new Error("Invalid auth response");

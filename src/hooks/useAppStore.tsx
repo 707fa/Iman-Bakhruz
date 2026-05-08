@@ -5,7 +5,16 @@ import { getTeacherAccessibleGroupIds } from "../lib/teacherGroups";
 import { makeId, toPhone } from "../lib/utils";
 import { ApiError } from "../services/api/http";
 import { platformApi, toAppStatePayload, type AuthResponse, type RemoteStatePayload } from "../services/api/platformApi";
-import { clearApiToken, getApiRefreshToken, getApiToken, setApiRefreshToken, setApiToken } from "../services/tokenStorage";
+import {
+  clearApiToken,
+  clearPersistedAuthSession,
+  getApiRefreshToken,
+  getApiToken,
+  getPersistedAuthSession,
+  setApiRefreshToken,
+  setApiToken,
+  setPersistedAuthSession,
+} from "../services/tokenStorage";
 import type {
   ActionResult,
   AppState,
@@ -20,6 +29,7 @@ import type {
   StudentAccessState,
   Teacher,
   SubscriptionState,
+  UserRole,
 } from "../types";
 
 const STORAGE_KEY = "result-dashboard-v10";
@@ -272,6 +282,20 @@ function getAuthCollections(state: AppState): Pick<AppState, "students" | "teach
   };
 }
 
+function hasStoredApiAuth(): boolean {
+  return DATA_PROVIDER_MODE === "api" && Boolean(getApiToken() || getApiRefreshToken());
+}
+
+function readPersistedApiSession(): AuthSession | null {
+  if (DATA_PROVIDER_MODE !== "api") return null;
+  if (!hasStoredApiAuth()) {
+    clearPersistedAuthSession();
+    return null;
+  }
+
+  return getPersistedAuthSession();
+}
+
 function readState(): AppState {
   if (typeof window === "undefined") return DATA_PROVIDER_MODE === "api" ? apiShellState() : initialState;
   if (DATA_PROVIDER_MODE === "api") {
@@ -279,8 +303,10 @@ function readState(): AppState {
       window.localStorage.removeItem(key);
     }
   }
+  const hasApiAuth = hasStoredApiAuth();
+  const persistedApiSession = hasApiAuth ? readPersistedApiSession() : null;
   const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) return DATA_PROVIDER_MODE === "api" ? apiShellState() : initialState;
+  if (!raw) return DATA_PROVIDER_MODE === "api" ? apiShellState(persistedApiSession) : initialState;
 
   try {
     const parsed = JSON.parse(raw) as Partial<AppState>;
@@ -292,7 +318,7 @@ function readState(): AppState {
         groups: toArrayOrFallback(parsed.groups, initialState.groups),
         rankings: toArrayOrFallback(parsed.rankings, []),
         ratingLogs: toArrayOrFallback(parsed.ratingLogs, []),
-        session: isAuthSession(parsed.session) ? parsed.session : null,
+        session: hasApiAuth && isAuthSession(parsed.session) ? parsed.session : persistedApiSession,
       };
     }
 
@@ -307,7 +333,7 @@ function readState(): AppState {
     };
     return withSeedData(normalized);
   } catch {
-    return DATA_PROVIDER_MODE === "api" ? apiShellState() : initialState;
+    return DATA_PROVIDER_MODE === "api" ? apiShellState(persistedApiSession) : initialState;
   }
 }
 
@@ -346,6 +372,7 @@ function applySubscriptionToSession(session: AuthSession, subscription?: Subscri
 
 function resolveSessionFromRemote(auth: AuthResponse, remote: RemoteStatePayload): AuthSession {
   const userId = String(auth.userId);
+  const fallbackRole: UserRole = auth.role === "teacher" ? "teacher" : auth.role === "parent" ? "parent" : "student";
 
   if (remote.teachers.some((teacher) => String(teacher.id) === userId)) {
     return { role: "teacher", userId };
@@ -355,7 +382,7 @@ function resolveSessionFromRemote(auth: AuthResponse, remote: RemoteStatePayload
     return { role: "parent", userId };
   }
 
-  return { role: "student", userId };
+  return { role: fallbackRole, userId };
 }
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -442,6 +469,7 @@ interface StoreValue {
   currentParentStudent: Student | null;
   getStudentAccess: (studentId: string) => StudentAccessState;
   isApiMode: boolean;
+  authRestoring: boolean;
   login: (payload: LoginPayload) => Promise<ActionResult>;
   registerStudent: (payload: RegisterPayload) => Promise<ActionResult>;
   registerParent: (payload: ParentRegisterPayload) => Promise<ActionResult>;
@@ -460,6 +488,7 @@ const StoreContext = createContext<StoreValue | undefined>(undefined);
 export function AppStoreProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(() => readState());
   const [top5Grants, setTop5Grants] = useState<Top5GrantMap>(() => readTop5Grants());
+  const [authRestoring, setAuthRestoring] = useState<boolean>(() => hasStoredApiAuth());
 
   useEffect(() => {
     saveState(state);
@@ -487,7 +516,15 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
     const storedToken = getApiToken();
     const storedRefreshToken = getApiRefreshToken();
+    const storedSession = getPersistedAuthSession();
+
+    if (storedSession) {
+      setState((prev) => (prev.session ? prev : { ...prev, session: storedSession }));
+    }
+
     if (!storedToken && !storedRefreshToken) {
+      clearPersistedAuthSession();
+      setAuthRestoring(false);
       setState((prev) => ({ ...apiShellState(null), groups: prev.groups.length > 0 ? prev.groups : initialState.groups }));
       return;
     }
@@ -512,6 +549,10 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             prev.session ??
             resolveSessionFromToken(activeToken, remote);
 
+          if (restoredSession) {
+            setPersistedAuthSession(applySubscriptionToSession(restoredSession, remote.subscription));
+          }
+
           return withRemoteState(prev, remote, restoredSession);
         });
       } catch (error) {
@@ -526,6 +567,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
               if (disposed) return;
               setState((prev) => {
                 const restoredSession = prev.session ?? resolveSessionFromToken(nextToken, remote);
+                if (restoredSession) {
+                  setPersistedAuthSession(applySubscriptionToSession(restoredSession, remote.subscription));
+                }
                 return withRemoteState(prev, remote, restoredSession);
               });
               return;
@@ -539,6 +583,10 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         }
 
         // Keep last local snapshot if backend is unavailable.
+      } finally {
+        if (!disposed) {
+          setAuthRestoring(false);
+        }
       }
     };
 
@@ -955,6 +1003,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
           setApiRefreshToken(auth.refreshToken);
         }
         const nextSession = buildSessionFromAuth(auth);
+        setPersistedAuthSession(nextSession);
+        setAuthRestoring(false);
         // Fast first paint: open workspace immediately, sync full state in background.
         setState((prev) => ({ ...apiShellState(nextSession), groups: prev.groups.length > 0 ? prev.groups : initialState.groups }));
 
@@ -965,6 +1015,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
               resolveSessionFromRemote(auth, remote),
               auth.subscription ?? remote.subscription,
             );
+            setPersistedAuthSession(syncedSession);
             setState((prev) => withRemoteState(prev, remote, syncedSession));
           } catch {
             // Keep local session when backend state endpoint is slow.
@@ -1023,6 +1074,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
           setApiRefreshToken(auth.refreshToken);
         }
         const nextSession = buildSessionFromAuth(auth);
+        setPersistedAuthSession(nextSession);
+        setAuthRestoring(false);
 
         // Immediate local update for fast UX. Remote state sync runs in background.
         setState(() => {
@@ -1070,6 +1123,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
               resolveSessionFromRemote(auth, remote),
               auth.subscription ?? remote.subscription,
             );
+            setPersistedAuthSession(syncedSession);
             setState((prev) => withRemoteState(prev, remote, syncedSession));
           } catch {
             // Local state remains valid when backend sync is slow/unavailable.
@@ -1148,6 +1202,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     if (DATA_PROVIDER_MODE === "api") {
       const token = getApiToken();
       clearApiToken();
+      clearPersistedAuthSession();
+      setAuthRestoring(false);
       if (token) {
         void platformApi.logout(token).catch(() => {
           // No-op: local logout should still complete.
@@ -1294,6 +1350,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       currentParentStudent,
       getStudentAccess,
       isApiMode: DATA_PROVIDER_MODE === "api",
+      authRestoring,
       login,
       registerStudent,
       registerParent,
@@ -1306,7 +1363,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       applyAiScore,
       refreshState,
     }),
-    [state, currentStudent, currentStudentAccess, currentTeacher, currentParent, currentParentStudent, getStudentAccess],
+    [state, currentStudent, currentStudentAccess, currentTeacher, currentParent, currentParentStudent, getStudentAccess, authRestoring],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
