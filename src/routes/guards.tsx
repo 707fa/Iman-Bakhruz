@@ -23,7 +23,6 @@ function isLockedStudentPage(pathname: string): boolean {
   return (
     pathname.startsWith("/student/games") ||
     pathname.startsWith("/student/speaking") ||
-    pathname.startsWith("/student/chat") ||
     pathname.startsWith("/student/ai-chat")
   );
 }

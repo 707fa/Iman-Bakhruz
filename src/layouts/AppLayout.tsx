@@ -104,7 +104,7 @@ export function AppLayout() {
       { label: t("nav.speaking"), href: "/student/speaking", icon: Mic, locked: true },
     ];
     chatNavMap.student = [
-      { label: t("nav.friendly"), href: "/student/chat", icon: MessageCircle, locked: true },
+      { label: t("nav.friendly"), href: "/student/chat", icon: MessageCircle },
       { label: t("nav.aiChat"), href: "/student/ai-chat", icon: MessageCircle, locked: true },
     ];
     gamesNavMap.student = [{ label: t("nav.games"), href: "/student/games", icon: Gamepad2, locked: true }];
@@ -135,18 +135,7 @@ export function AppLayout() {
 
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? currentParent?.fullName ?? "User";
   const avatar = currentStudent?.avatarUrl ?? currentTeacher?.avatarUrl ?? currentParent?.avatarUrl;
-  const openHomeHref =
-    ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent
-      ? session.role === "student"
-        ? "/student/top"
-        : session.role === "teacher"
-          ? "/teacher/top"
-          : "/top"
-      : session.role === "student"
-        ? "/student"
-        : session.role === "teacher"
-          ? "/teacher"
-          : "/parent";
+  const openHomeHref = session.role === "student" ? "/student" : session.role === "teacher" ? "/teacher" : "/parent";
   const profileHref = session.role === "student"
       ? "/profile"
       : session.role === "teacher"
