@@ -10,7 +10,10 @@ function isLocalBrowser(): boolean {
 }
 
 function shouldUseSameOriginApiProxy(): boolean {
-  if (typeof window === "undefined" || isLocalBrowser()) return false;
+  if (typeof window === "undefined") return false;
+  if (isLocalBrowser()) {
+    return DATA_PROVIDER_MODE_ENV === "api" && Boolean((import.meta.env.VITE_PLATFORM_API_URL ?? import.meta.env.VITE_API_URL)?.trim());
+  }
   const hostname = window.location.hostname.toLowerCase();
   return (
     hostname === "iman-bekhruz.uz" ||
@@ -31,6 +34,8 @@ function normalizeProvider(value: string | undefined, apiUrlValue: string | unde
   if (normalized === "mock") return "mock";
   return shouldPreferApiMode(apiUrlValue) ? "api" : "mock";
 }
+
+const DATA_PROVIDER_MODE_ENV = import.meta.env.VITE_DATA_PROVIDER?.trim().toLowerCase();
 
 function normalizeApiUrl(value: string | undefined, localFallback: string): string {
   if (shouldUseSameOriginApiProxy()) {
@@ -117,6 +122,7 @@ const gatewayUrlCandidate =
 const voiceGatewayUrlCandidate = import.meta.env.VITE_VOICE_GATEWAY_URL ?? gatewayUrlCandidate;
 
 export const API_BASE_URL = normalizePlatformApiUrl(platformApiUrlCandidate, "http://127.0.0.1:8000");
+export const API_FALLBACK_BASE_URL = `${PRODUCTION_PLATFORM_API_URL}/api`;
 export const API_BASE_URL_CONFIGURED = Boolean(API_BASE_URL);
 export const SOCKET_BASE_URL = normalizeOptionalUrl(socketUrlCandidate) ?? (isLocalBrowser() ? "http://127.0.0.1:8080" : null);
 export const API_REQUEST_TIMEOUT_MS = normalizeTimeout(import.meta.env.VITE_API_TIMEOUT_MS, 65000);

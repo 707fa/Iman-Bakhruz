@@ -9,5 +9,12 @@ export default defineConfig({
     port: 5188,
     strictPort: true,
     open: "/login",
+    proxy: {
+      "/api": {
+        target: "https://result-backend-ynme.onrender.com",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
 });
