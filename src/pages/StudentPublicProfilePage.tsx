@@ -8,6 +8,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
+import { computeStudentProgress } from "../lib/computeProgress";
 import { getGlobalPlace, getGroupPlace, getRankTitle } from "../lib/ranking";
 
 export function StudentPublicProfilePage() {
@@ -106,7 +107,7 @@ export function StudentPublicProfilePage() {
           </CardContent>
         </Card>
 
-        <ProgressOverviewCard title={t("profile.progressTitle")} progress={student.progress} />
+        <ProgressOverviewCard title={t("profile.progressTitle")} progress={computeStudentProgress(student)} />
       </div>
     </div>
   );

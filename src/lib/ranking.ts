@@ -1,4 +1,5 @@
 import type { AppState, RankingItem, Student } from "../types";
+import { computeStudentStatusBadge } from "./computeProgress";
 
 export function sortByPoints(items: RankingItem[]): RankingItem[] {
   return [...items].sort((a, b) => b.points - a.points || a.fullName.localeCompare(b.fullName));
@@ -11,7 +12,7 @@ function buildLiveRanking(state: AppState): RankingItem[] {
     groupId: student.groupId,
     points: student.points,
     avatarUrl: student.avatarUrl,
-    statusBadge: student.statusBadge,
+    statusBadge: computeStudentStatusBadge(student),
   }));
 }
 

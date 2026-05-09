@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
 import { PageHeader } from "../components/PageHeader";
@@ -6,12 +6,15 @@ import { ProfileCard } from "../components/ProfileCard";
 import { ProgressOverviewCard } from "../components/ProgressOverviewCard";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
+import { computeStudentProgress } from "../lib/computeProgress";
 import type { ProgressSnapshot } from "../types";
 
 export function StudentProfilePage() {
   const { currentStudent, state, updateAvatar, refreshState, isApiMode } = useAppStore();
   const { t } = useUi();
   const [liveProgress, setLiveProgress] = useState<ProgressSnapshot | undefined>(undefined);
+
+  const autoProgress = useMemo(() => currentStudent ? computeStudentProgress(currentStudent) : undefined, [currentStudent]);
 
   useEffect(() => {
     if (!isApiMode) return;
@@ -63,7 +66,7 @@ export function StudentProfilePage() {
 
       <div className="grid gap-4 xl:grid-cols-[1fr_1.1fr]">
         <ProfileCard student={currentStudent} group={group} onPhotoUpload={updateAvatar} />
-        <ProgressOverviewCard title={t("profile.progressTitle")} progress={liveProgress ?? currentStudent.progress} />
+        <ProgressOverviewCard title={t("profile.progressTitle")} progress={liveProgress ?? autoProgress ?? currentStudent.progress} />
       </div>
     </div>
   );

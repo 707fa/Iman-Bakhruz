@@ -1,4 +1,4 @@
-﻿import { ChevronLeft, MessageCircle, Save } from "lucide-react";
+﻿import { ChevronLeft, MessageCircle, Save, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -12,6 +12,7 @@ import { Label } from "../components/ui/label";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
+import { computeStudentProgress } from "../lib/computeProgress";
 import { hasTeacherGroupAccess } from "../lib/teacherGroups";
 import { platformApi } from "../services/api/platformApi";
 import { getApiToken } from "../services/tokenStorage";
@@ -58,19 +59,22 @@ export function TeacherStudentProfilePage() {
   const hasAccess = Boolean(student && currentTeacher && hasTeacherGroupAccess(state, currentTeacher, student.groupId));
   const group = student ? state.groups.find((entry) => entry.id === student.groupId) : null;
 
+  const autoProgress = useMemo(() => student ? computeStudentProgress(student) : null, [student]);
+
   useEffect(() => {
     if (!student) return;
+    const base = autoProgress ?? student.progress;
     setForm({
-      grammar: student.progress?.grammar ?? 0,
-      vocabulary: student.progress?.vocabulary ?? 0,
-      homework: student.progress?.homework ?? 0,
-      speaking: student.progress?.speaking ?? 0,
-      attendance: student.progress?.attendance ?? 0,
-      weeklyXp: student.progress?.weeklyXp ?? 0,
-      level: student.progress?.level ?? 1,
-      streakDays: student.progress?.streakDays ?? 0,
+      grammar: base?.grammar ?? 0,
+      vocabulary: base?.vocabulary ?? 0,
+      homework: base?.homework ?? 0,
+      speaking: base?.speaking ?? 0,
+      attendance: base?.attendance ?? 0,
+      weeklyXp: base?.weeklyXp ?? 0,
+      level: base?.level ?? 1,
+      streakDays: base?.streakDays ?? 0,
     });
-  }, [student?.id]);
+  }, [student?.id, autoProgress]);
 
   useEffect(() => {
     const token = getApiToken();
@@ -283,10 +287,28 @@ export function TeacherStudentProfilePage() {
                   </div>
                 </div>
 
-                <Button onClick={() => void handleSave()} disabled={isSaving} className="w-full">
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? `${t("ui.save")}...` : t("ui.save")}
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => {
+                    if (!autoProgress) return;
+                    setForm({
+                      grammar: autoProgress.grammar,
+                      vocabulary: autoProgress.vocabulary,
+                      homework: autoProgress.homework,
+                      speaking: autoProgress.speaking,
+                      attendance: autoProgress.attendance,
+                      weeklyXp: autoProgress.weeklyXp,
+                      level: autoProgress.level,
+                      streakDays: autoProgress.streakDays,
+                    });
+                  }} variant="secondary" disabled={!autoProgress} className="flex-1">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Auto
+                  </Button>
+                  <Button onClick={() => void handleSave()} disabled={isSaving} className="flex-1">
+                    <Save className="mr-2 h-4 w-4" />
+                    {isSaving ? `${t("ui.save")}...` : t("ui.save")}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
