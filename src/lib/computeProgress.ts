@@ -1,7 +1,11 @@
 import type { ProgressSnapshot, SpeakingSessionSnapshot, StatusBadge, Student } from "../types";
 import { readSpeakingSnapshot, getDailyRemainingCount } from "./speakingSession";
+import { getStudentAttendanceRate } from "./attendance";
+import { readAiChatMessageCount as readAchievementChatCount, awardAchievements } from "./achievements";
 
 const STORAGE_AI_CHAT_PREFIX = "iman-ai-chat-v2";
+const STORAGE_HOMEWORK_PREFIX = "iman-homework-submissions-v1";
+const STORAGE_LISTENING_PREFIX = "iman-listening-v1";
 
 function clamp(value: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, Math.round(value)));
@@ -24,6 +28,40 @@ function readAiChatMessageCount(userId: string | undefined): number {
   }
 }
 
+function readHomeworkSubmissions(studentId: string): Array<{ score: number; createdAt: string }> {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(`${STORAGE_HOMEWORK_PREFIX}:${studentId}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item: unknown) => {
+      if (!item || typeof item !== "object") return false;
+      const rec = item as Record<string, unknown>;
+      return typeof rec.score === "number";
+    }) as Array<{ score: number; createdAt: string }>;
+  } catch {
+    return [];
+  }
+}
+
+function readListeningAttempts(studentId: string): Array<{ score: number }> {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(`${STORAGE_LISTENING_PREFIX}:${studentId}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item: unknown) => {
+      if (!item || typeof item !== "object") return false;
+      const rec = item as Record<string, unknown>;
+      return typeof rec.score === "number";
+    }) as Array<{ score: number }>;
+  } catch {
+    return [];
+  }
+}
+
 function computeSpeakingScore(snapshot: SpeakingSessionSnapshot): number {
   const totalAttempts = snapshot.attempts.length;
   if (totalAttempts === 0) return 0;
@@ -40,45 +78,79 @@ function computeSpeakingScore(snapshot: SpeakingSessionSnapshot): number {
 }
 
 function computeGrammarScore(snapshot: SpeakingSessionSnapshot): number {
-  const grammarMistakes = snapshot.mistakes.filter((item) => item.category === "grammar");
-  if (grammarMistakes.length === 0) {
-    const totalAttempts = snapshot.attempts.length;
-    return clamp(Math.min(80, totalAttempts * 2));
-  }
   const recentGrammarScores = snapshot.attempts
     .slice(0, 30)
     .map((item) => item.grammarScore ?? 0)
     .filter((score) => score > 0);
 
-  if (recentGrammarScores.length === 0) return 30;
-  const avg = recentGrammarScores.reduce((sum, score) => sum + score, 0) / recentGrammarScores.length;
-  return clamp(avg);
+  if (recentGrammarScores.length > 0) {
+    const avg = recentGrammarScores.reduce((sum, score) => sum + score, 0) / recentGrammarScores.length;
+    return clamp(avg);
+  }
+
+  const grammarMistakes = snapshot.mistakes.filter((item) => item.category === "grammar");
+  const totalAttempts = snapshot.attempts.length;
+  if (grammarMistakes.length === 0 && totalAttempts > 0) return clamp(Math.min(80, totalAttempts * 2));
+  if (totalAttempts === 0) return 0;
+  return 30;
 }
 
 function computeVocabularyScore(snapshot: SpeakingSessionSnapshot): number {
-  const vocabMistakes = snapshot.mistakes.filter((item) => item.category === "vocabulary");
-  if (vocabMistakes.length === 0) {
-    const totalAttempts = snapshot.attempts.length;
-    return clamp(Math.min(85, totalAttempts * 2.2));
-  }
   const recentVocabScores = snapshot.attempts
     .slice(0, 30)
     .map((item) => item.vocabularyScore ?? 0)
     .filter((score) => score > 0);
 
-  if (recentVocabScores.length === 0) return 35;
-  const avg = recentVocabScores.reduce((sum, score) => sum + score, 0) / recentVocabScores.length;
-  return clamp(avg);
+  if (recentVocabScores.length > 0) {
+    const avg = recentVocabScores.reduce((sum, score) => sum + score, 0) / recentVocabScores.length;
+    return clamp(avg);
+  }
+
+  const vocabMistakes = snapshot.mistakes.filter((item) => item.category === "vocabulary");
+  const totalAttempts = snapshot.attempts.length;
+  if (vocabMistakes.length === 0 && totalAttempts > 0) return clamp(Math.min(85, totalAttempts * 2.2));
+  if (totalAttempts === 0) return 0;
+  return 35;
 }
 
-function computeHomeworkScore(aiChatCount: number): number {
+function computeHomeworkScore(submissions: Array<{ score: number }>, aiChatCount: number): number {
+  if (submissions.length > 0) {
+    const avg = submissions.reduce((sum, s) => sum + s.score, 0) / submissions.length;
+    return clamp(avg);
+  }
   return clamp(Math.min(100, aiChatCount * 4));
 }
 
-function computeAttendance(points: number, streakDays: number): number {
+function computeHomeworkCompletionRate(studentId: string): number {
+  const submissions = readHomeworkSubmissions(studentId);
+  if (submissions.length === 0) return 0;
+  return clamp((submissions.length / Math.max(1, submissions.length)) * 100);
+}
+
+function computeAttendance(studentId: string, groupId: string, points: number, streakDays: number): number {
+  const attendanceRate = getStudentAttendanceRate(studentId, groupId);
+  if (attendanceRate > 0) return attendanceRate;
+
   const pointRatio = Math.min(1, points / 500);
   const streakRatio = Math.min(1, streakDays / 30);
   return clamp(pointRatio * 60 + streakRatio * 40);
+}
+
+function computePronunciationScore(snapshot: SpeakingSessionSnapshot): number {
+  const pronunciationMistakes = snapshot.mistakes.filter((item) => item.category === "pronunciation");
+  const totalAttempts = snapshot.attempts.length;
+
+  if (totalAttempts === 0) return 0;
+  if (pronunciationMistakes.length === 0) return clamp(Math.min(90, 50 + totalAttempts * 1.5));
+
+  const mistakeRatio = pronunciationMistakes.length / totalAttempts;
+  return clamp(80 - mistakeRatio * 60);
+}
+
+function computeListeningScore(listeningAttempts: Array<{ score: number }>): number {
+  if (listeningAttempts.length === 0) return 0;
+  const avg = listeningAttempts.reduce((sum, a) => sum + a.score, 0) / listeningAttempts.length;
+  return clamp(avg);
 }
 
 function computeWeeklyXp(points: number, snapshot: SpeakingSessionSnapshot, aiChatCount: number): number {
@@ -137,8 +209,8 @@ function computeStreakDays(snapshot: SpeakingSessionSnapshot): number {
   return streak;
 }
 
-function computeStatusBadge(grammar: number, speaking: number, vocabulary: number, homework: number): StatusBadge {
-  const avg = (grammar + speaking + vocabulary + homework) / 4;
+function computeStatusBadge(grammar: number, speaking: number, vocabulary: number, homework: number, listening: number): StatusBadge {
+  const avg = (grammar + speaking + vocabulary + homework + listening) / 5;
   if (avg >= 60) return "green";
   if (avg >= 30) return "yellow";
   return "red";
@@ -147,16 +219,40 @@ function computeStatusBadge(grammar: number, speaking: number, vocabulary: numbe
 export function computeStudentProgress(student: Student): ProgressSnapshot {
   const snapshot = readSpeakingSnapshot(student.id);
   const aiChatCount = readAiChatMessageCount(student.id);
+  const submissions = readHomeworkSubmissions(student.id);
+  const listeningAttempts = readListeningAttempts(student.id);
+  const streakDays = computeStreakDays(snapshot);
 
   const grammar = computeGrammarScore(snapshot);
   const speaking = computeSpeakingScore(snapshot);
   const vocabulary = computeVocabularyScore(snapshot);
-  const homework = computeHomeworkScore(aiChatCount);
-  const attendance = computeAttendance(student.points, student.progress?.streakDays ?? computeStreakDays(snapshot));
-  const status = computeStatusBadge(grammar, speaking, vocabulary, homework);
+  const homework = computeHomeworkScore(submissions, aiChatCount);
+  const attendance = computeAttendance(student.id, student.groupId, student.points, streakDays);
+  const pronunciation = computePronunciationScore(snapshot);
+  const listening = computeListeningScore(listeningAttempts);
+  const homeworkCompletionRate = computeHomeworkCompletionRate(student.id);
+  const status = computeStatusBadge(grammar, speaking, vocabulary, homework, listening);
   const weeklyXp = computeWeeklyXp(student.points, snapshot, aiChatCount);
   const level = computeLevel(student.points);
-  const streakDays = computeStreakDays(snapshot);
+
+  try {
+    awardAchievements(student.id, {
+      streakDays,
+      totalSpeakingAttempts: snapshot.attempts.length,
+      totalHomeworkSubmitted: submissions.length,
+      homeworkPerfectScore: submissions.filter((s) => s.score >= 95).length,
+      grammarScore: grammar,
+      vocabularyScore: vocabulary,
+      gamesPlayed: student.progress?.gamesPlayed ?? 0,
+      gameWins: student.progress?.gameWins ?? 0,
+      listeningCompleted: listeningAttempts.length,
+      totalPoints: Math.round(student.points),
+      aiChatMessages: aiChatCount,
+      daysSinceRegistration: 0,
+    });
+  } catch {
+    // achievement awarding is non-critical
+  }
 
   return {
     status,
@@ -165,6 +261,9 @@ export function computeStudentProgress(student: Student): ProgressSnapshot {
     homework,
     speaking,
     attendance,
+    listening,
+    pronunciation,
+    homeworkCompletionRate,
     weeklyXp,
     level,
     streakDays,

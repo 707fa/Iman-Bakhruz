@@ -11,7 +11,7 @@ interface ProgressOverviewCardProps {
 }
 
 const metricConfig: Array<{
-  key: keyof Omit<ProgressSnapshot, "status" | "weeklyXp" | "level" | "streakDays" | "gameWins" | "gamesPlayed" | "gameBonusPoints">;
+  key: keyof Omit<ProgressSnapshot, "status" | "weeklyXp" | "level" | "streakDays" | "gameWins" | "gamesPlayed" | "gameBonusPoints" | "pronunciation" | "homeworkCompletionRate">;
   label: string;
 }> = [
   { key: "grammar", label: "Grammar" },
@@ -19,6 +19,7 @@ const metricConfig: Array<{
   { key: "homework", label: "Homework" },
   { key: "speaking", label: "Speaking" },
   { key: "attendance", label: "Attendance" },
+  { key: "listening", label: "Listening" },
 ];
 
 function polarPoint(cx: number, cy: number, radius: number, angleDeg: number): { x: number; y: number } {
@@ -38,6 +39,9 @@ export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardPr
     homework: 0,
     speaking: 0,
     attendance: 0,
+    listening: 0,
+    pronunciation: 0,
+    homeworkCompletionRate: 0,
     weeklyXp: 0,
     level: 1,
     streakDays: 0,
@@ -125,6 +129,17 @@ export function ProgressOverviewCard({ title, progress }: ProgressOverviewCardPr
               Game bonus
             </p>
             <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-white">+{safe.gameBonusPoints ?? 0}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="text-xs text-charcoal/60 dark:text-zinc-400">Pronunciation</p>
+            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-white">{safe.pronunciation}%</p>
+          </div>
+          <div className="rounded-2xl border border-burgundy-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="text-xs text-charcoal/60 dark:text-zinc-400">Homework done</p>
+            <p className="mt-1 text-lg font-semibold text-burgundy-700 dark:text-white">{safe.homeworkCompletionRate}%</p>
           </div>
         </div>
 

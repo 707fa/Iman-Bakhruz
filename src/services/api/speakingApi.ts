@@ -489,3 +489,164 @@ export async function generateSpeakingQuestions(payload: SpeakingQuestionsPayloa
 
   throw lastError ?? new Error("Speaking questions endpoint is unavailable");
 }
+
+export interface HomeworkGenerationPayload {
+  topic: string;
+  level: string;
+  taskType: "homework" | "grammar_quiz" | "speaking" | "listening";
+  questionCount?: number;
+  language?: string;
+  groupTitle?: string;
+  userId?: string;
+}
+
+export interface GeneratedHomeworkQuestion {
+  id: string;
+  question: string;
+  sampleAnswer?: string;
+}
+
+function buildHomeworkPrompt(payload: HomeworkGenerationPayload): string {
+  const count = payload.questionCount ?? 6;
+  const taskDescriptions: Record<string, string> = {
+    homework: "writing tasks where the student writes paragraphs or essays",
+    grammar_quiz: "fill-in-the-blank, correct-the-mistake, and transformation exercises",
+    speaking: "speaking prompts the student answers aloud and records themselves",
+    listening: "comprehension questions based on a short audio passage",
+  };
+
+  return [
+    "You are an expert English homework generator for ESL students.",
+    `Generate exactly ${count} ${taskDescriptions[payload.taskType] ?? "questions"} about: ${payload.topic}.`,
+    `Student level: ${payload.level}.`,
+    `Language: ${payload.language || "en"}.`,
+    "Return STRICT JSON only (no markdown, no explanation outside JSON):",
+    "{",
+    '  "questions": [',
+    "    {",
+    '      "id": "q-1",',
+    '      "question": "the task or question text",',
+    '      "sampleAnswer": "a model answer or hint (optional, null if not applicable)"',
+    "    }",
+    "  ]",
+    "}",
+    "Rules:",
+    "- Questions must match the student level precisely.",
+    "- Each question must be clear, specific, and practice a real English skill.",
+    "- Vary difficulty slightly across questions (easiest first).",
+    "- sampleAnswer is optional; include it for grammar_quiz and homework types.",
+    "- Never return null fields. Return empty string instead.",
+    `- Group hint: ${payload.groupTitle || "unknown"}`,
+  ].join("\n");
+}
+
+export async function generateHomeworkQuestions(payload: HomeworkGenerationPayload): Promise<GeneratedHomeworkQuestion[]> {
+  const topic = payload.topic.trim();
+  if (!topic) throw new Error("Topic is required");
+
+  const prompt = buildHomeworkPrompt(payload);
+
+  try {
+    const messages = await platformApi.sendAiMessage(getApiToken() ?? "", {
+      text: prompt,
+      level: payload.level,
+      language: payload.language,
+      groupTitle: payload.groupTitle,
+    });
+    const assistantText = [...messages].reverse().find((m) => m.role === "assistant" && m.text.trim())?.text.trim() ?? "";
+
+    const extracted = extractJsonCandidate(assistantText);
+    if (extracted) {
+      const root = asRecord(extracted);
+      const list = Array.isArray(root?.questions) ? root.questions : [];
+      const normalized: GeneratedHomeworkQuestion[] = [];
+      const seen = new Set<string>();
+
+      for (const item of list) {
+        const rec = asRecord(item);
+        if (!rec) continue;
+        const question = String(rec.question ?? "").trim();
+        if (!question) continue;
+        const key = question.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        normalized.push({
+          id: String(rec.id ?? `q-${normalized.length + 1}`),
+          question,
+          sampleAnswer: typeof rec.sampleAnswer === "string" && rec.sampleAnswer.trim() ? rec.sampleAnswer.trim() : undefined,
+        });
+        if (normalized.length >= (payload.questionCount ?? 6)) break;
+      }
+
+      if (normalized.length > 0) return normalized;
+    }
+
+    throw new Error("AI returned invalid homework questions");
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new Error("Failed to generate homework questions");
+  }
+}
+
+export async function autoGradeHomework(
+  studentAnswer: string,
+  questions: string[],
+  level: string,
+): Promise<{ score: number; feedback: string; mistakes: Array<{ original: string; corrected: string; reason: string }> }> {
+  const prompt = [
+    "You are an expert English homework grader for ESL students.",
+    `Student level: ${level}.`,
+    "Questions:",
+    ...questions.map((q, i) => `${i + 1}. ${q}`),
+    "",
+    "Student answer:",
+    studentAnswer,
+    "",
+    "Grade this homework and return STRICT JSON only:",
+    "{",
+    '  "score": number (0-100),',
+    '  "feedback": "short practical feedback in 2-3 sentences",',
+    '  "mistakes": [{"original":"the mistake","corrected":"the correction","reason":"brief reason"}]',
+    "}",
+    "Rules:",
+    "- Be encouraging but honest about errors.",
+    "- score should reflect grammar accuracy, completeness, and level-appropriateness.",
+    "- Only include real mistakes in the mistakes array.",
+    "- Never return null fields.",
+  ].join("\n");
+
+  const messages = await platformApi.sendAiMessage(getApiToken() ?? "", {
+    text: prompt,
+    level,
+  });
+
+  const assistantText = [...messages].reverse().find((m) => m.role === "assistant" && m.text.trim())?.text.trim() ?? "";
+  const extracted = extractJsonCandidate(assistantText);
+
+  if (extracted) {
+    const root = asRecord(extracted);
+    if (root) {
+      const mistakes = Array.isArray(root.mistakes)
+        ? root.mistakes
+            .map((item: unknown) => {
+              const rec = asRecord(item);
+              if (!rec) return null;
+              return {
+                original: String(rec.original ?? "").trim(),
+                corrected: String(rec.corrected ?? "").trim(),
+                reason: String(rec.reason ?? "").trim(),
+              };
+            })
+            .filter((item: { original: string } | null): item is { original: string; corrected: string; reason: string } => item !== null && item.original.length > 0)
+        : [];
+
+      return {
+        score: normalizeScore(root.score, 50),
+        feedback: String(root.feedback ?? "").trim(),
+        mistakes,
+      };
+    }
+  }
+
+  return { score: 50, feedback: "Could not auto-grade. A teacher will review your homework.", mistakes: [] };
+}

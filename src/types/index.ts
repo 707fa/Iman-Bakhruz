@@ -9,6 +9,9 @@ export interface ProgressSnapshot {
   homework: number;
   speaking: number;
   attendance: number;
+  listening: number;
+  pronunciation: number;
+  homeworkCompletionRate: number;
   weeklyXp: number;
   level: number;
   streakDays: number;
@@ -355,4 +358,99 @@ export interface SpeakingSessionSnapshot {
   mistakes: SpeakingMistakeBankItem[];
   daily: SpeakingDailyProgress;
   weeklyExam: SpeakingWeeklyExamProgress;
+}
+
+export type AttendanceStatus = "present" | "absent" | "late" | "excused";
+
+export interface AttendanceRecord {
+  id: string;
+  studentId: string;
+  groupId: string;
+  date: string;
+  status: AttendanceStatus;
+  teacherId: string;
+  createdAt: string;
+}
+
+export type AchievementCategory = "streak" | "speaking" | "homework" | "grammar" | "vocabulary" | "games" | "listening" | "special";
+
+export interface Achievement {
+  id: string;
+  key: string;
+  category: AchievementCategory;
+  titleEn: string;
+  titleRu: string;
+  titleUz: string;
+  descriptionEn: string;
+  descriptionRu: string;
+  descriptionUz: string;
+  icon: string;
+  condition: (stats: AchievementStats) => boolean;
+}
+
+export interface AchievementStats {
+  streakDays: number;
+  totalSpeakingAttempts: number;
+  totalHomeworkSubmitted: number;
+  homeworkPerfectScore: number;
+  grammarScore: number;
+  vocabularyScore: number;
+  gamesPlayed: number;
+  gameWins: number;
+  listeningCompleted: number;
+  totalPoints: number;
+  aiChatMessages: number;
+  daysSinceRegistration: number;
+}
+
+export interface EarnedAchievement {
+  id: string;
+  achievementId: string;
+  studentId: string;
+  earnedAt: string;
+}
+
+export type HomeworkTaskType = "homework" | "speaking" | "listening" | "grammar_quiz";
+
+export interface HomeworkTemplate {
+  id: string;
+  title: string;
+  description: string;
+  level: SpeakingQuestion["level"];
+  taskType: HomeworkTaskType;
+  questions: string[];
+  autoGrade: boolean;
+}
+
+export interface ListeningExercise {
+  id: string;
+  title: string;
+  level: SpeakingQuestion["level"];
+  transcript: string;
+  questions: ListeningQuestion[];
+}
+
+export interface ListeningQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+}
+
+export interface ListeningAttempt {
+  id: string;
+  exerciseId: string;
+  studentId: string;
+  score: number;
+  answers: number[];
+  createdAt: string;
+}
+
+export interface GroupAnnouncement {
+  id: string;
+  groupId: string;
+  teacherId: string;
+  teacherName: string;
+  text: string;
+  createdAt: string;
 }

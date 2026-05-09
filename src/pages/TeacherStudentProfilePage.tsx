@@ -23,6 +23,8 @@ interface ProgressFormState {
   homework: number;
   speaking: number;
   attendance: number;
+  listening: number;
+  pronunciation: number;
   weeklyXp: number;
   level: number;
   streakDays: number;
@@ -34,6 +36,8 @@ const emptyProgress: ProgressFormState = {
   homework: 0,
   speaking: 0,
   attendance: 0,
+  listening: 0,
+  pronunciation: 0,
   weeklyXp: 0,
   level: 1,
   streakDays: 0,
@@ -70,6 +74,8 @@ export function TeacherStudentProfilePage() {
       homework: base?.homework ?? 0,
       speaking: base?.speaking ?? 0,
       attendance: base?.attendance ?? 0,
+      listening: base?.listening ?? 0,
+      pronunciation: base?.pronunciation ?? 0,
       weeklyXp: base?.weeklyXp ?? 0,
       level: base?.level ?? 1,
       streakDays: base?.streakDays ?? 0,
@@ -206,6 +212,9 @@ export function TeacherStudentProfilePage() {
                 homework: form.homework,
                 speaking: form.speaking,
                 attendance: form.attendance,
+                listening: form.listening,
+                pronunciation: form.pronunciation,
+                homeworkCompletionRate: 0,
                 weeklyXp: form.weeklyXp,
                 level: form.level,
                 streakDays: form.streakDays,
@@ -269,6 +278,26 @@ export function TeacherStudentProfilePage() {
                     />
                   </div>
                   <div className="space-y-1.5">
+                    <Label>Listening (%)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={form.listening}
+                      onChange={(event) => updateMetric("listening", Number(event.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Pronunciation (%)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={form.pronunciation}
+                      onChange={(event) => updateMetric("pronunciation", Number(event.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
                     <Label>Weekly XP</Label>
                     <Input type="number" min={0} value={form.weeklyXp} onChange={(event) => updateMetric("weeklyXp", Number(event.target.value))} />
                   </div>
@@ -296,6 +325,8 @@ export function TeacherStudentProfilePage() {
                       homework: autoProgress.homework,
                       speaking: autoProgress.speaking,
                       attendance: autoProgress.attendance,
+                      listening: autoProgress.listening,
+                      pronunciation: autoProgress.pronunciation,
                       weeklyXp: autoProgress.weeklyXp,
                       level: autoProgress.level,
                       streakDays: autoProgress.streakDays,
