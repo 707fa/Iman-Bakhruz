@@ -4,6 +4,7 @@ import { getApiToken } from "../services/tokenStorage";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileCard } from "../components/ProfileCard";
 import { ProgressOverviewCard } from "../components/ProgressOverviewCard";
+import { AchievementDisplay } from "../components/AchievementDisplay";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 import { computeStudentProgress } from "../lib/computeProgress";
@@ -71,6 +72,8 @@ export function StudentProfilePage() {
         <ProfileCard student={currentStudent} group={group} onPhotoUpload={updateAvatar} />
         <ProgressOverviewCard title={t("profile.progressTitle")} progress={liveProgress ?? autoProgress ?? currentStudent.progress} />
       </div>
+
+      <AchievementDisplay studentId={currentStudent.id} />
     </div>
   );
 }

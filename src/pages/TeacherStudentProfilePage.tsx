@@ -99,6 +99,8 @@ export function TeacherStudentProfilePage() {
           homework: profile.homework,
           speaking: profile.speaking,
           attendance: profile.attendance,
+          listening: profile.listening ?? 0,
+          pronunciation: profile.pronunciation ?? 0,
           weeklyXp: profile.weeklyXp,
           level: profile.level,
           streakDays: profile.streakDays,

@@ -1,4 +1,4 @@
-﻿import { BookOpenCheck, ChevronLeft, Clock3, Crown, Minus, Mic, Plus, Search, Sparkles, UserCheck } from "lucide-react";
+﻿import { BookOpenCheck, CalendarDays, ChevronLeft, Clock3, Crown, Megaphone, Minus, Mic, Plus, Search, Sparkles, UserCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -374,6 +374,29 @@ export function TeacherGroupPage() {
         <Card>
           <CardContent className="p-6 text-sm text-burgundy-700 dark:text-white">{t("teacher.noAccessGroup")}</CardContent>
         </Card>
+      ) : null}
+
+      {hasAccess ? (
+        <div className="flex flex-wrap gap-2">
+          <Link to={`/teacher/homework/${group!.id}`}>
+            <Button size="sm" variant="secondary">
+              <BookOpenCheck className="mr-1.5 h-3.5 w-3.5" />
+              Homework
+            </Button>
+          </Link>
+          <Link to={`/teacher/attendance/${group!.id}`}>
+            <Button size="sm" variant="secondary">
+              <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
+              Attendance
+            </Button>
+          </Link>
+          <Link to={`/teacher/announcements/${group!.id}`}>
+            <Button size="sm" variant="secondary">
+              <Megaphone className="mr-1.5 h-3.5 w-3.5" />
+              Announcements
+            </Button>
+          </Link>
+        </div>
       ) : null}
 
       {hasAccess ? (

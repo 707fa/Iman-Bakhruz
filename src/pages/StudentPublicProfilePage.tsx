@@ -2,6 +2,7 @@
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { ProgressOverviewCard } from "../components/ProgressOverviewCard";
+import { AchievementDisplay } from "../components/AchievementDisplay";
 import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -109,6 +110,8 @@ export function StudentPublicProfilePage() {
 
         <ProgressOverviewCard title={t("profile.progressTitle")} progress={computeStudentProgress(student)} />
       </div>
+
+      <AchievementDisplay studentId={student.id} compact />
     </div>
   );
 }

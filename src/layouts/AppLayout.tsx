@@ -1,4 +1,4 @@
-import { Gamepad2, GraduationCap, LayoutDashboard, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
+import { BookOpenCheck, Gamepad2, GraduationCap, Headphones, LayoutDashboard, Megaphone, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
@@ -54,8 +54,8 @@ export function AppLayout() {
     student: [
       { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true },
       { label: t("tabs.group"), href: "/student/group", icon: UsersRound },
-      { label: t("tabs.global"), href: "/student/top", icon: Trophy },
       { label: t("nav.speaking"), href: "/student/speaking", icon: Mic },
+      { label: t("tabs.global"), href: "/student/top", icon: Trophy },
     ],
     teacher: [
       { label: t("nav.teacher"), href: "/teacher", icon: LayoutDashboard, exact: true },
@@ -85,6 +85,16 @@ export function AppLayout() {
     parent: [],
   };
 
+  const studyNavMap: Record<"student" | "teacher" | "parent", NavItem[]> = {
+    student: [
+      { label: "Homework", href: "/student/homework", icon: BookOpenCheck },
+      { label: "Listening", href: "/student/listening", icon: Headphones },
+      { label: "Announcements", href: "/student/announcements", icon: Megaphone },
+    ],
+    teacher: [],
+    parent: [],
+  };
+
   const fullAccessStudent = session.role === "student" && isFullAccessStudent(currentStudent?.phone);
   if (ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent) {
     mainNavMap.student = [
@@ -103,13 +113,15 @@ export function AppLayout() {
   const navItems = mainNavMap[session.role];
   const chatItems = chatNavMap[session.role];
   const gameItems = gamesNavMap[session.role];
+  const studyItems = studyNavMap[session.role];
   const hasChatItems = chatItems.length > 0;
   const hasGameItems = gameItems.length > 0;
+  const hasStudyItems = studyItems.length > 0;
 
   const mobileQuickNav = useMemo<NavItem[]>(() => {
     if (session.role === "student") {
-      const byHref = new Map<string, NavItem>([...navItems, ...chatItems, ...gameItems].map((item) => [item.href, item]));
-      const preferredOrder = ["/student", "/student/group", "/student/top", "/student/speaking", "/student/games", "/student/ai-chat"];
+      const byHref = new Map<string, NavItem>([...navItems, ...chatItems, ...gameItems, ...studyItems].map((item) => [item.href, item]));
+      const preferredOrder = ["/student", "/student/group", "/student/speaking", "/student/homework", "/student/listening", "/student/top", "/student/games", "/student/ai-chat"];
       return preferredOrder.map((href) => byHref.get(href)).filter((item): item is NavItem => Boolean(item));
     }
 
@@ -121,7 +133,7 @@ export function AppLayout() {
       quick.push(chatItems[1]);
     }
     return quick.slice(0, 5);
-  }, [chatItems, gameItems, navItems, session.role]);
+  }, [chatItems, gameItems, navItems, session.role, studyItems]);
 
   const userName = currentStudent?.fullName ?? currentTeacher?.fullName ?? currentParent?.fullName ?? "User";
   const avatar = currentStudent?.avatarUrl ?? currentTeacher?.avatarUrl ?? currentParent?.avatarUrl;
@@ -234,6 +246,34 @@ export function AppLayout() {
                     </span>
                   ) : (
                     <Link key={`desktop-game-${item.href}`} to={item.href} className={className}>
+                      {content}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </>
+          ) : null}
+
+          {hasStudyItems ? (
+            <>
+              <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">Study</p>
+              <nav className="mt-2 space-y-2">
+                {studyItems.map((item) => {
+                  const active = isItemActive(location.pathname, item);
+                  const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300", navItemClass(active, item.locked));
+                  const content = (
+                    <>
+                      <item.icon className="h-4 w-4" />
+                      <span className="truncate">{item.label}</span>
+                      {item.locked ? <span className={soonBadgeClass()}>Soon</span> : null}
+                    </>
+                  );
+                  return item.locked ? (
+                    <span key={`desktop-study-${item.href}`} className={className} aria-disabled="true">
+                      {content}
+                    </span>
+                  ) : (
+                    <Link key={`desktop-study-${item.href}`} to={item.href} className={className}>
                       {content}
                     </Link>
                   );
@@ -413,6 +453,34 @@ export function AppLayout() {
                       </span>
                     ) : (
                       <Link key={`mobile-game-${item.href}`} to={item.href} className={className}>
+                        {content}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </>
+            ) : null}
+
+            {hasStudyItems ? (
+              <>
+                <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-charcoal/50 dark:text-zinc-500">Study</p>
+                <nav className="mt-2 space-y-2">
+                  {studyItems.map((item) => {
+                    const active = isItemActive(location.pathname, item);
+                    const className = cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold", navItemClass(active, item.locked));
+                    const content = (
+                      <>
+                        <item.icon className="h-4 w-4" />
+                        <span className="truncate">{item.label}</span>
+                        {item.locked ? <span className={soonBadgeClass()}>Soon</span> : null}
+                      </>
+                    );
+                    return item.locked ? (
+                      <span key={`mobile-study-${item.href}`} className={className} aria-disabled="true">
+                        {content}
+                      </span>
+                    ) : (
+                      <Link key={`mobile-study-${item.href}`} to={item.href} className={className}>
                         {content}
                       </Link>
                     );

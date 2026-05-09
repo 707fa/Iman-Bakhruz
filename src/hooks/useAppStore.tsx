@@ -641,7 +641,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     }
     const authCollections = getAuthCollections(state);
     const studentMatch = authCollections.students.find(
-      (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
+      (item) => toPhone(item.phone) === phone && (item.password ?? "").trim().toLowerCase() === normalizedPassword,
     );
     if (studentMatch) {
       if (studentMatch.isActive === false) {
@@ -652,7 +652,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     }
 
     const teacherMatch = authCollections.teachers.find(
-      (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
+      (item) => toPhone(item.phone) === phone && (item.password ?? "").trim().toLowerCase() === normalizedPassword,
     );
     if (teacherMatch) {
       setState((prev) => ({ ...withSeedData(prev), session: { role: "teacher", userId: teacherMatch.id } }));
@@ -660,7 +660,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     }
 
     const parentMatch = authCollections.parents.find(
-      (item) => toPhone(item.phone) === phone && item.password.trim().toLowerCase() === normalizedPassword,
+      (item) => toPhone(item.phone) === phone && (item.password ?? "").trim().toLowerCase() === normalizedPassword,
     );
     if (parentMatch) {
       setState((prev) => ({ ...withSeedData(prev), session: { role: "parent", userId: parentMatch.id } }));
@@ -903,6 +903,9 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
                 homework: item.progress?.homework ?? 0,
                 speaking: item.progress?.speaking ?? 0,
                 attendance: item.progress?.attendance ?? 0,
+                listening: item.progress?.listening ?? 0,
+                pronunciation: item.progress?.pronunciation ?? 0,
+                homeworkCompletionRate: item.progress?.homeworkCompletionRate ?? 0,
                 weeklyXp: (item.progress?.weeklyXp ?? 0) + Math.round(action.value * 10),
                 level: item.progress?.level ?? 1,
                 streakDays: item.progress?.streakDays ?? 0,
@@ -1046,7 +1049,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     const parentMatch = authCollections.parents.find(
       (item) =>
         toPhone(item.phone) === normalizedPayload.phone &&
-        item.password.trim().toLowerCase() === normalizedPayload.password.toLowerCase(),
+        (item.password ?? "").trim().toLowerCase() === normalizedPayload.password.toLowerCase(),
     );
     if (parentMatch) {
       setState((prev) => ({ ...withSeedData(prev), session: { role: "parent", userId: parentMatch.id } }));

@@ -1,7 +1,7 @@
 import type { ProgressSnapshot, SpeakingSessionSnapshot, StatusBadge, Student } from "../types";
 import { readSpeakingSnapshot, getDailyRemainingCount } from "./speakingSession";
 import { getStudentAttendanceRate } from "./attendance";
-import { readAiChatMessageCount as readAchievementChatCount, awardAchievements } from "./achievements";
+import { awardAchievements } from "./achievements";
 
 const STORAGE_AI_CHAT_PREFIX = "iman-ai-chat-v2";
 const STORAGE_HOMEWORK_PREFIX = "iman-homework-submissions-v1";
