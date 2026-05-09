@@ -1,5 +1,6 @@
 import { AI_GATEWAY_TIMEOUT_MS, AI_GATEWAY_URL } from "../../lib/env";
 import { ApiError } from "./http";
+import { parseJsonSafe } from "./utils";
 
 export interface AiGatewayCheckPayload {
   text?: string;
@@ -19,15 +20,6 @@ interface ErrorPayload {
     code?: string;
     message?: string;
   };
-}
-
-function parseJsonSafe(text: string): unknown {
-  if (!text) return null;
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return text;
-  }
 }
 
 function normalizeResponse(payload: unknown): AiGatewayCheckResponse {

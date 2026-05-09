@@ -1,6 +1,7 @@
 import { AI_GATEWAY_TIMEOUT_MS, VOICE_GATEWAY_ENABLED, VOICE_GATEWAY_URL, VOICE_TTS_VOICE } from "../../lib/env";
 import { getApiToken } from "../tokenStorage";
 import { ApiError } from "./http";
+import { parseJsonSafe } from "./utils";
 
 export interface VoiceTtsPayload {
   text: string;
@@ -28,15 +29,6 @@ interface VoiceTtsRecord {
 
 const VOICE_TTS_PATHS = ["/api/voice/tts", "/api/ai/voice/tts", "/api/tts"];
 let lastSuccessfulTtsPath: string | null = null;
-
-function parseJsonSafe(text: string): unknown {
-  if (!text) return null;
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return text;
-  }
-}
 
 function asNonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") return null;

@@ -11,7 +11,7 @@ export default defineConfig({
     open: "/login",
     proxy: {
       "/api": {
-        target: "https://result-backend-ynme.onrender.com",
+        target: process.env.VITE_DEV_PROXY_TARGET || "http://127.0.0.1:8000",
         changeOrigin: true,
         secure: true,
       },

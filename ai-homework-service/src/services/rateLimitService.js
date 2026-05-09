@@ -5,6 +5,15 @@ const { logger } = require("../utils/logger");
 const localCounters = new Map();
 let redisUnavailableLogged = false;
 
+function purgeExpiredLocal() {
+  const now = Date.now();
+  for (const [key, item] of localCounters) {
+    if (item.expiresAt <= now) localCounters.delete(key);
+  }
+}
+
+setInterval(purgeExpiredLocal, 60_000);
+
 function minuteWindowKey(userKey) {
   const now = new Date();
   const y = now.getUTCFullYear();

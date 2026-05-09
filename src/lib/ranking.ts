@@ -43,6 +43,6 @@ export function getRankTitle(place: number): string {
   if (place <= 10) return "Best";
   if (place <= 20) return "Not bad";
   if (place <= 40) return "Good";
-  if (place <= 60) return "Softly";
-  return "Loser";
+  if (place <= 60) return "Rising";
+  return "Keep going";
 }

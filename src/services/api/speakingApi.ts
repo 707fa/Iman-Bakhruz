@@ -3,6 +3,7 @@ import type { SpeakingAnalysisResult } from "../../types";
 import { getApiToken, getSessionUserId } from "../tokenStorage";
 import { ApiError } from "./http";
 import { platformApi } from "./platformApi";
+import { parseJsonSafe } from "./utils";
 
 interface SpeakingCheckPayload {
   question: string;
@@ -31,15 +32,6 @@ export interface GeneratedSpeakingQuestion {
 
 const SPEAKING_ENDPOINT_PATHS = ["/api/ai/speaking/check", "/api/chat/ai/speaking/check", "/chat/ai/speaking/check"];
 const SPEAKING_QUESTIONS_ENDPOINT_PATHS = ["/api/ai/speaking/questions", "/api/chat/ai/speaking/questions", "/chat/ai/speaking/questions"];
-
-function parseJsonSafe(text: string): unknown {
-  if (!text) return null;
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return text;
-  }
-}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;

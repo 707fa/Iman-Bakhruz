@@ -9,6 +9,15 @@ function nowMs() {
   return Date.now();
 }
 
+function purgeExpiredLocal() {
+  const now = nowMs();
+  for (const [key, item] of localCache) {
+    if (item.expiresAt <= now) localCache.delete(key);
+  }
+}
+
+setInterval(purgeExpiredLocal, 60_000);
+
 function getLocal(cacheKey) {
   const item = localCache.get(cacheKey);
   if (!item) return null;

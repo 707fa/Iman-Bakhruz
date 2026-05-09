@@ -6,14 +6,11 @@ import type {
   SpeakingQuestion,
   SpeakingSessionSnapshot,
 } from "../types";
+import { makeId } from "./utils";
 
 const STORAGE_PREFIX = "result-speaking-session-v2";
 const DAILY_TARGET_DEFAULT = 20;
 const WEEKLY_TARGET_DEFAULT = 10;
-
-function makeId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;

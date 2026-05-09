@@ -40,6 +40,7 @@ const TeacherStudentProfilePage = lazy(() =>
 const ParentDashboardPage = lazy(() => import("../pages/ParentDashboardPage").then((module) => ({ default: module.ParentDashboardPage })));
 const ParentProfilePage = lazy(() => import("../pages/ParentProfilePage").then((module) => ({ default: module.ParentProfilePage })));
 const SupportPage = lazy(() => import("../pages/SupportPage").then((module) => ({ default: module.SupportPage })));
+const NotFoundPage = lazy(() => import("../pages/NotFoundPage").then((module) => ({ default: module.default })));
 
 const FriendlyChatPage = lazy(() => import("../pages/FriendlyChatPage").then((module) => ({ default: module.FriendlyChatPage })));
 const ImanAiChatPage = lazy(() => import("../pages/ImanAiChatPage").then((module) => ({ default: module.ImanAiChatPage })));
@@ -124,7 +125,7 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );

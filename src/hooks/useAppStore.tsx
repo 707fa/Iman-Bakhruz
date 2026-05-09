@@ -244,13 +244,13 @@ function apiShellState(session: AuthSession | null = null): AppState {
 function sanitizeApiState(state: AppState): AppState {
   return {
     ...state,
-    students: state.students.map((student) => ({ ...student, password: "" })),
-    teachers: state.teachers.map((teacher) => ({ ...teacher, password: "" })),
-    parents: state.parents.map((parent) => ({ ...parent, password: "" })),
+    students: state.students.map(({ password: _, ...rest }) => rest),
+    teachers: state.teachers.map(({ password: _, ...rest }) => rest),
+    parents: state.parents.map(({ password: _, ...rest }) => rest),
   };
 }
 
-function mergeForAuth<T extends { id: string; phone: string; password: string }>(seed: T[], current: T[]): T[] {
+function mergeForAuth<T extends { id: string; phone: string; password?: string }>(seed: T[], current: T[]): T[] {
   const map = new Map<string, T>();
 
   for (const item of seed) {
@@ -266,7 +266,7 @@ function mergeForAuth<T extends { id: string; phone: string; password: string }>
       ...(prev ?? item),
       ...item,
       phone: nextPhone,
-      password: nextPassword,
+      ...(nextPassword ? { password: nextPassword } : {}),
     });
   }
 
@@ -1017,8 +1017,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             );
             setPersistedAuthSession(syncedSession);
             setState((prev) => withRemoteState(prev, remote, syncedSession));
-          } catch {
-            // Keep local session when backend state endpoint is slow.
+          } catch (bgError) {
+            console.warn("[AppStore] background state sync failed:", bgError);
           }
         })();
 
@@ -1125,8 +1125,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             );
             setPersistedAuthSession(syncedSession);
             setState((prev) => withRemoteState(prev, remote, syncedSession));
-          } catch {
-            // Local state remains valid when backend sync is slow/unavailable.
+          } catch (bgError) {
+            console.warn("[AppStore] post-register state sync failed:", bgError);
           }
         })();
 
@@ -1228,7 +1228,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         await platformApi.updateAvatar(token, fileUrl);
         const remote = await platformApi.getState(token);
         setState((prev) => withRemoteState(prev, remote, prev.session));
-      } catch {
+      } catch (avatarError) {
+        console.warn("[AppStore] avatar update API failed, using local fallback:", avatarError);
         updateAvatarMock(fileUrl);
       }
 
@@ -1254,7 +1255,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         const remote = await platformApi.getState(token);
         setState((prev) => withRemoteState(prev, remote, prev.session));
         return { ok: true, messageKey: "msg.scoreUpdated" };
-      } catch {
+      } catch (scoreError) {
+        console.warn("[AppStore] score API failed, using local fallback:", scoreError);
         return applyScoreMock(studentId, groupId, action);
       }
     }
@@ -1278,7 +1280,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         const remote = await platformApi.getState(token);
         setState((prev) => withRemoteState(prev, remote, prev.session));
         return { ok: true, messageKey: "msg.studentDisabled" };
-      } catch {
+      } catch (disableError) {
+        console.warn("[AppStore] disable student API failed:", disableError);
         return { ok: false, messageKey: "msg.serverUnavailable" };
       }
     }
@@ -1302,8 +1305,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         const remote = await platformApi.getState(token);
         setState((prev) => withRemoteState(prev, remote, prev.session));
         return { ok: true, messageKey: "msg.groupRenameSuccess" };
-      } catch {
-        // Fallback to local update to keep UX smooth if backend endpoint is not ready yet.
+      } catch (renameError) {
+        console.warn("[AppStore] rename group API failed, using local fallback:", renameError);
         return renameGroupMock(groupId, nextTitle);
       }
     }
@@ -1335,8 +1338,8 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     try {
       const remote = await platformApi.getState(token);
       setState((prev) => withRemoteState(prev, remote, prev.session));
-    } catch {
-      // Keep current UI snapshot if refresh fails.
+    } catch (refreshError) {
+      console.warn("[AppStore] state refresh failed:", refreshError);
     }
   }
 

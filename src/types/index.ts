@@ -29,7 +29,7 @@ export interface Student {
   id: string;
   fullName: string;
   phone: string;
-  password: string;
+  password?: string;
   groupId: string;
   parentInviteCode?: string;
   avatarUrl?: string;
@@ -48,7 +48,7 @@ export interface Teacher {
   id: string;
   fullName: string;
   phone: string;
-  password: string;
+  password?: string;
   groupIds: string[];
   avatarUrl?: string;
   isOnline?: boolean;
@@ -59,7 +59,7 @@ export interface Parent {
   id: string;
   fullName: string;
   phone: string;
-  password: string;
+  password?: string;
   childStudentIds: string[];
   avatarUrl?: string;
 }

@@ -17,16 +17,14 @@ export const groups: Group[] = [
 export const teachers: Teacher[] = [
   {
     id: "t_2",
-    fullName: "Фаррух Ахроров",
-    phone: "+998978778177",
-    password: "Alex2024",
+    fullName: "Demo Teacher",
+    phone: "+998990000001",
     groupIds: ["g_104", "g_105", "g_106", "g_203", "g_204", "g_205"],
   },
   {
     id: "t_3",
     fullName: "Iman | Bekhruz",
-    phone: "+998909788255",
-    password: "909788255@@",
+    phone: "+998990000002",
     groupIds: ["g_101", "g_102", "g_103", "g_104", "g_105", "g_106", "g_201", "g_202", "g_203", "g_204", "g_205"],
   },
 ];
@@ -34,9 +32,8 @@ export const teachers: Teacher[] = [
 export const students: Student[] = [
   {
     id: "s_1",
-    fullName: "Фаррух Ахроров",
-    phone: "+998978778177",
-    password: "Alex2024m",
+    fullName: "Demo Student",
+    phone: "+998990000011",
     groupId: "g_104",
     parentInviteCode: "PARENT-S1",
     points: 0,
@@ -45,9 +42,8 @@ export const students: Student[] = [
   },
   {
     id: "s_3",
-    fullName: "Axrorov",
-    phone: "+998888888888",
-    password: "qwerty",
+    fullName: "Alex Student",
+    phone: "+998990000012",
     groupId: "g_104",
     parentInviteCode: "PARENT-S2",
     points: 0,
@@ -56,11 +52,10 @@ export const students: Student[] = [
   },
   {
     id: "s_2",
-    fullName: "Ахроров Фаррух",
-    phone: "+998999999999",
-    password: "123456789",
+    fullName: "Jake Student",
+    phone: "+998990000013",
     groupId: "g_104",
-    parentInviteCode: "PARENT-S2",
+    parentInviteCode: "PARENT-S3",
     points: 0,
     isPaid: true,
     paidUntil: "2035-01-01T00:00:00+05:00",

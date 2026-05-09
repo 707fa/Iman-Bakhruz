@@ -1,17 +1,7 @@
 ﻿import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAppStore } from "../hooks/useAppStore";
+import { isFullAccessStudent, ONLY_SUPPORT_AND_RATINGS_ENABLED } from "../lib/featureFlags";
 import type { UserRole } from "../types";
-
-const ONLY_SUPPORT_AND_RATINGS_ENABLED = true;
-const FULL_ACCESS_STUDENT_PHONES = new Set(["998978778177"]);
-
-function normalizePhone(value: string | undefined): string {
-  return (value ?? "").replace(/\D/g, "");
-}
-
-function isFullAccessStudent(phone: string | undefined): boolean {
-  return FULL_ACCESS_STUDENT_PHONES.has(normalizePhone(phone));
-}
 
 function roleHome(role: UserRole): string {
   if (role === "teacher") return "/teacher";

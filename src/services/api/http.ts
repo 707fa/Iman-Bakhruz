@@ -1,4 +1,5 @@
 import { API_BASE_URL, API_BASE_URL_CONFIGURED, API_FALLBACK_BASE_URL, API_REQUEST_TIMEOUT_MS } from "../../lib/env";
+import { parseJsonResponse } from "./utils";
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -17,17 +18,6 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.status = status;
     this.payload = payload;
-  }
-}
-
-async function parseJsonSafe(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (!text) return null;
-
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return text;
   }
 }
 
@@ -67,7 +57,7 @@ async function fetchPayload(url: string, options: RequestOptions, headers: Recor
       body,
       signal: controller.signal,
     });
-    const payload = await parseJsonSafe(response);
+    const payload = await parseJsonResponse(response);
     return { response, payload };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {

@@ -9,6 +9,7 @@ import { UserMenu } from "../components/UserMenu";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 import { cn } from "../lib/utils";
+import { isFullAccessStudent, ONLY_SUPPORT_AND_RATINGS_ENABLED } from "../lib/featureFlags";
 
 interface NavItem {
   label: string;
@@ -16,17 +17,6 @@ interface NavItem {
   icon: typeof LayoutDashboard;
   exact?: boolean;
   locked?: boolean;
-}
-
-const ONLY_SUPPORT_AND_RATINGS_ENABLED = true;
-const FULL_ACCESS_STUDENT_PHONES = new Set(["998978778177"]);
-
-function normalizePhone(value: string | undefined): string {
-  return (value ?? "").replace(/\D/g, "");
-}
-
-function isFullAccessStudent(phone: string | undefined): boolean {
-  return FULL_ACCESS_STUDENT_PHONES.has(normalizePhone(phone));
 }
 
 function isItemActive(pathname: string, item: NavItem): boolean {

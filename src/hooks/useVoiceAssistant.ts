@@ -3,6 +3,7 @@ import { useAudioPlayback } from "./useAudioPlayback";
 import { useMicrophoneLevel } from "./useMicrophoneLevel";
 import type { VoiceSessionMessage, VoiceState, VoiceTranscriptItem } from "../types/voice";
 import { normalizeAssistantReply } from "../lib/aiText";
+import { makeId } from "../lib/utils";
 
 interface SpeechRecognitionAlternativeLike {
   readonly transcript: string;
@@ -65,15 +66,6 @@ const SPEECH_SILENCE_MS = 2200;
 const QUESTION_SILENCE_MS = 1200;
 const STOP_SILENCE_MS = 250;
 const DEFAULT_RECOGNITION_LANGUAGES = ["en-US", "ru-RU", "uz-UZ"];
-const FARRUX_LATIN_VARIANT_RE =
-  /\b(faro|faroq|farok|farook|farouk|farouq|farrow|farooq|faruk|farukh|farux|farruk|farruh|fahrux|feruz|pharaoh)\b/gi;
-const FARRUX_CYRILLIC_VARIANT_RE = /\b(фаро+к|фарук|фарух|фаррух|фаррукс|фаруқ|феруз|фаро)\b/gi;
-const FARRUX_VARIANT_TEST_RE =
-  /\b(faro|faroq|farok|farook|farouk|farouq|farrow|farooq|faruk|farukh|farux|farruk|farruh|fahrux|feruz|pharaoh|фаро+к|фарук|фарух|фаррух|фаррукс|фаруқ|феруз|фаро)\b/i;
-
-function makeId(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
 
 function normalizeSpokenText(text: string): string {
   return text
@@ -147,19 +139,11 @@ function extractTopic(text: string): string {
 }
 
 function getPreferredName(hints: string[]): string {
-  const knownNames = new Set(["Farrux", "Farrukh", "Farukh", "Farruh"]);
   for (const hint of hints) {
     const first = hint.trim().split(/\s+/)[0];
-    if (!first) continue;
-    if (/^farr?u[hkx]$/i.test(first) || /^faru[hkx]$/i.test(first)) {
-      knownNames.add(first);
-    }
-    if (/^фар/i.test(first)) {
-      knownNames.add("Farrux");
-    }
+    if (first && first.length >= 2) return first;
   }
-
-  return [...knownNames].find((name) => /^farrux$/i.test(name)) ?? [...knownNames][0] ?? "Farrux";
+  return "friend";
 }
 
 function normalizeMisheardIntro(text: string, preferredName: string): string {
@@ -174,7 +158,8 @@ function looksLikeGreeting(text: string): boolean {
 }
 
 function normalizeNameIntro(clean: string, preferredName: string): NormalizedVoiceInput | null {
-  const hasName = FARRUX_VARIANT_TEST_RE.test(clean) || clean.toLowerCase().includes(preferredName.toLowerCase());
+  const nameLower = preferredName.toLowerCase();
+  const hasName = clean.toLowerCase().includes(nameLower) || /\b(my name is|i am|i'm)\b/i.test(clean);
   if (!hasName) return null;
 
   const isIntro =
@@ -330,7 +315,7 @@ function mockReply(userText: string): string {
     answer = "The present continuous is for actions happening now or temporary situations. Use am, is, or are plus verb-ing. For example, I am speaking now.";
   } else if (/\b(my name is|i am|i'm|years old|learning english|engineer|school)\b/i.test(clean)) {
     answer =
-      'Nice to meet you. A natural version is: "My name is Farrux. I am 16 years old. I am learning English because I want to fly to London. I want to work as an engineer, and I am good at school." Correction: say "I want to fly to London," not "I am go to fly in London."';
+      "Nice to meet you. Try using full sentences: My name is ___. I am ___ years old. I am learning English because ___. Keep practicing!";
   } else if (/\b(what|why|how|when|where|can|could|do|does|is|are)\b/i.test(clean)) {
     answer = `Sure. About ${topic}: I can explain it simply and give examples. Tell me one sentence, and I will help you make it natural.`;
   }
@@ -373,25 +358,23 @@ function getSilenceDelay(text: string): number {
 }
 
 function replaceNameMistakes(text: string, hints: string[]): string {
-  const preferredName = getPreferredName(hints);
-  return text
-    .replace(FARRUX_LATIN_VARIANT_RE, preferredName)
-    .replace(FARRUX_CYRILLIC_VARIANT_RE, preferredName);
+  let result = text;
+  for (const hint of hints) {
+    const first = hint.trim().split(/\s+/)[0];
+    if (!first || first.length < 3) continue;
+    const escaped = first.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    try {
+      result = result.replace(new RegExp(`\\b${escaped}s?\\b`, "gi"), first);
+    } catch {
+      // skip invalid regex
+    }
+  }
+  return result;
 }
 
 function buildRecognitionPhrases(hints: string[]): Array<{ phrase: string; boost: number }> {
-  const preferredName = getPreferredName(hints);
   const values = [
     ...hints,
-    preferredName,
-    "Farrux",
-    "Farrukh",
-    "Farukh",
-    "Farooq",
-    "Фаррух",
-    "Салом",
-    "Привет",
-    "Assalomu alaykum",
     "present simple",
     "past simple",
     "present continuous",
@@ -409,7 +392,6 @@ function scoreTranscript(transcript: string, confidence: number | undefined, hin
 
   let score = confidence ?? 0;
   if (normalizedHints.some((hint) => text.includes(hint))) score += 3;
-  if (FARRUX_VARIANT_TEST_RE.test(transcript)) score += 5;
   if (/\b(my name is|i am|i'm|меня\s+зовут|мо[её]\s+имя|mening\s+ismim|ismim)\b/i.test(transcript)) score += 2;
   if (/\bpresent\s+simple\b/i.test(transcript)) score += 3;
   if (/\b(ibs|i\s*b\s*s|ice|eyes)\s+(meme|mean|mini|me)\s+(yesterday|simple|simply|symbol)\b/i.test(transcript)) score += 4;
