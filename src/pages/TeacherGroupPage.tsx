@@ -89,7 +89,9 @@ export function TeacherGroupPage() {
   const hasAccess = !!group && hasTeacherGroupAccess(state, currentTeacher, group.id);
 
   const students = hasAccess
-    ? state.students.filter((student) => student.groupId === group.id).sort((a, b) => b.points - a.points)
+    ? state.students
+        .filter((student) => student.groupId === group.id && student.isActive !== false && student.isImanStudent !== false)
+        .sort((a, b) => b.points - a.points)
     : [];
   const top = hasAccess ? getGroupTop(state, group!.id, 10) : [];
   const normalizedStudentSearch = studentSearch.trim().toLowerCase();
@@ -824,6 +826,5 @@ export function TeacherGroupPage() {
     </div>
   );
 }
-
 
 

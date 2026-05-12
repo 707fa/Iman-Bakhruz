@@ -69,16 +69,17 @@ export function TeacherGroupsPage() {
   if (!currentTeacher) return null;
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-5 pt-1 sm:space-y-6 sm:pt-2">
       <PageHeader
         title={t("nav.teacherGroups")}
         subtitle={t("teacher.subtitle")}
         action={<Badge variant="soft">{teacherGroups.length}</Badge>}
+        className="flex min-h-[7rem] items-center"
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="flex min-h-[6.75rem] flex-col justify-center p-5">
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/55 dark:text-zinc-400">
               <CalendarDays className="h-4 w-4 text-burgundy-700 dark:text-white" />
               {t("teacher.groups")}
@@ -87,7 +88,7 @@ export function TeacherGroupsPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="flex min-h-[6.75rem] flex-col justify-center p-5">
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/55 dark:text-zinc-400">
               <Users2 className="h-4 w-4 text-burgundy-700 dark:text-white" />
               {t("teacher.myStudents")}
@@ -96,7 +97,7 @@ export function TeacherGroupsPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="flex min-h-[6.75rem] flex-col justify-center p-5">
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-charcoal/55 dark:text-zinc-400">
               <Clock3 className="h-4 w-4 text-burgundy-700 dark:text-white" />
               {t("teacher.groupsTodayTitle")}

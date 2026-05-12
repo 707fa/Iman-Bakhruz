@@ -25,7 +25,9 @@ export function TeacherHomePage() {
 
   const groups = getTeacherAccessibleGroups(state, currentTeacher);
   const groupIds = new Set(groups.map((group) => group.id));
-  const studentsCount = state.students.filter((student) => groupIds.has(student.groupId)).length;
+  const studentsCount = state.students.filter(
+    (student) => groupIds.has(student.groupId) && student.isActive !== false && student.isImanStudent !== false,
+  ).length;
   const ratingsCount = state.ratingLogs.filter((log) => log.teacherId === currentTeacher.id).length;
   const groupsToday = groups.filter((group) => isGroupToday(group.daysPattern));
 

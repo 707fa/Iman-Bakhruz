@@ -232,7 +232,7 @@ export function FriendlyChatPage() {
       if (!teacher) return [];
       const groupIds = new Set(teacher.groupIds);
       return state.students
-        .filter((student) => groupIds.has(student.groupId))
+        .filter((student) => groupIds.has(student.groupId) && student.isActive !== false && student.isImanStudent !== false)
         .map((student) => ({
           id: student.id,
           fullName: student.fullName,
@@ -244,7 +244,7 @@ export function FriendlyChatPage() {
     }
 
     const studentPeers = state.students
-      .filter((student) => student.id !== session.userId)
+      .filter((student) => student.id !== session.userId && student.isActive !== false && student.isImanStudent !== false)
       .map((student) => ({
         id: student.id,
         fullName: student.fullName,
@@ -843,4 +843,3 @@ export function FriendlyChatPage() {
     </div>
   );
 }
-

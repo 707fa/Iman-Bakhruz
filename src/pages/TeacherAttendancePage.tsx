@@ -38,7 +38,9 @@ export function TeacherAttendancePage() {
   const hasAccess = !!group && hasTeacherGroupAccess(state, currentTeacher, group.id);
 
   const students = hasAccess
-    ? state.students.filter((student) => student.groupId === group!.id).sort((a, b) => a.fullName.localeCompare(b.fullName))
+    ? state.students
+        .filter((student) => student.groupId === group!.id && student.isActive !== false && student.isImanStudent !== false)
+        .sort((a, b) => a.fullName.localeCompare(b.fullName))
     : [];
 
   const existingRecords = useMemo(() => getAttendanceForDate(group?.id ?? "", selectedDate), [group?.id, selectedDate]);

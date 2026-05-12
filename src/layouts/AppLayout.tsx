@@ -329,7 +329,7 @@ export function AppLayout() {
 
           <div
             ref={contentScrollRef}
-            className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[calc(4.9rem+env(safe-area-inset-bottom))] pt-2 sm:px-5 sm:pb-5 sm:pt-4"
+            className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[calc(4.9rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pb-5 sm:pt-6"
           >
             <div className="mx-auto w-full max-w-[1320px]">
               <AnimatePresence mode="sync" initial={false}>

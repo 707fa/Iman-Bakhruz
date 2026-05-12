@@ -17,7 +17,10 @@ export function TeacherSpotlightCard({ teacherId }: TeacherSpotlightCardProps) {
   const teacherGroups = useMemo(() => state.groups.filter((group) => group.teacherId === teacherId), [state.groups, teacherId]);
   const teacherGroupIds = useMemo(() => new Set(teacherGroups.map((group) => group.id)), [teacherGroups]);
   const teacherStudents = useMemo(
-    () => state.students.filter((student) => teacherGroupIds.has(student.groupId)),
+    () =>
+      state.students.filter(
+        (student) => teacherGroupIds.has(student.groupId) && student.isActive !== false && student.isImanStudent !== false,
+      ),
     [state.students, teacherGroupIds],
   );
   const ratingsCount = useMemo(
@@ -93,6 +96,5 @@ export function TeacherSpotlightCard({ teacherId }: TeacherSpotlightCardProps) {
     </section>
   );
 }
-
 
 

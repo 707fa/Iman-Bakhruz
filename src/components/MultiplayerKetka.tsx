@@ -266,7 +266,13 @@ export function MultiplayerKetka({ viewMode = "all" }: { viewMode?: KetkaViewMod
   const classmates = useMemo(() => {
     const myGroupId = currentStudent?.groupId;
     const sameGroup = state.students
-      .filter((student) => student.id !== currentStudent?.id && (!myGroupId || student.groupId === myGroupId))
+      .filter(
+        (student) =>
+          student.id !== currentStudent?.id &&
+          student.isActive !== false &&
+          student.isImanStudent !== false &&
+          (!myGroupId || student.groupId === myGroupId),
+      )
       .map((student) => ({ ...student, isConnected: socket ? onlineStudentIds.has(student.id) : isDemoOnline(student.id) }));
 
     if (sameGroup.length) return sameGroup;
