@@ -7,7 +7,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
-import { getGlobalPlace, getGlobalTop, getGroupPlace, getGroupTop } from "../lib/ranking";
+import { getGlobalPlace, getGlobalRankCount, getGlobalTop, getGroupPlace, getGroupRankCount, getGroupTop } from "../lib/ranking";
 
 type TopScope = "global" | "group";
 
@@ -19,8 +19,10 @@ export function StudentTopPage() {
   if (!currentStudent) return null;
 
   const globalTop = getGlobalTop(state, 10);
+  const globalRankCount = getGlobalRankCount(state);
   const globalPlace = getGlobalPlace(state, currentStudent.id);
   const groupTop = getGroupTop(state, currentStudent.groupId, 10);
+  const groupRankCount = getGroupRankCount(state, currentStudent.groupId);
   const groupPlace = getGroupPlace(state, currentStudent.id, currentStudent.groupId);
   const group = state.groups.find((item) => item.id === currentStudent.groupId);
 
@@ -56,6 +58,7 @@ export function StudentTopPage() {
             groups={state.groups}
             currentUserId={currentStudent.id}
             showMeta={false}
+            totalCount={globalRankCount}
             itemHref={(item) => `/student/profile/${item.studentId}`}
           />
         </TabsContent>
@@ -79,6 +82,7 @@ export function StudentTopPage() {
             groups={state.groups}
             currentUserId={currentStudent.id}
             showMeta={false}
+            totalCount={groupRankCount}
             itemHref={(item) => `/student/profile/${item.studentId}`}
           />
         </TabsContent>

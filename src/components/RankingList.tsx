@@ -9,10 +9,11 @@ interface RankingListProps {
   groups?: Group[];
   currentUserId?: string;
   showMeta?: boolean;
+  totalCount?: number;
   itemHref?: (item: RankingItem) => string | undefined;
 }
 
-export function RankingList({ title, items, groups = [], currentUserId, showMeta = true, itemHref }: RankingListProps) {
+export function RankingList({ title, items, groups = [], currentUserId, showMeta = true, totalCount, itemHref }: RankingListProps) {
   const { t } = useUi();
   const mapped = items.map((item) => {
     const group = groups.find((entry) => entry.id === item.groupId);
@@ -38,6 +39,7 @@ export function RankingList({ title, items, groups = [], currentUserId, showMeta
               key={item.studentId}
               item={item}
               rank={index + 1}
+              totalCount={totalCount ?? mapped.length}
               currentUserId={currentUserId}
               showMeta={showMeta}
               href={itemHref?.(item)}
@@ -48,4 +50,3 @@ export function RankingList({ title, items, groups = [], currentUserId, showMeta
     </Card>
   );
 }
-

@@ -8,6 +8,7 @@ import { UserAvatar } from "./UserAvatar";
 interface RankingCardProps {
   item: RankingItem;
   rank: number;
+  totalCount?: number;
   currentUserId?: string;
   showMeta?: boolean;
   href?: string;
@@ -20,7 +21,7 @@ function crownClass(rank: number): string {
   return "text-charcoal/55 dark:text-zinc-400";
 }
 
-export function RankingCard({ item, rank, currentUserId, showMeta = true, href }: RankingCardProps) {
+export function RankingCard({ item, rank, totalCount, currentUserId, showMeta = true, href }: RankingCardProps) {
   const isCurrent = item.studentId === currentUserId;
   const isTop3 = rank <= 3;
 
@@ -49,7 +50,7 @@ export function RankingCard({ item, rank, currentUserId, showMeta = true, href }
 
       <div className="flex flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2">
         <span className="rounded-full border border-burgundy-200 bg-burgundy-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-burgundy-700 dark:border-burgundy-800 dark:bg-burgundy-900/30 dark:text-white sm:text-[10px]">
-          {getRankTitle(rank)}
+          {getRankTitle(rank, totalCount)}
         </span>
         <span className="text-sm font-bold text-burgundy-700">{item.points.toFixed(2)}</span>
       </div>

@@ -8,7 +8,7 @@ import { Input } from "../components/ui/input";
 import { useAppStore } from "../hooks/useAppStore";
 import { getTeacherAccessibleGroupIds } from "../lib/teacherGroups";
 import { useUi } from "../hooks/useUi";
-import { getGlobalTop } from "../lib/ranking";
+import { getGlobalRankCount, getGlobalTop } from "../lib/ranking";
 
 export function TeacherTopPage() {
   const { state, currentTeacher } = useAppStore();
@@ -23,6 +23,7 @@ export function TeacherTopPage() {
     .sort((a, b) => b.points - a.points || a.fullName.localeCompare(b.fullName));
 
   const globalTop = getGlobalTop(state, 20);
+  const globalRankCount = getGlobalRankCount(state);
   const normalizedStudentSearch = studentSearch.trim().toLowerCase();
 
   const filteredGlobalTop = useMemo(
@@ -64,6 +65,7 @@ export function TeacherTopPage() {
           title={t("teacher.topAll")}
           items={filteredGlobalTop}
           groups={state.groups}
+          totalCount={globalRankCount}
           itemHref={(item) => `/teacher/student/${item.studentId}`}
         />
 

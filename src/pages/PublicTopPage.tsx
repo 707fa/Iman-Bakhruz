@@ -8,7 +8,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
-import { getGlobalTop } from "../lib/ranking";
+import { getGlobalRankCount, getGlobalTop } from "../lib/ranking";
 
 function maskName(value: string): string {
   const words = value.trim().split(/\s+/).filter(Boolean);
@@ -30,6 +30,7 @@ export function PublicTopPage() {
     fullName: maskName(item.fullName),
     groupId: "",
   }));
+  const globalRankCount = getGlobalRankCount(state);
 
   return (
     <div className="min-h-screen bg-[#f6f6f8] dark:bg-black">
@@ -71,7 +72,7 @@ export function PublicTopPage() {
             </CardContent>
           </Card>
 
-          <RankingList title={t("public.topList")} items={top} showMeta={false} />
+          <RankingList title={t("public.topList")} items={top} showMeta={false} totalCount={globalRankCount} />
 
           <Card>
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
@@ -100,5 +101,4 @@ export function PublicTopPage() {
     </div>
   );
 }
-
 

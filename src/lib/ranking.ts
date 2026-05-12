@@ -5,8 +5,12 @@ export function sortByPoints(items: RankingItem[]): RankingItem[] {
   return [...items].sort((a, b) => b.points - a.points || a.fullName.localeCompare(b.fullName));
 }
 
+function isRankedStudent(student: Student): boolean {
+  return student.isActive !== false && student.isImanStudent !== false;
+}
+
 function buildLiveRanking(state: AppState): RankingItem[] {
-  return state.students.map((student) => ({
+  return state.students.filter(isRankedStudent).map((student) => ({
     studentId: student.id,
     fullName: student.fullName,
     groupId: student.groupId,
@@ -24,6 +28,14 @@ export function getGroupTop(state: AppState, groupId: string, limit = 10): Ranki
   return sortByPoints(buildLiveRanking(state).filter((item) => item.groupId === groupId)).slice(0, limit);
 }
 
+export function getGlobalRankCount(state: AppState): number {
+  return buildLiveRanking(state).length;
+}
+
+export function getGroupRankCount(state: AppState, groupId: string): number {
+  return buildLiveRanking(state).filter((item) => item.groupId === groupId).length;
+}
+
 export function getStudentById(state: AppState, studentId: string): Student | undefined {
   return state.students.find((student) => student.id === studentId);
 }
@@ -38,12 +50,10 @@ export function getGroupPlace(state: AppState, studentId: string, groupId: strin
   ) + 1;
 }
 
-export function getRankTitle(place: number): string {
-  if (!Number.isFinite(place) || place <= 0) return "Unranked";
-  if (place <= 5) return "Hero";
-  if (place <= 10) return "Best";
-  if (place <= 20) return "Not bad";
-  if (place <= 40) return "Good";
-  if (place <= 60) return "Rising";
-  return "Keep going";
+export function getRankTitle(place: number, total = 0): string {
+  if (!Number.isFinite(place) || place <= 0) return "Без рейтинга";
+  if (place === 1) return "Чемпион";
+  if (total > 1 && place === total) return "Лузер";
+  if (place <= 10) return "Топ лучший";
+  return "Старайся";
 }

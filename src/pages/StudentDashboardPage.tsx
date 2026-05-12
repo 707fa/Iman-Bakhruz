@@ -5,7 +5,7 @@ import { UserAvatar } from "../components/UserAvatar";
 import { Badge } from "../components/ui/badge";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
-import { getGlobalPlace, getGroupPlace, getRankTitle } from "../lib/ranking";
+import { getGlobalPlace, getGlobalRankCount, getGroupPlace, getRankTitle } from "../lib/ranking";
 
 export function StudentDashboardPage() {
   const { state, currentStudent } = useAppStore();
@@ -16,7 +16,7 @@ export function StudentDashboardPage() {
   const group = state.groups.find((item) => item.id === currentStudent.groupId);
   const groupPlace = getGroupPlace(state, currentStudent.id, currentStudent.groupId);
   const globalPlace = getGlobalPlace(state, currentStudent.id);
-  const globalRankTitle = getRankTitle(globalPlace);
+  const globalRankTitle = getRankTitle(globalPlace, getGlobalRankCount(state));
   const daysLabel = group ? t(`days.${group.daysPattern}`) : "-";
   const teacher = group ? state.teachers.find((item) => item.id === group.teacherId) : undefined;
 

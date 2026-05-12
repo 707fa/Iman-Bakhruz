@@ -10,7 +10,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { useAppStore } from "../hooks/useAppStore";
 import { useUi } from "../hooks/useUi";
 import { computeStudentProgress } from "../lib/computeProgress";
-import { getGlobalPlace, getGroupPlace, getRankTitle } from "../lib/ranking";
+import { getGlobalPlace, getGlobalRankCount, getGroupPlace, getRankTitle } from "../lib/ranking";
 
 export function StudentPublicProfilePage() {
   const { id } = useParams();
@@ -40,7 +40,7 @@ export function StudentPublicProfilePage() {
 
   const groupPlace = getGroupPlace(state, student.id, student.groupId);
   const globalPlace = getGlobalPlace(state, student.id);
-  const rankTitle = getRankTitle(globalPlace);
+  const rankTitle = getRankTitle(globalPlace, getGlobalRankCount(state));
   const isMe = student.id === currentStudent.id;
 
   return (
@@ -115,5 +115,4 @@ export function StudentPublicProfilePage() {
     </div>
   );
 }
-
 
