@@ -1,4 +1,4 @@
-import { BookOpenCheck, Gamepad2, GraduationCap, Headphones, LayoutDashboard, Megaphone, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
+import { Gamepad2, GraduationCap, LayoutDashboard, Menu, MessageCircle, Mic, Trophy, UsersRound, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
@@ -86,11 +86,7 @@ export function AppLayout() {
   };
 
   const studyNavMap: Record<"student" | "teacher" | "parent", NavItem[]> = {
-    student: [
-      { label: "Homework", href: "/student/homework", icon: BookOpenCheck },
-      { label: "Listening", href: "/student/listening", icon: Headphones },
-      { label: "Announcements", href: "/student/announcements", icon: Megaphone },
-    ],
+    student: [],
     teacher: [],
     parent: [],
   };
@@ -121,7 +117,7 @@ export function AppLayout() {
   const mobileQuickNav = useMemo<NavItem[]>(() => {
     if (session.role === "student") {
       const byHref = new Map<string, NavItem>([...navItems, ...chatItems, ...gameItems, ...studyItems].map((item) => [item.href, item]));
-      const preferredOrder = ["/student", "/student/group", "/student/speaking", "/student/homework", "/student/listening", "/student/top", "/student/games", "/student/ai-chat"];
+      const preferredOrder = ["/student", "/student/group", "/student/speaking", "/student/top", "/student/games", "/student/ai-chat"];
       return preferredOrder.map((href) => byHref.get(href)).filter((item): item is NavItem => Boolean(item));
     }
 

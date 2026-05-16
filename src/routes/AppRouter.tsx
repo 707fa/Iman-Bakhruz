@@ -45,13 +45,7 @@ const NotFoundPage = lazy(() => import("../pages/NotFoundPage").then((module) =>
 const FriendlyChatPage = lazy(() => import("../pages/FriendlyChatPage").then((module) => ({ default: module.FriendlyChatPage })));
 const ImanAiChatPage = lazy(() => import("../pages/ImanAiChatPage").then((module) => ({ default: module.ImanAiChatPage })));
 
-const StudentHomeworkPage = lazy(() => import("../pages/StudentHomeworkPage").then((module) => ({ default: module.StudentHomeworkPage })));
-const ListeningPracticePage = lazy(() => import("../pages/ListeningPracticePage").then((module) => ({ default: module.ListeningPracticePage })));
-const StudentAnnouncementsPage = lazy(() => import("../pages/AnnouncementsPage").then((module) => ({ default: module.StudentAnnouncementsPage })));
-
-const TeacherHomeworkPage = lazy(() => import("../pages/TeacherHomeworkPage").then((module) => ({ default: module.TeacherHomeworkPage })));
 const TeacherAttendancePage = lazy(() => import("../pages/TeacherAttendancePage").then((module) => ({ default: module.TeacherAttendancePage })));
-const TeacherAnnouncementsPage = lazy(() => import("../pages/AnnouncementsPage").then((module) => ({ default: module.TeacherAnnouncementsPage })));
 
 function RootRedirect() {
   const { state, authRestoring } = useAppStore();
@@ -103,9 +97,7 @@ export function AppRouter() {
             <Route path="/student/subscription" element={<StudentSubscriptionPage />} />
             <Route path="/student/tools" element={<Navigate to="/student" replace />} />
             <Route path="/student/chat" element={<FriendlyChatPage />} />
-            <Route path="/student/homework" element={<StudentHomeworkPage />} />
-            <Route path="/student/listening" element={<ListeningPracticePage />} />
-            <Route path="/student/announcements" element={<StudentAnnouncementsPage />} />
+
             <Route path="/student/ai-chat" element={<ImanAiChatPage />} />
             <Route path="/student/support" element={<SupportPage />} />
             <Route path="/student/profile/:id" element={<StudentPublicProfilePage />} />
@@ -124,9 +116,7 @@ export function AppRouter() {
             <Route path="/teacher/ai-chat" element={<ImanAiChatPage />} />
             <Route path="/teacher/support" element={<SupportPage />} />
             <Route path="/teacher/group/:id" element={<TeacherGroupPage />} />
-            <Route path="/teacher/homework/:id" element={<TeacherHomeworkPage />} />
             <Route path="/teacher/attendance/:id" element={<TeacherAttendancePage />} />
-            <Route path="/teacher/announcements/:id" element={<TeacherAnnouncementsPage />} />
             <Route path="/teacher/student/:id" element={<TeacherStudentProfilePage />} />
             <Route path="/teacher/profile" element={<TeacherProfilePage />} />
           </Route>

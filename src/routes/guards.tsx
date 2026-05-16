@@ -1,4 +1,4 @@
-﻿import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAppStore } from "../hooks/useAppStore";
 import { isFullAccessStudent, ONLY_SUPPORT_AND_RATINGS_ENABLED } from "../lib/featureFlags";
 import type { UserRole } from "../types";
@@ -67,7 +67,7 @@ export function AuthGuard({ role }: AuthGuardProps) {
     !isFullAccessStudent(currentStudent?.phone);
 
   if (shouldLockStudentFeatures && isLockedStudentPage(location.pathname)) {
-    return <Navigate to="/student" replace />;
+    return <Navigate to="/student/subscription" replace />;
   }
 
   if (session.role === "student") {
