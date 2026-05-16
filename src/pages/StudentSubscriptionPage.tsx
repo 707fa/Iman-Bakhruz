@@ -117,7 +117,7 @@ export function StudentSubscriptionPage() {
 
       setTimeout(() => {
         setQuickPayStep("idle");
-        navigate("/student", { replace: true });
+        window.location.href = "/student";
       }, 1500);
       return;
     }
