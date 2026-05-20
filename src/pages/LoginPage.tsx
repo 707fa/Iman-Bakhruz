@@ -23,6 +23,7 @@ export function LoginPage() {
 
   const [phone, setPhone] = useState(() => formatUzPhoneInput(""));
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -31,7 +32,7 @@ export function LoginPage() {
 
     setIsSubmitting(true);
     try {
-      const result = await login({ phone, password });
+      const result = await login({ phone, password, rememberMe });
       showToast({ message: t(result.messageKey, result.messageParams), tone: result.ok ? "success" : "error" });
       if (result.ok) {
         navigate("/dashboard", { replace: true });
@@ -133,6 +134,17 @@ export function LoginPage() {
                     placeholder={t("auth.passwordPlaceholder")}
                   />
                 </div>
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3 text-sm text-charcoal/75 transition hover:border-burgundy-300 hover:bg-burgundy-50/50 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-300 dark:hover:border-burgundy-800 dark:hover:bg-burgundy-950/25">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
+                    disabled={isSubmitting}
+                    className="mt-0.5 h-4 w-4 cursor-pointer accent-burgundy-700 disabled:cursor-not-allowed"
+                  />
+                  <span className="leading-5">{t("auth.rememberMe")}</span>
+                </label>
 
                 <Button type="submit" className="h-11 w-full rounded-2xl bg-gradient-to-b from-burgundy-700 via-burgundy-800 to-burgundy-900 text-white shadow-soft hover:from-burgundy-600 hover:via-burgundy-700 hover:to-burgundy-800" disabled={isSubmitting}>
                   <LogIn className="mr-2 h-4 w-4" />

@@ -106,6 +106,7 @@ export interface AppState {
 export interface LoginPayload {
   phone: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterPayload {

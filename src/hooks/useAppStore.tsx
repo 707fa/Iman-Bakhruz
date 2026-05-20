@@ -992,6 +992,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     const normalizedPayload: LoginPayload = {
       phone: toPhone(payload.phone),
       password: payload.password.trim(),
+      rememberMe: Boolean(payload.rememberMe),
     };
 
     if (!normalizedPayload.phone) {
@@ -1001,12 +1002,12 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     if (DATA_PROVIDER_MODE === "api") {
       try {
         const auth = await platformApi.login(normalizedPayload);
-        setApiToken(auth.token);
+        setApiToken(auth.token, normalizedPayload.rememberMe);
         if (auth.refreshToken) {
-          setApiRefreshToken(auth.refreshToken);
+          setApiRefreshToken(auth.refreshToken, normalizedPayload.rememberMe);
         }
         const nextSession = buildSessionFromAuth(auth);
-        setPersistedAuthSession(nextSession);
+        setPersistedAuthSession(nextSession, normalizedPayload.rememberMe);
         setAuthRestoring(false);
         // Fast first paint: open workspace immediately, sync full state in background.
         setState((prev) => ({ ...apiShellState(nextSession), groups: prev.groups.length > 0 ? prev.groups : initialState.groups }));
@@ -1018,7 +1019,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
               resolveSessionFromRemote(auth, remote),
               auth.subscription ?? remote.subscription,
             );
-            setPersistedAuthSession(syncedSession);
+            setPersistedAuthSession(syncedSession, normalizedPayload.rememberMe);
             setState((prev) => withRemoteState(prev, remote, syncedSession));
           } catch (bgError) {
             console.warn("[AppStore] background state sync failed:", bgError);

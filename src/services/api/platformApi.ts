@@ -593,7 +593,11 @@ export const platformApi = {
   async login(payload: LoginPayload) {
     const response = await apiRequest<unknown>("/auth/login", {
       method: "POST",
-      body: payload,
+      body: {
+        phone: payload.phone,
+        password: payload.password,
+        remember_me: Boolean(payload.rememberMe),
+      },
       timeoutMs: AUTH_REQUEST_TIMEOUT_MS,
     });
     return normalizeAuthResponse(response);
