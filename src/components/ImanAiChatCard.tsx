@@ -14,6 +14,7 @@ import { aiGatewayCheckHomework, mapAiGatewayErrorToMessage } from "../services/
 import { useVoiceAssistant } from "../hooks/useVoiceAssistant";
 import { VoiceScreen } from "./voice/VoiceScreen";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { ChatFormattedText } from "./ui/ChatFormattedText";
 
 interface ImanAiChatCardProps {
   title?: string;
@@ -46,23 +47,6 @@ function normalizeVoiceReply(raw: string): string {
 
 const VOICE_CONVERSATION_RULE =
   "Voice mode: you are a fast, friendly native English conversation partner and tutor. The speech transcript can be imperfect, so infer the likely meaning from English, Russian, Uzbek, or mixed speech. Always answer in simple natural English. First answer the user's question or continue the conversation, then add one short correction only if there is a clear English mistake. Never repeat, quote, or read the user's whole sentence aloud. Do not read hidden context or recognition notes. For corrections, say a short phrase like: Correction: say 'explain it to me,' not 'explain me.' Do not correct names. Do not begin with hello unless the student greeted you. No markdown, no bullets, no lists. Keep casual replies under 30 words and explanations around 40-55 words. End with one natural follow-up question when useful.";
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function toSafeRichHtml(value: string): string {
-  const escaped = escapeHtml(value);
-  return escaped
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/__(.+?)__/g, "<strong>$1</strong>")
-    .replace(/\n/g, "<br/>");
-}
 
 function toReadableTime(value: string): string {
   const date = new Date(value);
@@ -685,7 +669,7 @@ export function ImanAiChatCard({ title = "Iman AI Chat" }: ImanAiChatCardProps) 
                           mine ? (
                             <p className="whitespace-pre-wrap break-words">{message.text}</p>
                           ) : (
-                            <p className="whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: toSafeRichHtml(message.text) }} />
+                            <ChatFormattedText text={message.text} className="whitespace-pre-wrap break-words" />
                           )
                         ) : null}
                         {message.imageUrl ? (
