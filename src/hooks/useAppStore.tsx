@@ -204,29 +204,8 @@ function syncRankingsWithStudents(state: AppState): AppState {
   };
 }
 
-function mergeById<T extends { id: string }>(current: T[], seed: T[]): T[] {
-  const map = new Map<string, T>();
-  for (const item of seed) {
-    map.set(item.id, item);
-  }
-  for (const item of current) {
-    map.set(item.id, item);
-  }
-  return [...map.values()];
-}
-
 function withSeedData(state: AppState): AppState {
-  const merged: AppState = {
-    ...state,
-    students: mergeById(state.students, initialState.students).map(ensureStudentInviteCode),
-    teachers: mergeById(state.teachers, initialState.teachers),
-    parents: mergeById(state.parents, initialState.parents),
-    groups: mergeById(state.groups, initialState.groups),
-    ratingLogs: mergeById(state.ratingLogs, initialState.ratingLogs),
-    rankings: state.rankings,
-  };
-
-  return syncRankingsWithStudents(merged);
+  return syncRankingsWithStudents(state);
 }
 
 function apiShellState(session: AuthSession | null = null): AppState {
@@ -234,7 +213,7 @@ function apiShellState(session: AuthSession | null = null): AppState {
     students: [],
     teachers: [],
     parents: [],
-    groups: initialState.groups,
+    groups: [],
     rankings: [],
     ratingLogs: [],
     session,
@@ -302,6 +281,8 @@ function readState(): AppState {
     for (const key of LEGACY_STORAGE_KEYS) {
       window.localStorage.removeItem(key);
     }
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(TOP5_GRANTS_KEY);
   }
   const hasApiAuth = hasStoredApiAuth();
   const persistedApiSession = hasApiAuth ? readPersistedApiSession() : null;
@@ -315,7 +296,7 @@ function readState(): AppState {
         students: toArrayOrFallback(parsed.students, []),
         teachers: toArrayOrFallback(parsed.teachers, []),
         parents: toArrayOrFallback(parsed.parents, []),
-        groups: toArrayOrFallback(parsed.groups, initialState.groups),
+        groups: toArrayOrFallback(parsed.groups, []),
         rankings: toArrayOrFallback(parsed.rankings, []),
         ratingLogs: toArrayOrFallback(parsed.ratingLogs, []),
         session: hasApiAuth && isAuthSession(parsed.session) ? parsed.session : persistedApiSession,
@@ -323,15 +304,15 @@ function readState(): AppState {
     }
 
     const normalized: AppState = {
-      students: toArrayOrFallback(parsed.students, initialState.students).map(ensureStudentInviteCode),
-      teachers: toArrayOrFallback(parsed.teachers, initialState.teachers),
-      parents: toArrayOrFallback(parsed.parents, initialState.parents),
-      groups: toArrayOrFallback(parsed.groups, initialState.groups),
-      rankings: toArrayOrFallback(parsed.rankings, initialState.rankings),
-      ratingLogs: toArrayOrFallback(parsed.ratingLogs, initialState.ratingLogs),
+      students: toArrayOrFallback(parsed.students, []).map(ensureStudentInviteCode),
+      teachers: toArrayOrFallback(parsed.teachers, []),
+      parents: toArrayOrFallback(parsed.parents, []),
+      groups: toArrayOrFallback(parsed.groups, []),
+      rankings: toArrayOrFallback(parsed.rankings, []),
+      ratingLogs: toArrayOrFallback(parsed.ratingLogs, []),
       session: isAuthSession(parsed.session) ? parsed.session : null,
     };
-    return withSeedData(normalized);
+    return normalized;
   } catch {
     return DATA_PROVIDER_MODE === "api" ? apiShellState(persistedApiSession) : initialState;
   }
@@ -525,7 +506,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     if (!storedToken && !storedRefreshToken) {
       clearPersistedAuthSession();
       setAuthRestoring(false);
-      setState((prev) => ({ ...apiShellState(null), groups: prev.groups.length > 0 ? prev.groups : initialState.groups }));
+      setState((prev) => ({ ...apiShellState(null), groups: prev.groups.length > 0 ? prev.groups : [] }));
       return;
     }
 
@@ -578,7 +559,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
             }
           }
           clearApiToken();
-          setState((prev) => ({ ...apiShellState(null), groups: prev.groups.length > 0 ? prev.groups : initialState.groups }));
+          setState((prev) => ({ ...apiShellState(null), groups: prev.groups.length > 0 ? prev.groups : [] }));
           return;
         }
 
@@ -1010,7 +991,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         setPersistedAuthSession(nextSession, normalizedPayload.rememberMe);
         setAuthRestoring(false);
         // Fast first paint: open workspace immediately, sync full state in background.
-        setState((prev) => ({ ...apiShellState(nextSession), groups: prev.groups.length > 0 ? prev.groups : initialState.groups }));
+        setState((prev) => ({ ...apiShellState(nextSession), groups: prev.groups.length > 0 ? prev.groups : [] }));
 
         void (async () => {
           try {
