@@ -1,4 +1,4 @@
-import type { AppState, Group, Parent, RankingItem, Student, Teacher } from "../types";
+import type { AppState, Group } from "../types";
 
 export const groups: Group[] = [
   { id: "g_101", title: "Pre-Intermediate Intensive", time: "09:00", daysPattern: "mwf", teacherId: "t_3" },
@@ -14,70 +14,12 @@ export const groups: Group[] = [
   { id: "g_205", title: "Upper-Intermediate", time: "18:30", daysPattern: "tts", teacherId: "t_3" },
 ];
 
-export const teachers: Teacher[] = [
-  {
-    id: "t_2",
-    fullName: "Demo Teacher",
-    phone: "+998990000001",
-    groupIds: ["g_104", "g_105", "g_106", "g_203", "g_204", "g_205"],
-  },
-  {
-    id: "t_3",
-    fullName: "Iman | Bekhruz",
-    phone: "+998990000002",
-    groupIds: ["g_101", "g_102", "g_103", "g_104", "g_105", "g_106", "g_201", "g_202", "g_203", "g_204", "g_205"],
-  },
-];
-
-export const students: Student[] = [
-  {
-    id: "s_1",
-    fullName: "Demo Student",
-    phone: "+998990000011",
-    groupId: "g_104",
-    parentInviteCode: "PARENT-S1",
-    points: 0,
-    isPaid: true,
-    paidUntil: "2035-01-01T00:00:00+05:00",
-  },
-  {
-    id: "s_3",
-    fullName: "Alex Student",
-    phone: "+998990000012",
-    groupId: "g_104",
-    parentInviteCode: "PARENT-S2",
-    points: 0,
-    isPaid: true,
-    paidUntil: "2035-01-01T00:00:00+05:00",
-  },
-  {
-    id: "s_2",
-    fullName: "Jake Student",
-    phone: "+998990000013",
-    groupId: "g_104",
-    parentInviteCode: "PARENT-S3",
-    points: 0,
-    isPaid: true,
-    paidUntil: "2035-01-01T00:00:00+05:00",
-  },
-];
-
-export const parents: Parent[] = [];
-
-export const rankings: RankingItem[] = students.map((student) => ({
-  studentId: student.id,
-  fullName: student.fullName,
-  groupId: student.groupId,
-  points: student.points,
-  avatarUrl: student.avatarUrl,
-}));
-
 export const initialState: AppState = {
-  students,
-  teachers,
-  parents,
+  students: [],
+  teachers: [],
+  parents: [],
   groups,
-  rankings,
+  rankings: [],
   ratingLogs: [],
   session: null,
 };

@@ -1341,11 +1341,25 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
 
     try {
       const remote = await platformApi.getState(token);
-      setState((prev) => withRemoteState(prev, remote, prev.session));
+      setState((prev) => {
+        if (!prev.session) return prev;
+        return withRemoteState(prev, remote, prev.session);
+      });
     } catch (refreshError) {
       console.warn("[AppStore] state refresh failed:", refreshError);
     }
   }
+
+  useEffect(() => {
+    if (DATA_PROVIDER_MODE !== "api") return;
+    if (!state.session) return;
+
+    const interval = setInterval(() => {
+      void refreshState();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [DATA_PROVIDER_MODE, state.session]);
 
   const value = useMemo<StoreValue>(
     () => ({

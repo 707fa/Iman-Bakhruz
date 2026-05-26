@@ -42,7 +42,7 @@ export function AppLayout() {
   const location = useLocation();
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { state, currentStudent, currentTeacher, currentParent, logout } = useAppStore();
+  const { state, currentStudent, currentStudentAccess, currentTeacher, currentParent, logout } = useAppStore();
   const { t } = useUi();
   const session = state.session;
 
@@ -91,7 +91,7 @@ export function AppLayout() {
     parent: [],
   };
 
-  const fullAccessStudent = session.role === "student" && isFullAccessStudent(currentStudent?.phone);
+  const fullAccessStudent = session.role === "student" && (isFullAccessStudent(currentStudent?.phone, state.session?.isPaid) || currentStudentAccess?.hasFullAccess === true);
   if (ONLY_SUPPORT_AND_RATINGS_ENABLED && session.role === "student" && !fullAccessStudent) {
     mainNavMap.student = [
       { label: t("nav.student"), href: "/student", icon: LayoutDashboard, exact: true },

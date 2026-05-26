@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { groups as scheduleGroups } from "../data/mockData";
 import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { useUi } from "../hooks/useUi";
@@ -30,11 +29,7 @@ export function RegisterPage() {
   const [isImanStudent, setIsImanStudent] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const allowedGroupIds = useMemo(() => new Set(scheduleGroups.map((group) => group.id)), []);
-  const registrationGroups = useMemo(() => {
-    const filtered = state.groups.filter((group) => allowedGroupIds.has(group.id));
-    return filtered.length > 0 ? filtered : state.groups;
-  }, [state.groups, allowedGroupIds]);
+  const registrationGroups = useMemo(() => state.groups, [state.groups]);
 
   const dayPatterns = useMemo(
     () => Array.from(new Set(registrationGroups.map((group) => group.daysPattern))) as GroupDaysPattern[],

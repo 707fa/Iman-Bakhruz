@@ -101,24 +101,7 @@ export function StudentSubscriptionPage() {
 
   async function handleQuickPay(provider: "payme" | "click") {
     if (!isApiMode || !token) {
-      setPayProvider(provider);
-      setQuickPayStep("processing");
-
-      await new Promise((r) => setTimeout(r, 2000));
-
-      window.localStorage.setItem("iman-quickpay-mock-v1", JSON.stringify({
-        paid: true,
-        paidAt: new Date().toISOString(),
-        provider,
-      }));
-
-      setQuickPayStep("success");
-      showToast({ tone: "success", message: "Оплата прошла успешно! Доступ открыт." });
-
-      setTimeout(() => {
-        setQuickPayStep("idle");
-        window.location.href = "/student";
-      }, 1500);
+      showToast({ tone: "error", message: t("pay.providerUnavailable") });
       return;
     }
 
@@ -209,10 +192,7 @@ export function StudentSubscriptionPage() {
     }
   }
 
-  const mockPaid = typeof window !== "undefined"
-    ? (() => { try { return JSON.parse(window.localStorage.getItem("iman-quickpay-mock-v1") ?? "null")?.paid; } catch { return false; } })()
-    : false;
-  const effectivePaid = isPaid || mockPaid;
+  const effectivePaid = isPaid;
 
   return (
     <div className="space-y-6">

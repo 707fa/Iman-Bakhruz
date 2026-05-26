@@ -46,7 +46,7 @@ interface AuthGuardProps {
 
 export function AuthGuard({ role }: AuthGuardProps) {
   const location = useLocation();
-  const { state, currentStudent, authRestoring } = useAppStore();
+  const { state, currentStudent, currentStudentAccess, authRestoring } = useAppStore();
   const session = state.session;
 
   if (!session && authRestoring) {
@@ -61,19 +61,16 @@ export function AuthGuard({ role }: AuthGuardProps) {
     return <Navigate to={roleHome(session.role)} replace />;
   }
 
+  const hasFullAccess = isFullAccessStudent(currentStudent?.phone, session.isPaid) ||
+    currentStudentAccess?.hasFullAccess === true;
+
   const shouldLockStudentFeatures =
     ONLY_SUPPORT_AND_RATINGS_ENABLED &&
     session.role === "student" &&
-    !isFullAccessStudent(currentStudent?.phone);
+    !hasFullAccess;
 
   if (shouldLockStudentFeatures && isLockedStudentPage(location.pathname)) {
     return <Navigate to="/student/subscription" replace />;
-  }
-
-  if (session.role === "student") {
-    if (isFullAccessStudent(currentStudent?.phone)) {
-      return <Outlet />;
-    }
   }
 
   return <Outlet />;
