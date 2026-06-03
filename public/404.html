@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>404 — Страница не найдена</title>
+  <style>
+    :root{--burgundy:#7b1220;--bg:#fff}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;display:flex;align-items:center;justify-content:center}
+    .card{max-width:520px;text-align:center;padding:40px;border-radius:16px}
+    .code{font-size:84px;font-weight:800;color:var(--burgundy);margin:0}
+    h1{font-size:20px;margin:8px 0 16px}
+    p{color:#374151;margin:0 0 20px}
+    .btn{display:inline-flex;align-items:center;gap:10px;background:var(--burgundy);color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600}
+    .btn:hover{opacity:0.9}
+    .emoji{font-size:28px;margin-left:6px}
+    @media (prefers-color-scheme:dark){:root{--bg:#000}p{color:#cbd5e1}}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <p class="code">404</p>
+    <h1>Страница не найдена</h1>
+    <p>К сожалению, запрошенная страница не существует или была перемещена.</p>
+    <a class="btn" href="/">Вернуться на главную <span class="emoji">🙂</span></a>
+  </div>
+</body>
+</html>
