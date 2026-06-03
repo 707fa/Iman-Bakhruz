@@ -4,30 +4,35 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>404 — Страница не найдена</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    :root{--burgundy:#7b1220;--bg:#fff}
+    :root{--burgundy:#7b1220;--bg:#f8fafc}
     html,body{height:100%}
-    body{margin:0;background:var(--bg);font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;display:flex;align-items:center;justify-content:center}
-    .card{max-width:520px;text-align:center;padding:40px;border-radius:16px}
-    .top-emoji{font-size:48px;margin-bottom:8px}
-    .code{font-size:84px;font-weight:800;color:var(--burgundy);margin:0}
-    h1{font-size:20px;margin:8px 0 16px}
-    p{color:#374151;margin:0 0 20px}
-    .owner{margin-top:14px;color:#6b7280;font-weight:600}
-    .btn{display:inline-flex;align-items:center;gap:10px;background:var(--burgundy);color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600}
-    .btn:hover{opacity:0.9}
-    .emoji{font-size:28px;margin-left:6px}
-    @media (prefers-color-scheme:dark){:root{--bg:#000}p{color:#cbd5e1}}
+    body{margin:0;background:linear-gradient(180deg,#fbfbfd 0%,#f3f4f6 100%);font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{max-width:680px;width:100%;text-align:center;padding:48px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.8),rgba(255,255,255,0.95));box-shadow:0 10px 30px rgba(15,23,42,0.08);border:1px solid rgba(15,23,42,0.03)}
+    .top-emoji{font-size:64px;margin-bottom:6px;display:inline-block;transform:rotate(-8deg)}
+    .code{font-size:96px;line-height:1;color:var(--burgundy);font-weight:800;margin:8px 0}
+    h1{font-size:22px;margin:6px 0 12px;color:#111827}
+    p{color:#4b5563;margin:0 0 20px;font-size:15px}
+    .owner{margin-top:14px;color:#6b7280;font-weight:700;letter-spacing:0.6px}
+    .btn{display:inline-flex;align-items:center;gap:10px;background:var(--burgundy);color:#fff;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:700;transition:transform .12s ease,box-shadow .12s ease}
+    .btn:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(123,18,32,0.18)}
+    .emoji{font-size:22px;margin-left:8px}
+    @media (prefers-color-scheme:dark){:root{--bg:#0b1020}body{background:linear-gradient(180deg,#06060a,#071127)}.card{background:linear-gradient(180deg,rgba(0,0,0,0.45),rgba(0,0,0,0.6));border:1px solid rgba(255,255,255,0.04)}h1,p{color:#e6eef8}.owner{color:#9aa6b2}}
+    @media (max-width:520px){.card{padding:28px}.code{font-size:64px}}
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="top-emoji">🗡️</div>
+    <div class="top-emoji" aria-hidden>🗡️</div>
     <p class="code">404</p>
     <h1>Страница не найдена</h1>
-    <p>К сожалению, запрошенная страница не существует или была удалена.</p>
+    <p>Запрошенная страница не найдена или была перемещена. Попробуйте вернуться на главную.</p>
+    <div style="margin:22px 0">
+      <a class="btn" href="/">На главную <span class="emoji">🙂</span></a>
+    </div>
     <div class="owner">axrorovvv7</div>
-    <a class="btn" href="/">Повторить попытку <span class="emoji">🙂</span></a>
   </div>
 </body>
 </html>
