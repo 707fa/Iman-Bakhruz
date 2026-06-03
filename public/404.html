@@ -9,9 +9,11 @@
     html,body{height:100%}
     body{margin:0;background:var(--bg);font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;display:flex;align-items:center;justify-content:center}
     .card{max-width:520px;text-align:center;padding:40px;border-radius:16px}
+    .top-emoji{font-size:48px;margin-bottom:8px}
     .code{font-size:84px;font-weight:800;color:var(--burgundy);margin:0}
     h1{font-size:20px;margin:8px 0 16px}
     p{color:#374151;margin:0 0 20px}
+    .owner{margin-top:14px;color:#6b7280;font-weight:600}
     .btn{display:inline-flex;align-items:center;gap:10px;background:var(--burgundy);color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600}
     .btn:hover{opacity:0.9}
     .emoji{font-size:28px;margin-left:6px}
@@ -20,9 +22,11 @@
 </head>
 <body>
   <div class="card">
+    <div class="top-emoji">🔪</div>
     <p class="code">404</p>
     <h1>Страница не найдена</h1>
     <p>К сожалению, запрошенная страница не существует или была перемещена.</p>
+    <div class="owner">axrorovvv7</div>
     <a class="btn" href="/">Вернуться на главную <span class="emoji">🙂</span></a>
   </div>
 </body>
