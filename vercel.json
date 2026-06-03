@@ -52,13 +52,6 @@
     { "source": "/admin/(.*)", "destination": "https://result-backend-ynme.onrender.com/admin/$1" },
     { "source": "/static/(.*)", "destination": "https://result-backend-ynme.onrender.com/static/$1" },
     { "source": "/(.*)", "destination": "/" }
-  ],
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "destination": "/404",
-      "permanent": false
-    }
   ]
 }
 
